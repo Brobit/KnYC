@@ -4,8 +4,11 @@
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use knyc_analyzer::{intake, scan};
+use knyc_analyzer::{graph, intake, scan};
+use knyc_runner::check::run_check;
+use knyc_runner::run::RunSpec;
 use std::path::PathBuf;
+use std::time::Duration;
 
 #[derive(Parser)]
 #[command(
@@ -32,6 +35,35 @@ enum Commands {
         #[arg(long)]
         no_toolchains: bool,
     },
+    /// Code graph: imports, exports, symbols, dependencies, cycles and layers (graph.json).
+    Graph { folder: PathBuf },
+    /// Run a command as a check: timeout, process-tree kill, optional Jest/Vitest JSON report.
+    /// Example: knyc-sys run --cwd app --report r.json -- npx vitest run --reporter=json --outputFile=r.json
+    Run {
+        /// Working directory.
+        #[arg(long)]
+        cwd: PathBuf,
+        #[arg(long, default_value_t = 60_000)]
+        timeout_ms: u64,
+        /// Extra environment variable, as NAME=value (repeatable).
+        #[arg(long = "env", value_parser = parse_env)]
+        env: Vec<(String, String)>,
+        /// Text sent to the command's stdin.
+        #[arg(long)]
+        stdin: Option<String>,
+        /// Jest/Vitest JSON report the command writes, relative to --cwd.
+        #[arg(long)]
+        report: Option<PathBuf>,
+        /// The command line, after `--`.
+        #[arg(last = true, required = true)]
+        command: Vec<String>,
+    },
+}
+
+fn parse_env(raw: &str) -> Result<(String, String), String> {
+    raw.split_once('=')
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .ok_or_else(|| format!("expected NAME=value, got {raw}"))
 }
 
 fn print(value: &impl serde::Serialize, pretty: bool) -> Result<()> {
@@ -62,5 +94,20 @@ fn main() -> Result<()> {
             )?,
             cli.pretty,
         ),
+        Commands::Graph { folder } => print(&graph::build(&folder)?, cli.pretty),
+        Commands::Run {
+            cwd,
+            timeout_ms,
+            env,
+            stdin,
+            report,
+            command,
+        } => {
+            let mut spec = RunSpec::new(command.join(" "), cwd);
+            spec.timeout = Duration::from_millis(timeout_ms);
+            spec.env = env.into_iter().collect();
+            spec.stdin = stdin;
+            print(&run_check(&spec, report), cli.pretty)
+        }
     }
 }
