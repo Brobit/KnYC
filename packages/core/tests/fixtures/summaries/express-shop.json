@@ -1,0 +1,699 @@
+{
+  "version": 1,
+  "files": [
+    {
+      "path": "src/auth/password.ts",
+      "role": "Password hashing and verification",
+      "summary": "Provides cryptographic password hashing using Node's scrypt algorithm with salt, and timing-safe verification to prevent timing attacks. Used to securely store and validate user passwords.",
+      "keySymbols": [
+        {
+          "name": "hashPassword",
+          "purpose": "Hash a plaintext password with a random salt and return the stored format"
+        },
+        {
+          "name": "verifyPassword",
+          "purpose": "Compare a plaintext password against a stored hash using timing-safe comparison"
+        },
+        {
+          "name": "scryptAsync",
+          "purpose": "Promisified scrypt function for key derivation"
+        },
+        {
+          "name": "KEY_LENGTH",
+          "purpose": "Constant defining the byte length of derived keys"
+        }
+      ]
+    },
+    {
+      "path": "src/config.ts",
+      "role": "Application configuration loader",
+      "summary": "Defines the Config interface and loads configuration values from environment variables with sensible defaults. Controls server port, JWT settings, and logging behavior.",
+      "keySymbols": [
+        {
+          "name": "Config",
+          "purpose": "Interface defining all application configuration properties"
+        },
+        {
+          "name": "loadConfig",
+          "purpose": "Load configuration from environment variables with fallback defaults"
+        }
+      ]
+    },
+    {
+      "path": "src/orders/order.ts",
+      "role": "Order data model and state machine",
+      "summary": "Defines order entities, line items, and valid status transitions. Models the order lifecycle from paid through delivery, with cancellation allowed only before shipping.",
+      "keySymbols": [
+        {
+          "name": "OrderStatus",
+          "purpose": "Union type representing the four possible order states"
+        },
+        {
+          "name": "Order",
+          "purpose": "Interface for a complete order including items, totals, and payment reference"
+        },
+        {
+          "name": "OrderLine",
+          "purpose": "Interface for a single product line within an order"
+        },
+        {
+          "name": "transitions",
+          "purpose": "State machine map defining which status changes are allowed from each state"
+        }
+      ]
+    },
+    {
+      "path": "src/payments/payment-provider.ts",
+      "role": "Payment processing interface and mock implementation",
+      "summary": "Defines the PaymentProvider interface for processing charges and refunds, and provides a mock implementation for testing with predictable test card tokens.",
+      "keySymbols": [
+        {
+          "name": "PaymentProvider",
+          "purpose": "Interface defining charge and refund methods for payment processing"
+        },
+        {
+          "name": "PaymentResult",
+          "purpose": "Interface for charge responses containing success status and optional reference or error reason"
+        },
+        {
+          "name": "MockPaymentProvider",
+          "purpose": "Test implementation of PaymentProvider with deterministic behavior"
+        },
+        {
+          "name": "MockPaymentProvider.charge",
+          "purpose": "Simulate payment charges with test card tokens"
+        },
+        {
+          "name": "MockPaymentProvider.refund",
+          "purpose": "Track refunded payment references"
+        }
+      ]
+    },
+    {
+      "path": "src/products/product.ts",
+      "role": "Product data model",
+      "summary": "Defines the Product interface representing items available for purchase, including pricing, inventory, and availability status.",
+      "keySymbols": [
+        {
+          "name": "Product",
+          "purpose": "Interface for a product with id, name, price, stock, category, and active status"
+        }
+      ]
+    },
+    {
+      "path": "src/shared/errors.ts",
+      "role": "HTTP error classes and Express middleware",
+      "summary": "Defines HttpError exception class and error factory functions for common HTTP status codes. Provides Express middleware to handle errors and missing routes.",
+      "keySymbols": [
+        {
+          "name": "HttpError",
+          "purpose": "Exception class wrapping HTTP status, message, and optional details"
+        },
+        {
+          "name": "badRequest",
+          "purpose": "Factory for 400 Bad Request errors"
+        },
+        {
+          "name": "unauthorized",
+          "purpose": "Factory for 401 Unauthorized errors"
+        },
+        {
+          "name": "notFound",
+          "purpose": "Factory for 404 Not Found errors"
+        },
+        {
+          "name": "errorHandler",
+          "purpose": "Express error middleware converting HttpError to JSON responses"
+        }
+      ]
+    },
+    {
+      "path": "src/shared/ids.ts",
+      "role": "ID generation utilities",
+      "summary": "Provides ID generation strategies: random UUIDs for production and deterministic sequential IDs for testing.",
+      "keySymbols": [
+        {
+          "name": "IdGenerator",
+          "purpose": "Type for a function that generates string identifiers"
+        },
+        {
+          "name": "uuid",
+          "purpose": "Generate cryptographically random UUIDs"
+        },
+        {
+          "name": "sequentialIds",
+          "purpose": "Create a deterministic ID generator for reproducible test data"
+        }
+      ]
+    },
+    {
+      "path": "src/shared/logger.ts",
+      "role": "Request logging middleware",
+      "summary": "Provides Express middleware that logs HTTP requests with method, URL, status code, and response time in milliseconds.",
+      "keySymbols": [
+        {
+          "name": "requestLogger",
+          "purpose": "Express middleware that logs request method, path, status, and duration on response finish"
+        }
+      ]
+    },
+    {
+      "path": "src/shared/pagination.ts",
+      "role": "Pagination utility and schema validation",
+      "summary": "Defines schemas and helpers for paginating lists of items. Provides a Zod schema for validating pagination parameters (page and pageSize), a Page interface describing a paginated result set, and a paginate function that slices items and calculates total pages.",
+      "keySymbols": [
+        {
+          "name": "paginationSchema",
+          "purpose": "Zod schema that validates and coerces pagination parameters with defaults"
+        },
+        {
+          "name": "Pagination",
+          "purpose": "Type alias for validated pagination parameters (page and pageSize)"
+        },
+        {
+          "name": "Page",
+          "purpose": "Generic interface representing a single page of paginated results with metadata"
+        },
+        {
+          "name": "paginate",
+          "purpose": "Function that slices items array and returns a Page object with pagination metadata"
+        }
+      ]
+    },
+    {
+      "path": "src/users/user.ts",
+      "role": "User data model and type definitions",
+      "summary": "Defines the User interface and related types representing the application's user entity. Includes role management (customer vs admin), authentication credentials, and a utility to convert users to public profile format by removing sensitive password hashes.",
+      "keySymbols": [
+        {
+          "name": "Role",
+          "purpose": "Union type defining the two user roles: customer and admin"
+        },
+        {
+          "name": "User",
+          "purpose": "Core user entity interface with ID, email, name, role, password hash, and creation timestamp"
+        },
+        {
+          "name": "PublicUser",
+          "purpose": "User type excluding passwordHash for safe public exposure"
+        },
+        {
+          "name": "toPublicUser",
+          "purpose": "Function that converts a User to PublicUser by removing the passwordHash field"
+        }
+      ]
+    },
+    {
+      "path": "src/auth/tokens.ts",
+      "role": "JWT token service for authentication",
+      "summary": "Provides token management using JSON Web Tokens. The TokenService class signs tokens with user identity and role, and verifies tokens while safely handling expiration and tampering detection.",
+      "keySymbols": [
+        {
+          "name": "TokenPayload",
+          "purpose": "Interface defining JWT payload structure with user sub (subject) and role"
+        },
+        {
+          "name": "TokenService",
+          "purpose": "Class that manages JWT signing and verification with configurable secret and expiration"
+        },
+        {
+          "name": "TokenService.sign",
+          "purpose": "Method that creates a signed JWT token from a TokenPayload"
+        },
+        {
+          "name": "TokenService.verify",
+          "purpose": "Method that validates and decodes a JWT token, returning null for invalid or expired tokens"
+        }
+      ]
+    },
+    {
+      "path": "src/orders/orders.repository.ts",
+      "role": "In-memory orders data store",
+      "summary": "Manages orders in memory using a Map. Provides methods to save, retrieve by ID, find all orders for a specific user (sorted by newest first), and retrieve all orders.",
+      "keySymbols": [
+        {
+          "name": "OrdersRepository",
+          "purpose": "Class providing in-memory storage and retrieval operations for orders"
+        },
+        {
+          "name": "OrdersRepository.byId",
+          "purpose": "Private Map that stores orders indexed by their unique ID"
+        },
+        {
+          "name": "OrdersRepository.save",
+          "purpose": "Method that stores an order in the repository and returns it"
+        },
+        {
+          "name": "OrdersRepository.findById",
+          "purpose": "Method that retrieves a single order by ID"
+        },
+        {
+          "name": "OrdersRepository.findByUser",
+          "purpose": "Method that retrieves all orders for a user, sorted newest first"
+        }
+      ]
+    },
+    {
+      "path": "src/products/products.repository.ts",
+      "role": "In-memory products data store",
+      "summary": "Manages products in memory using a Map. Provides basic CRUD operations to save products, find by ID, and retrieve all products.",
+      "keySymbols": [
+        {
+          "name": "ProductsRepository",
+          "purpose": "Class providing in-memory storage and retrieval operations for products"
+        },
+        {
+          "name": "ProductsRepository.byId",
+          "purpose": "Private Map that stores products indexed by their unique ID"
+        },
+        {
+          "name": "ProductsRepository.save",
+          "purpose": "Method that stores a product in the repository and returns it"
+        },
+        {
+          "name": "ProductsRepository.findById",
+          "purpose": "Method that retrieves a single product by ID"
+        },
+        {
+          "name": "ProductsRepository.all",
+          "purpose": "Method that retrieves all products from the repository"
+        }
+      ]
+    },
+    {
+      "path": "src/products/products.schemas.ts",
+      "role": "Product data validation schemas",
+      "summary": "Defines Zod validation schemas for product operations including creation, updates, and listing queries. Handles product fields like name, description, pricing, stock, and category with appropriate constraints and transformations (lowercase category, price in cents).",
+      "keySymbols": [
+        {
+          "name": "createProductSchema",
+          "purpose": "Zod schema for validating new product creation with required fields and constraints"
+        },
+        {
+          "name": "updateProductSchema",
+          "purpose": "Zod schema for validating product updates with all fields made optional and active flag"
+        },
+        {
+          "name": "listProductsSchema",
+          "purpose": "Zod schema for validating product list query parameters including pagination, search, category, and sort"
+        },
+        {
+          "name": "CreateProductInput",
+          "purpose": "Type inferred from createProductSchema for creating products"
+        },
+        {
+          "name": "ListProductsQuery",
+          "purpose": "Type inferred from listProductsSchema for querying product lists"
+        }
+      ]
+    },
+    {
+      "path": "src/shared/validate.ts",
+      "role": "Input validation utility for API requests",
+      "summary": "Provides a reusable validate function that parses untrusted input with Zod schemas and converts validation failures into readable 400 Bad Request errors with field-level error messages.",
+      "keySymbols": [
+        {
+          "name": "validate",
+          "purpose": "Function that safely parses input with a Zod schema and throws formatted BadRequest errors on validation failure"
+        }
+      ]
+    },
+    {
+      "path": "src/users/users.repository.ts",
+      "role": "In-memory users data store",
+      "summary": "Manages users in memory using a Map. Provides methods to save users, retrieve by ID or email (with case-insensitive email lookup), and count total users.",
+      "keySymbols": [
+        {
+          "name": "UsersRepository",
+          "purpose": "Class providing in-memory storage and retrieval operations for users"
+        },
+        {
+          "name": "UsersRepository.byId",
+          "purpose": "Private Map that stores users indexed by their unique ID"
+        },
+        {
+          "name": "UsersRepository.save",
+          "purpose": "Method that stores a user in the repository and returns it"
+        },
+        {
+          "name": "UsersRepository.findById",
+          "purpose": "Method that retrieves a single user by ID"
+        },
+        {
+          "name": "UsersRepository.findByEmail",
+          "purpose": "Method that retrieves a user by email with case-insensitive matching"
+        },
+        {
+          "name": "UsersRepository.count",
+          "purpose": "Method that returns the total number of users in the repository"
+        }
+      ]
+    },
+    {
+      "path": "src/auth/auth.middleware.ts",
+      "role": "Authentication and authorization middleware",
+      "summary": "Provides Express middleware that verifies Bearer tokens in request headers and checks user roles. The requireAuth middleware validates tokens and attaches the decoded user to the request; requireRole enforces role-based access; currentUserId safely extracts the authenticated user's ID.",
+      "keySymbols": [
+        {
+          "name": "requireAuth",
+          "purpose": "Middleware that validates Bearer tokens and attaches user payload to request"
+        },
+        {
+          "name": "requireRole",
+          "purpose": "Middleware that checks if the authenticated user has a specific role"
+        },
+        {
+          "name": "currentUserId",
+          "purpose": "Helper to safely extract the authenticated user's ID from a request"
+        }
+      ]
+    },
+    {
+      "path": "src/products/products.service.ts",
+      "role": "Product catalog and inventory management service",
+      "summary": "Manages the product catalog with filtering by category and search term, sorting options, and pagination. Handles stock management through reserveStock (decrementing inventory for orders) and releaseStock (restoring inventory when orders cancel). Customers see only active products; admins see everything.",
+      "keySymbols": [
+        {
+          "name": "ProductsService",
+          "purpose": "Main service class for product management and inventory control"
+        },
+        {
+          "name": "ProductsService.list",
+          "purpose": "Filters, searches, sorts and paginates products based on query parameters"
+        },
+        {
+          "name": "ProductsService.reserveStock",
+          "purpose": "Decrements product stock for orders, failing if any item is unavailable or inactive"
+        },
+        {
+          "name": "ProductsService.releaseStock",
+          "purpose": "Restores reserved product stock when orders are cancelled"
+        },
+        {
+          "name": "ProductsService.get",
+          "purpose": "Retrieves a single product by ID, throwing if not found"
+        },
+        {
+          "name": "ProductsService.create",
+          "purpose": "Creates a new product with an auto-generated ID and active status"
+        },
+        {
+          "name": "sorters",
+          "purpose": "Comparison functions for sorting products by name or price ascending/descending"
+        }
+      ]
+    },
+    {
+      "path": "src/users/users.service.ts",
+      "role": "User registration, authentication, and profile service",
+      "summary": "Handles user registration with automatic role assignment (first user becomes admin), login with password verification, and profile retrieval. Uses Zod schemas for input validation with email normalization and password strength requirements. Generates authentication tokens on successful registration or login.",
+      "keySymbols": [
+        {
+          "name": "UsersService",
+          "purpose": "Main service class for user management and authentication"
+        },
+        {
+          "name": "UsersService.register",
+          "purpose": "Creates new user accounts, assigning admin role to the first user"
+        },
+        {
+          "name": "UsersService.login",
+          "purpose": "Authenticates users with email and password, returning a token if valid"
+        },
+        {
+          "name": "UsersService.getProfile",
+          "purpose": "Retrieves public user profile data by user ID"
+        },
+        {
+          "name": "registerSchema",
+          "purpose": "Zod schema validating registration input with email normalization and password strength"
+        },
+        {
+          "name": "loginSchema",
+          "purpose": "Zod schema validating login input with email normalization"
+        },
+        {
+          "name": "AuthResult",
+          "purpose": "Interface returning user profile and authentication token after registration or login"
+        }
+      ]
+    },
+    {
+      "path": "src/cart/cart.service.ts",
+      "role": "In-memory shopping cart service per user",
+      "summary": "Maintains per-user shopping carts in memory as product ID to quantity mappings. Supports adding items with quantity validation, modifying quantities (quantity 0 removes the item), clearing carts, and retrieving full cart details with computed line totals. Validates product availability before adding items.",
+      "keySymbols": [
+        {
+          "name": "CartService",
+          "purpose": "Main service managing shopping carts for all users in memory"
+        },
+        {
+          "name": "CartService.get",
+          "purpose": "Retrieves full cart for a user including computed line and total costs"
+        },
+        {
+          "name": "CartService.add",
+          "purpose": "Adds items to a user's cart, validating product is active and quantity is allowed"
+        },
+        {
+          "name": "CartService.setQuantity",
+          "purpose": "Updates or removes cart items by quantity, with 0 removing the product"
+        },
+        {
+          "name": "CartService.clear",
+          "purpose": "Empties a user's entire cart"
+        },
+        {
+          "name": "CartLine",
+          "purpose": "Interface representing one product in a cart with price and total calculations"
+        },
+        {
+          "name": "Cart",
+          "purpose": "Interface representing the full cart with all lines and total cost"
+        }
+      ]
+    },
+    {
+      "path": "src/products/products.routes.ts",
+      "role": "HTTP routes for product operations",
+      "summary": "Express router exposing public endpoints to list and fetch individual products, and admin-only endpoints to create and update products. Uses authentication and role-based access control middleware to protect sensitive operations.",
+      "keySymbols": [
+        {
+          "name": "productsRouter",
+          "purpose": "Factory function that returns Express router with product listing, retrieval, creation, and update endpoints"
+        }
+      ]
+    },
+    {
+      "path": "src/users/users.routes.ts",
+      "role": "HTTP routes for user authentication and profile",
+      "summary": "Provides two routers: authRouter for public registration and login endpoints that return tokens, and meRouter for authenticated users to retrieve their profile. Both validate input and return standardized responses.",
+      "keySymbols": [
+        {
+          "name": "authRouter",
+          "purpose": "Factory function providing public registration and login HTTP endpoints"
+        },
+        {
+          "name": "meRouter",
+          "purpose": "Factory function providing authenticated endpoint to retrieve current user's profile"
+        }
+      ]
+    },
+    {
+      "path": "src/cart/cart.routes.ts",
+      "role": "HTTP routes for shopping cart operations",
+      "summary": "Express router providing authenticated endpoints for users to retrieve, add to, modify, and clear their shopping carts. All routes require Bearer token authentication.",
+      "keySymbols": [
+        {
+          "name": "cartRouter",
+          "purpose": "Factory function providing authenticated HTTP endpoints for cart management"
+        }
+      ]
+    },
+    {
+      "path": "src/orders/orders.service.ts",
+      "role": "Order processing and fulfillment service",
+      "summary": "Handles checkout by validating cart, reserving stock, charging the payment provider, and creating orders. Manages order status transitions with different permissions (customers can only cancel paid orders; admins can update shipping status). Automatically releases reserved stock and refunds payments when orders are cancelled.",
+      "keySymbols": [
+        {
+          "name": "OrdersService",
+          "purpose": "Main service managing order creation, retrieval, and status transitions"
+        },
+        {
+          "name": "OrdersService.checkout",
+          "purpose": "Reserves stock, charges payment, and creates an order; refunds and releases stock if payment fails"
+        },
+        {
+          "name": "OrdersService.listForUser",
+          "purpose": "Retrieves all orders for a specific user"
+        },
+        {
+          "name": "OrdersService.getForUser",
+          "purpose": "Retrieves a single order by ID, enforcing user access control unless admin"
+        },
+        {
+          "name": "OrdersService.changeStatus",
+          "purpose": "Updates order status with role-based permissions and automatic refunds on cancellation"
+        },
+        {
+          "name": "checkoutSchema",
+          "purpose": "Zod schema validating checkout input requiring a card token"
+        },
+        {
+          "name": "updateStatusSchema",
+          "purpose": "Zod schema validating order status update to shipped, delivered, or cancelled"
+        }
+      ]
+    },
+    {
+      "path": "src/container.ts",
+      "role": "Dependency injection container",
+      "summary": "Manually builds and wires all application services and repositories in one place, managing their dependencies. Supports test overrides for ID generation and payment providers to enable testing without external services.",
+      "keySymbols": [
+        {
+          "name": "createContainer",
+          "purpose": "Factory function that instantiates all services and wires their dependencies together"
+        },
+        {
+          "name": "ContainerOverrides",
+          "purpose": "Interface allowing tests to inject custom ID generators or payment providers"
+        },
+        {
+          "name": "Container",
+          "purpose": "Type definition for the object returned by createContainer"
+        }
+      ]
+    },
+    {
+      "path": "src/orders/orders.routes.ts",
+      "role": "Orders REST API route handler",
+      "summary": "Defines four Express endpoints for order operations: checkout, list user orders, fetch order details, and update order status. All routes require authentication, and status updates respect admin-only access.",
+      "keySymbols": [
+        {
+          "name": "ordersRouter",
+          "purpose": "Creates and returns the Express Router with all order endpoints mounted"
+        }
+      ]
+    },
+    {
+      "path": "src/app.ts",
+      "role": "Express application factory",
+      "summary": "Constructs the Express application with middleware, a health endpoint, and mounts all feature routers (auth, users, products, cart, orders). Acts as the main application assembler.",
+      "keySymbols": [
+        {
+          "name": "createApp",
+          "purpose": "Factory function that creates and configures the Express app with all routers and middleware"
+        }
+      ]
+    },
+    {
+      "path": "src/server.ts",
+      "role": "Application startup entry point",
+      "summary": "Loads configuration and starts the Express server on the configured port. This is the executable entry point that runs the application.",
+      "keySymbols": [
+        {
+          "name": "config",
+          "purpose": "Configuration object loaded from environment, used to start the server"
+        }
+      ]
+    }
+  ],
+  "modules": [
+    {
+      "module": "src",
+      "summary": "The application's core infrastructure, including configuration management, dependency injection, Express app setup, and server startup. Assembles all services, middleware, and routes into a runnable Node.js server.",
+      "files": [
+        "src/config.ts",
+        "src/container.ts",
+        "src/app.ts",
+        "src/server.ts"
+      ]
+    },
+    {
+      "module": "src/auth",
+      "summary": "Handles authentication and authorization using JWT tokens and password hashing. Provides cryptographic password security, token validation middleware, and role-based access control for protecting API endpoints.",
+      "files": [
+        "src/auth/password.ts",
+        "src/auth/tokens.ts",
+        "src/auth/auth.middleware.ts"
+      ]
+    },
+    {
+      "module": "src/cart",
+      "summary": "Manages per-user shopping carts, allowing customers to add, modify, and retrieve items. Stores cart state in memory as product-to-quantity mappings and validates product availability before additions.",
+      "files": [
+        "src/cart/cart.service.ts",
+        "src/cart/cart.routes.ts"
+      ]
+    },
+    {
+      "module": "src/orders",
+      "summary": "Orchestrates the complete order lifecycle from checkout through fulfillment. Validates inventory, processes payments, creates orders, manages status transitions, and handles cancellations with automatic stock and payment restoration.",
+      "files": [
+        "src/orders/order.ts",
+        "src/orders/orders.repository.ts",
+        "src/orders/orders.service.ts",
+        "src/orders/orders.routes.ts"
+      ]
+    },
+    {
+      "module": "src/payments",
+      "summary": "Abstracts payment processing through a provider interface with a mock implementation for testing. Enables charging customers and processing refunds without coupling to a specific payment gateway.",
+      "files": [
+        "src/payments/payment-provider.ts"
+      ]
+    },
+    {
+      "module": "src/products",
+      "summary": "Manages the product catalog with inventory tracking, search/filter/sort capabilities, and pagination. Handles stock reservation for orders and release on cancellation, with visibility rules for customers versus admins.",
+      "files": [
+        "src/products/product.ts",
+        "src/products/products.repository.ts",
+        "src/products/products.schemas.ts",
+        "src/products/products.service.ts",
+        "src/products/products.routes.ts"
+      ]
+    },
+    {
+      "module": "src/shared",
+      "summary": "Provides reusable utilities for error handling, HTTP logging, ID generation, input validation, and pagination. Reduces duplication across feature modules through shared middleware and helper functions.",
+      "files": [
+        "src/shared/errors.ts",
+        "src/shared/ids.ts",
+        "src/shared/logger.ts",
+        "src/shared/pagination.ts",
+        "src/shared/validate.ts"
+      ]
+    },
+    {
+      "module": "src/users",
+      "summary": "Manages user registration, authentication, and profiles with automatic role assignment and password verification. Provides login/register endpoints and authenticated profile retrieval using JWT tokens.",
+      "files": [
+        "src/users/user.ts",
+        "src/users/users.repository.ts",
+        "src/users/users.service.ts",
+        "src/users/users.routes.ts"
+      ]
+    }
+  ],
+  "project": {
+    "name": "express-shop",
+    "purpose": "A full-stack e-commerce backend API built with Express.js that manages products, user accounts, shopping carts, orders, and payments with role-based access control.",
+    "architecture": "The application follows a layered architecture where foundational concerns (data models, utilities, database repositories) feed into service layers that implement business logic, which are then consumed by route handlers and middleware. Entry point src/server.ts starts a Node.js server. The Express app (src/app.ts) registers all routes and middleware. The dependency container (src/container.ts) wires services with their dependencies. Core features are organized by domain: authentication using JWT tokens and password hashing (src/auth); product catalog with inventory tracking and visibility rules (src/products); per-user shopping carts stored in memory (src/cart); order processing that validates inventory, charges customers, and manages status transitions (src/orders); user management with automatic role assignment (src/users); and shared utilities for validation, error handling, logging, and pagination used across modules.",
+    "keyConcepts": [
+      "Express.js routing and middleware architecture",
+      "TypeScript for type safety across the application",
+      "JWT authentication with role-based access control",
+      "Password hashing and cryptographic security",
+      "Service layer and repository patterns for data access",
+      "Dependency injection container for loose coupling",
+      "Order management from checkout to cancellation",
+      "Inventory management with stock reservation and restoration",
+      "Payment provider abstraction with mock implementation",
+      "Input validation, error handling, and pagination utilities"
+    ],
+    "entryPoints": [
+      "src/server.ts"
+    ]
+  }
+}

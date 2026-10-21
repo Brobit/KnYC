@@ -12,6 +12,8 @@ export interface GenerateRequest<S extends z.ZodType> {
   /** Extra attempts when the answer doesn't match the schema. Default 2. */
   retries?: number;
   timeoutMs?: number;
+  /** Called before each retry with the problems sent back (for logs and evaluation). */
+  onRetry?: (attempt: number, problems: string[]) => void;
 }
 
 export interface GenerateResult<T> {
@@ -83,6 +85,7 @@ export class AiClient {
         if (!(error instanceof AiError && error.kind === "invalid-output")) throw error;
         lastProblems = ["the answer must be a single JSON value matching the schema"];
         prompt = retryPrompt(request.prompt, lastProblems);
+        if (attempt < attempts) request.onRetry?.(attempt + 1, lastProblems);
         continue;
       }
 
@@ -93,6 +96,7 @@ export class AiClient {
       }
       lastProblems = formatIssues(parsed.error);
       prompt = retryPrompt(request.prompt, lastProblems);
+      if (attempt < attempts) request.onRetry?.(attempt + 1, lastProblems);
     }
 
     throw new AiError("invalid-output", `no valid answer after ${attempts} attempts`, { problems: lastProblems });

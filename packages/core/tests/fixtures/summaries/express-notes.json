@@ -1,0 +1,181 @@
+{
+  "version": 1,
+  "files": [
+    {
+      "path": "src/config.ts",
+      "role": "Configuration loader",
+      "summary": "Defines and loads application configuration from environment variables, setting server port and maximum note title length with sensible defaults.",
+      "keySymbols": [
+        {
+          "name": "Config",
+          "purpose": "Interface defining server port and note title length limits"
+        },
+        {
+          "name": "loadConfig",
+          "purpose": "Reads environment variables and returns Config with default values"
+        }
+      ]
+    },
+    {
+      "path": "src/errors.ts",
+      "role": "HTTP error classes and middleware",
+      "summary": "Defines custom error classes for HTTP responses and Express middleware to catch and format errors as JSON for clients.",
+      "keySymbols": [
+        {
+          "name": "HttpError",
+          "purpose": "Base class for HTTP errors with status code and optional details"
+        },
+        {
+          "name": "NotFoundError",
+          "purpose": "404 error subclass for missing resources"
+        },
+        {
+          "name": "ValidationError",
+          "purpose": "400 error subclass for invalid request data with error messages"
+        },
+        {
+          "name": "errorHandler",
+          "purpose": "Express middleware to catch errors and send JSON responses"
+        }
+      ]
+    },
+    {
+      "path": "src/notes/note.ts",
+      "role": "Note data type definitions",
+      "summary": "Defines the Note interface representing stored notes with id, content, tags, and timestamps, and NoteInput type for the fields needed when creating or updating.",
+      "keySymbols": [
+        {
+          "name": "Note",
+          "purpose": "Interface for a complete note with id, timestamps, and content"
+        },
+        {
+          "name": "NoteInput",
+          "purpose": "Type alias for the fields (title, body, tags) needed to create or update a note"
+        }
+      ]
+    },
+    {
+      "path": "src/notes/notes.store.ts",
+      "role": "In-memory notes store",
+      "summary": "Manages an in-memory collection of notes with CRUD operations. Each note gets a unique incremented id and ISO timestamps. Supports listing all notes or filtering by tag.",
+      "keySymbols": [
+        {
+          "name": "NotesStore",
+          "purpose": "Class managing the in-memory note collection and all CRUD operations"
+        },
+        {
+          "name": "NotesStore.list",
+          "purpose": "Returns all notes or filters by tag if provided"
+        },
+        {
+          "name": "NotesStore.get",
+          "purpose": "Retrieves a single note by id"
+        },
+        {
+          "name": "NotesStore.create",
+          "purpose": "Adds a new note with generated id and timestamps"
+        },
+        {
+          "name": "NotesStore.update",
+          "purpose": "Modifies an existing note and updates its timestamp"
+        },
+        {
+          "name": "NotesStore.remove",
+          "purpose": "Deletes a note by id"
+        }
+      ]
+    },
+    {
+      "path": "src/notes/notes.validation.ts",
+      "role": "Request input validation",
+      "summary": "Validates note input from HTTP requests, checking title length and type, ensuring required fields are present, and normalizing tags to lowercase. Throws ValidationError if rules are violated.",
+      "keySymbols": [
+        {
+          "name": "parseNoteInput",
+          "purpose": "Validates request body against note schema with configurable field requirements"
+        },
+        {
+          "name": "isStringArray",
+          "purpose": "Type guard checking if a value is an array of strings"
+        }
+      ]
+    },
+    {
+      "path": "src/notes/notes.routes.ts",
+      "role": "Notes REST API routes",
+      "summary": "Defines Express routes for note CRUD operations: GET all/one, POST create, PATCH update, DELETE. Validates input and delegates data operations to the provided NotesStore.",
+      "keySymbols": [
+        {
+          "name": "notesRouter",
+          "purpose": "Factory function creating an Express Router with note endpoints"
+        },
+        {
+          "name": "parseId",
+          "purpose": "Validates and parses id parameter as positive integer"
+        }
+      ]
+    },
+    {
+      "path": "src/app.ts",
+      "role": "Express application setup",
+      "summary": "Assembles the Express application with JSON body parsing middleware, a health check endpoint, the notes router, and error handling middleware.",
+      "keySymbols": [
+        {
+          "name": "createApp",
+          "purpose": "Factory function creating and configuring the Express application"
+        }
+      ]
+    },
+    {
+      "path": "src/server.ts",
+      "role": "Server entry point",
+      "summary": "Loads configuration and starts the Express server, listening on the configured port and logging the server URL.",
+      "keySymbols": [
+        {
+          "name": "config",
+          "purpose": "Loaded configuration object used to start the server"
+        }
+      ]
+    }
+  ],
+  "modules": [
+    {
+      "module": "src",
+      "summary": "The application foundation and entry point. Sets up the Express server with middleware, configures the application from environment variables, establishes error handling, and launches the server on startup.",
+      "files": [
+        "src/config.ts",
+        "src/errors.ts",
+        "src/app.ts",
+        "src/server.ts"
+      ]
+    },
+    {
+      "module": "src/notes",
+      "summary": "A complete notes feature module. Defines the data model, validates user input, stores notes in memory with CRUD operations, and exposes REST API routes for clients to create, read, update, and delete notes.",
+      "files": [
+        "src/notes/note.ts",
+        "src/notes/notes.store.ts",
+        "src/notes/notes.validation.ts",
+        "src/notes/notes.routes.ts"
+      ]
+    }
+  ],
+  "project": {
+    "name": "express-notes",
+    "purpose": "A REST API service built with Express.js and TypeScript that manages a collection of notes. The server provides endpoints for clients to create, read, update, and delete notes, storing them in memory with validation.",
+    "architecture": "The application begins at src/server.ts, which starts the Express server. The server runs the app configured in src/app.ts, which sets up middleware, error handling, and routes. At the foundation level, three modules establish the core infrastructure: src/config.ts reads environment variables, src/errors.ts defines error handling, and src/notes/note.ts defines the note data model. The notes storage layer (src/notes/notes.store.ts) uses the note model to manage in-memory CRUD operations, while src/notes/notes.validation.ts validates incoming note data. The notes routes (src/notes/notes.routes.ts) connect HTTP requests to storage operations through validation.",
+    "keyConcepts": [
+      "REST API design and HTTP routing",
+      "CRUD operations on in-memory data",
+      "TypeScript static typing and interfaces",
+      "Input validation and error handling",
+      "Express middleware and application setup",
+      "Separation of concerns in layered architecture",
+      "Environment-based configuration",
+      "Feature modules and modularity"
+    ],
+    "entryPoints": [
+      "src/server.ts"
+    ]
+  }
+}
