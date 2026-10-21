@@ -6,3 +6,8 @@ export * from "./schemas/check.ts";
 export * from "./schemas/lesson.ts";
 export * from "./schemas/progress.ts";
 export * from "./schemas/documents.ts";
+export * from "./ai/types.ts";
+export * from "./ai/cache.ts";
+export * from "./ai/estimate.ts";
+export * from "./ai/claude-cli.ts";
+export * from "./ai/client.ts";

@@ -43,13 +43,14 @@ export const migrations: Record<DocumentKind, Record<number, Migration>> = {
 };
 
 export class DocumentError extends Error {
-  constructor(
-    readonly kind: DocumentKind,
-    message: string,
-    readonly issues: string[] = [],
-  ) {
+  readonly kind: DocumentKind;
+  readonly issues: string[];
+
+  constructor(kind: DocumentKind, message: string, issues: string[] = []) {
     super(issues.length > 0 ? `${message}:\n- ${issues.join("\n- ")}` : message);
     this.name = "DocumentError";
+    this.kind = kind;
+    this.issues = issues;
   }
 }
 
