@@ -1,0 +1,413 @@
+{
+  "schemaVersion": 1,
+  "id": "backend-standard",
+  "trackId": "backend",
+  "size": "standard",
+  "setupAsStep": false,
+  "sharedUnits": [],
+  "generatedWith": {
+    "planning": {
+      "providerId": "claude-cli",
+      "model": "sonnet"
+    },
+    "at": "2026-10-21T13:13:24.330Z"
+  },
+  "status": "preparing",
+  "milestones": [
+    {
+      "id": "m1",
+      "title": "Foundations: Configuration & Errors",
+      "summary": "Establish the shared infrastructure every other module relies on: reading server configuration from the environment and defining a consistent set of HTTP error types with middleware to handle them.",
+      "stepIds": [
+        "s01",
+        "s02",
+        "s03"
+      ]
+    },
+    {
+      "id": "m2",
+      "title": "Note Model & In-Memory Storage",
+      "summary": "Define what a note looks like and build the in-memory store that performs all CRUD operations on the note collection.",
+      "stepIds": [
+        "s04",
+        "s05",
+        "s06"
+      ]
+    },
+    {
+      "id": "m3",
+      "title": "Request Input Validation",
+      "summary": "Add runtime validation that turns raw, untrusted request bodies into safe NoteInput values or clear validation errors.",
+      "stepIds": [
+        "s07",
+        "s08"
+      ]
+    },
+    {
+      "id": "m4",
+      "title": "Notes REST API",
+      "summary": "Expose the notes store over HTTP through a validated, RESTful router.",
+      "stepIds": [
+        "s09",
+        "s10"
+      ]
+    },
+    {
+      "id": "m5",
+      "title": "Application Assembly & Launch",
+      "summary": "Wire the router, middleware, and configuration into a running Express server.",
+      "stepIds": [
+        "s11",
+        "s12"
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "id": "s01",
+      "index": 0,
+      "title": "Load server configuration",
+      "goal": "loadConfig() returns a Config object with the server port and note title length limits, using environment variables when set and sensible defaults otherwise",
+      "concepts": [
+        "environment variables",
+        "TypeScript interfaces",
+        "config defaults"
+      ],
+      "introduces": [
+        {
+          "unit": "src/config.ts#Config",
+          "kind": "other",
+          "change": "add"
+        },
+        {
+          "unit": "src/config.ts#loadConfig",
+          "kind": "function",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [],
+      "checkIds": [],
+      "estimatedMinutes": 15,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s02",
+      "index": 1,
+      "title": "Define HTTP error classes",
+      "goal": "HttpError, NotFoundError, and ValidationError can be instantiated and carry the correct status code, message, and optional details",
+      "concepts": [
+        "custom error classes",
+        "class inheritance",
+        "HTTP status codes"
+      ],
+      "introduces": [
+        {
+          "unit": "src/errors.ts#HttpError",
+          "kind": "class",
+          "change": "add"
+        },
+        {
+          "unit": "src/errors.ts#NotFoundError",
+          "kind": "class",
+          "change": "add"
+        },
+        {
+          "unit": "src/errors.ts#ValidationError",
+          "kind": "class",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [],
+      "checkIds": [],
+      "estimatedMinutes": 20,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s03",
+      "index": 2,
+      "title": "Add error-handling middleware",
+      "goal": "notFoundHandler returns 404 for unknown routes and errorHandler catches thrown errors, returning the right status code and a JSON error body",
+      "concepts": [
+        "Express middleware",
+        "error-handling middleware signature",
+        "JSON error responses"
+      ],
+      "introduces": [
+        {
+          "unit": "src/errors.ts#notFoundHandler",
+          "kind": "function",
+          "change": "extend"
+        },
+        {
+          "unit": "src/errors.ts#errorHandler",
+          "kind": "function",
+          "change": "extend"
+        }
+      ],
+      "dependsOn": [
+        "s02"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 20,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s04",
+      "index": 3,
+      "title": "Define the Note data model",
+      "goal": "The project builds with Note and NoteInput exported, describing a complete note and the fields needed to create or update one",
+      "concepts": [
+        "TypeScript interfaces",
+        "type aliases",
+        "data modeling"
+      ],
+      "introduces": [
+        {
+          "unit": "src/notes/note.ts#Note",
+          "kind": "other",
+          "change": "add"
+        },
+        {
+          "unit": "src/notes/note.ts#NoteInput",
+          "kind": "other",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [],
+      "checkIds": [],
+      "estimatedMinutes": 10,
+      "prep": "planned",
+      "checkStrategy": "build"
+    },
+    {
+      "id": "s05",
+      "index": 4,
+      "title": "Create and list notes in memory",
+      "goal": "NotesStore.create adds a note with a generated id and timestamps, list returns all notes (optionally filtered by tag), and get retrieves a single note by id",
+      "concepts": [
+        "in-memory storage",
+        "id generation",
+        "filtering collections"
+      ],
+      "introduces": [
+        {
+          "unit": "src/notes/notes.store.ts#NotesStore",
+          "kind": "class",
+          "change": "add"
+        },
+        {
+          "unit": "src/notes/notes.store.ts#NotesStore.list",
+          "kind": "method",
+          "change": "add"
+        },
+        {
+          "unit": "src/notes/notes.store.ts#NotesStore.get",
+          "kind": "method",
+          "change": "add"
+        },
+        {
+          "unit": "src/notes/notes.store.ts#NotesStore.create",
+          "kind": "method",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s04"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 30,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s06",
+      "index": 5,
+      "title": "Update and remove notes",
+      "goal": "NotesStore.update modifies an existing note's fields and refreshes its timestamp, and NotesStore.remove deletes a note by id",
+      "concepts": [
+        "mutating stored records",
+        "timestamp updates",
+        "deletion"
+      ],
+      "introduces": [
+        {
+          "unit": "src/notes/notes.store.ts#NotesStore.update",
+          "kind": "method",
+          "change": "extend"
+        },
+        {
+          "unit": "src/notes/notes.store.ts#NotesStore.remove",
+          "kind": "method",
+          "change": "extend"
+        }
+      ],
+      "dependsOn": [
+        "s04",
+        "s05"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 20,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s07",
+      "index": 6,
+      "title": "Validate string array fields",
+      "goal": "isStringArray correctly returns true only for values that are arrays containing exclusively strings",
+      "concepts": [
+        "type guards",
+        "runtime type checking"
+      ],
+      "introduces": [
+        {
+          "unit": "src/notes/notes.validation.ts#isStringArray",
+          "kind": "function",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [],
+      "checkIds": [],
+      "estimatedMinutes": 10,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s08",
+      "index": 7,
+      "title": "Validate note input",
+      "goal": "parseNoteInput returns a valid NoteInput for well-formed request bodies and throws a ValidationError listing every problem for invalid ones",
+      "concepts": [
+        "request validation",
+        "configurable required fields",
+        "error aggregation"
+      ],
+      "introduces": [
+        {
+          "unit": "src/notes/notes.validation.ts#parseNoteInput",
+          "kind": "function",
+          "change": "extend"
+        }
+      ],
+      "dependsOn": [
+        "s02",
+        "s04",
+        "s07"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 30,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s09",
+      "index": 8,
+      "title": "Parse and validate id route parameters",
+      "goal": "parseId returns a positive integer for valid id strings and throws a ValidationError for anything else",
+      "concepts": [
+        "route parameter parsing",
+        "input validation"
+      ],
+      "introduces": [
+        {
+          "unit": "src/notes/notes.routes.ts#parseId",
+          "kind": "function",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s02"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 15,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s10",
+      "index": 9,
+      "title": "Build the notes REST API router",
+      "goal": "notesRouter exposes GET /notes, GET /notes/:id, POST /notes, PUT /notes/:id, and DELETE /notes/:id, each returning the correct status code and body by combining validation, the store, and NotFoundError handling",
+      "concepts": [
+        "Express Router",
+        "REST conventions",
+        "wiring validation into routes"
+      ],
+      "introduces": [
+        {
+          "unit": "src/notes/notes.routes.ts#notesRouter",
+          "kind": "function",
+          "change": "extend"
+        }
+      ],
+      "dependsOn": [
+        "s02",
+        "s04",
+        "s05",
+        "s06",
+        "s08",
+        "s09"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 40,
+      "prep": "planned",
+      "checkStrategy": "existing-tests"
+    },
+    {
+      "id": "s11",
+      "index": 10,
+      "title": "Assemble the Express application",
+      "goal": "createApp() returns an Express app that mounts the notes router with middleware and error handlers, responding correctly to real requests",
+      "concepts": [
+        "app factory pattern",
+        "middleware ordering",
+        "dependency injection"
+      ],
+      "introduces": [
+        {
+          "unit": "src/app.ts#createApp",
+          "kind": "function",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s01",
+        "s03",
+        "s05",
+        "s10"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 25,
+      "prep": "planned",
+      "checkStrategy": "existing-tests"
+    },
+    {
+      "id": "s12",
+      "index": 11,
+      "title": "Start the server",
+      "goal": "Running the entry point loads configuration, starts the Express server listening on the configured port, and logs the server URL",
+      "concepts": [
+        "server entry point",
+        "composing config and app factory"
+      ],
+      "introduces": [
+        {
+          "unit": "src/server.ts",
+          "kind": "file",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s01",
+        "s11"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 10,
+      "prep": "planned",
+      "checkStrategy": "command"
+    }
+  ]
+}

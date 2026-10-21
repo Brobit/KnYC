@@ -1,0 +1,293 @@
+{
+  "schemaVersion": 1,
+  "id": "backend-overview",
+  "trackId": "backend",
+  "size": "overview",
+  "setupAsStep": false,
+  "sharedUnits": [],
+  "generatedWith": {
+    "planning": {
+      "providerId": "claude-cli",
+      "model": "sonnet"
+    },
+    "at": "2026-10-21T13:12:12.180Z"
+  },
+  "status": "preparing",
+  "milestones": [
+    {
+      "id": "m1",
+      "title": "Foundation: config, errors, and the note model",
+      "summary": "Set up the shared building blocks every other part of the app depends on: configuration loading, HTTP error handling, and the Note data types.",
+      "stepIds": [
+        "s01",
+        "s02",
+        "s03"
+      ]
+    },
+    {
+      "id": "m2",
+      "title": "Storage and validation",
+      "summary": "Build the in-memory notes store with full CRUD behavior, then add request validation on top of it.",
+      "stepIds": [
+        "s04",
+        "s05"
+      ]
+    },
+    {
+      "id": "m3",
+      "title": "Wire up the API and run the server",
+      "summary": "Expose the notes feature as HTTP routes, assemble the Express app, and start the server so it responds to real requests.",
+      "stepIds": [
+        "s06",
+        "s07"
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "id": "s01",
+      "index": 0,
+      "title": "Add configuration loader",
+      "goal": "loadConfig() returns a Config object with port and note title length limits, using defaults when env vars are absent",
+      "concepts": [
+        "environment variables",
+        "config defaults",
+        "TypeScript interfaces"
+      ],
+      "introduces": [
+        {
+          "unit": "src/config.ts#Config",
+          "kind": "other",
+          "change": "add"
+        },
+        {
+          "unit": "src/config.ts#loadConfig",
+          "kind": "function",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [],
+      "checkIds": [],
+      "estimatedMinutes": 20,
+      "prep": "planned",
+      "checkStrategy": "existing-tests"
+    },
+    {
+      "id": "s02",
+      "index": 1,
+      "title": "Add HTTP error classes and handlers",
+      "goal": "HttpError, NotFoundError, and ValidationError can be thrown and carry a status code; errorHandler and notFoundHandler format them as JSON middleware responses",
+      "concepts": [
+        "custom error classes",
+        "Express error middleware",
+        "status codes"
+      ],
+      "introduces": [
+        {
+          "unit": "src/errors.ts#HttpError",
+          "kind": "class",
+          "change": "add"
+        },
+        {
+          "unit": "src/errors.ts#NotFoundError",
+          "kind": "class",
+          "change": "add"
+        },
+        {
+          "unit": "src/errors.ts#ValidationError",
+          "kind": "class",
+          "change": "add"
+        },
+        {
+          "unit": "src/errors.ts#notFoundHandler",
+          "kind": "function",
+          "change": "add"
+        },
+        {
+          "unit": "src/errors.ts#errorHandler",
+          "kind": "function",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [],
+      "checkIds": [],
+      "estimatedMinutes": 25,
+      "prep": "planned",
+      "checkStrategy": "existing-tests"
+    },
+    {
+      "id": "s03",
+      "index": 2,
+      "title": "Define the Note data model",
+      "goal": "The project builds (tsc) with Note and NoteInput types defined and usable",
+      "concepts": [
+        "interfaces",
+        "type aliases"
+      ],
+      "introduces": [
+        {
+          "unit": "src/notes/note.ts#Note",
+          "kind": "other",
+          "change": "add"
+        },
+        {
+          "unit": "src/notes/note.ts#NoteInput",
+          "kind": "other",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [],
+      "checkIds": [],
+      "estimatedMinutes": 10,
+      "prep": "planned",
+      "checkStrategy": "build"
+    },
+    {
+      "id": "s04",
+      "index": 3,
+      "title": "Build the in-memory notes store",
+      "goal": "NotesStore supports create, get, list (with optional tag filter), update, and remove, each verified by calling the methods directly",
+      "concepts": [
+        "in-memory data structures",
+        "CRUD operations",
+        "timestamps and ids"
+      ],
+      "introduces": [
+        {
+          "unit": "src/notes/notes.store.ts#NotesStore",
+          "kind": "class",
+          "change": "add"
+        },
+        {
+          "unit": "src/notes/notes.store.ts#NotesStore.list",
+          "kind": "method",
+          "change": "add"
+        },
+        {
+          "unit": "src/notes/notes.store.ts#NotesStore.get",
+          "kind": "method",
+          "change": "add"
+        },
+        {
+          "unit": "src/notes/notes.store.ts#NotesStore.create",
+          "kind": "method",
+          "change": "add"
+        },
+        {
+          "unit": "src/notes/notes.store.ts#NotesStore.update",
+          "kind": "method",
+          "change": "add"
+        },
+        {
+          "unit": "src/notes/notes.store.ts#NotesStore.remove",
+          "kind": "method",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s03"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 35,
+      "prep": "planned",
+      "checkStrategy": "existing-tests"
+    },
+    {
+      "id": "s05",
+      "index": 4,
+      "title": "Validate note input",
+      "goal": "parseNoteInput accepts valid note payloads and throws ValidationError with clear messages for malformed title, body, or tags",
+      "concepts": [
+        "type guards",
+        "input validation",
+        "configurable required fields"
+      ],
+      "introduces": [
+        {
+          "unit": "src/notes/notes.validation.ts#isStringArray",
+          "kind": "function",
+          "change": "add"
+        },
+        {
+          "unit": "src/notes/notes.validation.ts#parseNoteInput",
+          "kind": "function",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s02",
+        "s03"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 25,
+      "prep": "planned",
+      "checkStrategy": "existing-tests"
+    },
+    {
+      "id": "s06",
+      "index": 5,
+      "title": "Add notes REST routes",
+      "goal": "notesRouter exposes GET/POST/PUT/DELETE endpoints under /notes that validate input and call the store, returning correct status codes and JSON",
+      "concepts": [
+        "Express Router",
+        "route params",
+        "id parsing"
+      ],
+      "introduces": [
+        {
+          "unit": "src/notes/notes.routes.ts#parseId",
+          "kind": "function",
+          "change": "add"
+        },
+        {
+          "unit": "src/notes/notes.routes.ts#notesRouter",
+          "kind": "function",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s02",
+        "s03",
+        "s04",
+        "s05"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 35,
+      "prep": "planned",
+      "checkStrategy": "http"
+    },
+    {
+      "id": "s07",
+      "index": 6,
+      "title": "Assemble and launch the Express app",
+      "goal": "The server starts via src/server.ts, logs its URL, and answers requests to /notes end-to-end using the wired app, config, and error middleware",
+      "concepts": [
+        "app factory",
+        "middleware ordering",
+        "server listen"
+      ],
+      "introduces": [
+        {
+          "unit": "src/app.ts#createApp",
+          "kind": "function",
+          "change": "add"
+        },
+        {
+          "unit": "src/server.ts",
+          "kind": "file",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s01",
+        "s02",
+        "s04",
+        "s06"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 25,
+      "prep": "planned",
+      "checkStrategy": "http"
+    }
+  ]
+}
