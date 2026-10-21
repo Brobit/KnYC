@@ -1,0 +1,218 @@
+{
+ "numTotalTestSuites": 7,
+ "numPassedTestSuites": 5,
+ "numFailedTestSuites": 2,
+ "numPendingTestSuites": 0,
+ "numTotalTests": 12,
+ "numPassedTests": 10,
+ "numFailedTests": 2,
+ "numPendingTests": 0,
+ "numTodoTests": 0,
+ "snapshot": {
+  "added": 0,
+  "failure": false,
+  "filesAdded": 0,
+  "filesRemoved": 0,
+  "filesRemovedList": [],
+  "filesUnmatched": 0,
+  "filesUpdated": 0,
+  "matched": 0,
+  "total": 0,
+  "unchecked": 0,
+  "uncheckedKeysByFile": [],
+  "unmatched": 0,
+  "updated": 0,
+  "didUpdate": false
+ },
+ "startTime": 1792585356156,
+ "success": false,
+ "testResults": [
+  {
+   "assertionResults": [
+    {
+     "ancestorTitles": [
+      "GET /health"
+     ],
+     "fullName": "GET /health returns ok",
+     "status": "passed",
+     "title": "returns ok",
+     "duration": 61.519000000000005,
+     "failureMessages": [],
+     "meta": {},
+     "tags": [],
+     "benchmarks": []
+    },
+    {
+     "ancestorTitles": [
+      "/notes"
+     ],
+     "fullName": "/notes creates, reads, lists, updates and deletes a note",
+     "status": "failed",
+     "title": "creates, reads, lists, updates and deletes a note",
+     "duration": 57.72070000000008,
+     "failureMessages": [
+      "AssertionError: expected 200 to be 201 // Object.is equality\n    at /project/tests/notes.api.test.ts:23:28\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async file:////project/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:2801:20"
+     ],
+     "meta": {},
+     "tags": [],
+     "benchmarks": []
+    },
+    {
+     "ancestorTitles": [
+      "/notes"
+     ],
+     "fullName": "/notes returns 400 with details for invalid input",
+     "status": "failed",
+     "title": "returns 400 with details for invalid input",
+     "duration": 13.199499999999944,
+     "failureMessages": [
+      "AssertionError: expected [ 'title missing' ] to include 'title is required'\n    at Proxy.<anonymous> (file:////project/node_modules/vitest/dist/chunks/index.aTZaPVhf.js:2093:15)\n    at Proxy.<anonymous> (file:////project/node_modules/vitest/dist/chunks/index.aTZaPVhf.js:1958:14)\n    at Proxy.methodWrapper (file:////project/node_modules/chai/index.js:1737:25)\n    at /project/tests/notes.api.test.ts:42:30\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async file:////project/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:2801:20"
+     ],
+     "meta": {},
+     "tags": [],
+     "benchmarks": []
+    },
+    {
+     "ancestorTitles": [
+      "/notes"
+     ],
+     "fullName": "/notes returns 400 for a non-numeric id",
+     "status": "passed",
+     "title": "returns 400 for a non-numeric id",
+     "duration": 9.801899999999932,
+     "failureMessages": [],
+     "meta": {},
+     "tags": [],
+     "benchmarks": []
+    },
+    {
+     "ancestorTitles": [
+      "/notes"
+     ],
+     "fullName": "/notes returns 404 for unknown routes",
+     "status": "passed",
+     "title": "returns 404 for unknown routes",
+     "duration": 8.219600000000128,
+     "failureMessages": [],
+     "meta": {},
+     "tags": [],
+     "benchmarks": []
+    }
+   ],
+   "startTime": 1792585357459,
+   "endTime": 1792585357610.2195,
+   "status": "failed",
+   "message": "",
+   "name": "/project/tests/notes.api.test.ts"
+  },
+  {
+   "assertionResults": [
+    {
+     "ancestorTitles": [
+      "NotesStore"
+     ],
+     "fullName": "NotesStore creates notes with incrementing ids and timestamps",
+     "status": "passed",
+     "title": "creates notes with incrementing ids and timestamps",
+     "duration": 5.1200999999999794,
+     "failureMessages": [],
+     "meta": {},
+     "tags": [],
+     "benchmarks": []
+    },
+    {
+     "ancestorTitles": [
+      "NotesStore"
+     ],
+     "fullName": "NotesStore filters by tag",
+     "status": "passed",
+     "title": "filters by tag",
+     "duration": 2.218500000000006,
+     "failureMessages": [],
+     "meta": {},
+     "tags": [],
+     "benchmarks": []
+    },
+    {
+     "ancestorTitles": [
+      "NotesStore"
+     ],
+     "fullName": "NotesStore updates and removes notes",
+     "status": "passed",
+     "title": "updates and removes notes",
+     "duration": 0.6175000000000068,
+     "failureMessages": [],
+     "meta": {},
+     "tags": [],
+     "benchmarks": []
+    }
+   ],
+   "startTime": 1792585356704,
+   "endTime": 1792585356711.6174,
+   "status": "passed",
+   "message": "",
+   "name": "/project/tests/notes.store.test.ts"
+  },
+  {
+   "assertionResults": [
+    {
+     "ancestorTitles": [
+      "parseNoteInput"
+     ],
+     "fullName": "parseNoteInput accepts a full note and normalizes tags",
+     "status": "passed",
+     "title": "accepts a full note and normalizes tags",
+     "duration": 3.630999999999972,
+     "failureMessages": [],
+     "meta": {},
+     "tags": [],
+     "benchmarks": []
+    },
+    {
+     "ancestorTitles": [
+      "parseNoteInput"
+     ],
+     "fullName": "parseNoteInput defaults tags to an empty list",
+     "status": "passed",
+     "title": "defaults tags to an empty list",
+     "duration": 0.4594999999999345,
+     "failureMessages": [],
+     "meta": {},
+     "tags": [],
+     "benchmarks": []
+    },
+    {
+     "ancestorTitles": [
+      "parseNoteInput"
+     ],
+     "fullName": "parseNoteInput rejects a missing title and a long title",
+     "status": "passed",
+     "title": "rejects a missing title and a long title",
+     "duration": 0.6890999999999394,
+     "failureMessages": [],
+     "meta": {},
+     "tags": [],
+     "benchmarks": []
+    },
+    {
+     "ancestorTitles": [
+      "parseNoteInput"
+     ],
+     "fullName": "parseNoteInput allows partial input when patching",
+     "status": "passed",
+     "title": "allows partial input when patching",
+     "duration": 0.48460000000000036,
+     "failureMessages": [],
+     "meta": {},
+     "tags": [],
+     "benchmarks": []
+    }
+   ],
+   "startTime": 1792585356760,
+   "endTime": 1792585356765.4846,
+   "status": "passed",
+   "message": "",
+   "name": "/project/tests/notes.validation.test.ts"
+  }
+ ]
+}

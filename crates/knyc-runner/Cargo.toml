@@ -1,0 +1,18 @@
+[package]
+name = "knyc-runner"
+version = "0.0.1"
+license = "GPL-3.0-only"
+publish = false
+description = "Runs commands and checks for KnYC: timeouts, process-tree kill, test report parsing."
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.104"
+command-group = "5.0.1"
+dunce = "1.0.5"
+regex = "1.13.1"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+
+[dev-dependencies]
+tempfile = "3.27.0"
