@@ -18,6 +18,9 @@ export interface Atom {
   /** Class atom id, for methods. */
   parent?: string;
   lines: number;
+  /** 1-based, inclusive line range in the original file (the whole file for file atoms). */
+  startLine: number;
+  endLine: number;
 }
 
 export interface Units {
@@ -44,11 +47,12 @@ export function buildUnits(graph: Graph): Units {
     const fileAtoms: Atom[] = [];
     for (const symbol of file.symbols) {
       const lines = symbol.endLine - symbol.startLine + 1;
+      const range = { startLine: symbol.startLine, endLine: symbol.endLine };
       if (!symbol.name.includes(".") && ATOM_KINDS.has(symbol.kind)) {
-        fileAtoms.push({ id: `${path}#${symbol.name}`, file: path, kind: symbol.kind as AtomKind, lines });
+        fileAtoms.push({ id: `${path}#${symbol.name}`, file: path, kind: symbol.kind as AtomKind, lines, ...range });
       } else if (symbol.kind === "method" && !symbol.name.endsWith(".constructor")) {
         const owner = symbol.name.split(".")[0]!;
-        fileAtoms.push({ id: `${path}#${symbol.name}`, file: path, kind: "method", parent: `${path}#${owner}`, lines });
+        fileAtoms.push({ id: `${path}#${symbol.name}`, file: path, kind: "method", parent: `${path}#${owner}`, lines, ...range });
       }
       // Fields and constructors belong to their class atom.
     }
@@ -56,7 +60,7 @@ export function buildUnits(graph: Graph): Units {
     // unit: its statements aren't symbols, so splitting it would lose what they need.
     if (fileAtoms.every((a) => a.kind === "variable")) {
       fileAtoms.length = 0;
-      fileAtoms.push({ id: path, file: path, kind: "file", lines: file.loc });
+      fileAtoms.push({ id: path, file: path, kind: "file", lines: file.loc, startLine: 1, endLine: file.loc });
     }
     for (const atom of fileAtoms) {
       atoms.push(atom);
