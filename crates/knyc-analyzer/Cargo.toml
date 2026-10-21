@@ -1,0 +1,19 @@
+[package]
+name = "knyc-analyzer"
+version = "0.0.1"
+license = "GPL-3.0-only"
+publish = false
+description = "Project intake, static scan and code graph for KnYC."
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.104"
+blake3 = "1.8.7"
+dunce = "1.0.5"
+ignore = "0.4.33"
+regex = "1.13.1"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+
+[dev-dependencies]
+tempfile = "3.27.0"

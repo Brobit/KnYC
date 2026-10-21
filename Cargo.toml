@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["apps/desktop/src-tauri"]
+members = ["apps/desktop/src-tauri", "crates/knyc-analyzer", "crates/knyc-sys"]
 
 # Size-focused release profile, see https://tauri.app/concept/size/
 [profile.release]
