@@ -1,0 +1,23 @@
+{
+  "name": "@knyc/cli",
+  "version": "0.0.1",
+  "private": true,
+  "description": "knyc command-line tool: analyze a project into a learning path (M1).",
+  "license": "GPL-3.0-only",
+  "type": "module",
+  "bin": {
+    "knyc": "./src/main.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@knyc/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.5"
+  }
+}

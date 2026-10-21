@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "pnpm --filter @knyc/desktop tauri dev",
     "build": "pnpm --filter @knyc/desktop tauri build",
+    "knyc": "node apps/cli/src/main.ts",
     "landing:dev": "pnpm --filter @knyc/landing dev",
     "landing:build": "pnpm --filter @knyc/landing build",
     "typecheck": "pnpm -r typecheck",

@@ -26,6 +26,7 @@ export const scanSchema = z.looseObject({
       run: z.string().nullable(),
     }),
   ),
+  toolchains: z.array(z.object({ id: z.string(), required: z.string(), found: z.string().nullable() })).default([]),
   files: z.array(z.object({ path: z.string(), bytes: z.number(), lines: z.number(), notForAi: z.string().optional() })),
   excluded: z.array(z.object({ path: z.string(), reason: z.string() })),
   secretLines: z.array(secretLine),
