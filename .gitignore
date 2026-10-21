@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build output
+/target/
+dist/
+.astro/
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.*
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

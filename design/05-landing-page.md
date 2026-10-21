@@ -30,6 +30,9 @@ https://github.com/<owner>/knyc/releases/latest/download/<asset>
 | Windows | `KnYC-windows-x64-setup.exe` | `.msi`, arm64 later |
 | Linux | `KnYC-linux-x86_64.AppImage` | `.deb`, `.rpm` |
 
+- Releases are published as **normal releases** (versions `0.x` signal pre-1.0), not GitHub
+  "pre-releases": `releases/latest` ignores pre-releases and drafts, so the stable links would break.
+  The Release workflow creates a draft; it becomes "latest" once published.
 - **OS detection** in the browser (`navigator.userAgentData` with a user-agent fallback) picks the main
   button: "Download for macOS". A link below: "Other platforms".
 - Version number and release date are fetched from the GitHub API **at build time** (no client-side

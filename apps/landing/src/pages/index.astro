@@ -1,0 +1,204 @@
+---
+import '@knyc/tokens/tokens.css';
+import { ASSETS, DOWNLOAD_BASE, REPO, getLatestRelease } from '../lib/release';
+
+const release = await getLatestRelease();
+const base = import.meta.env.BASE_URL;
+---
+
+<html lang="en" data-theme="sage-camel" data-mode="light">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link rel="icon" type="image/png" href={`${base}/favicon.png`} />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="description" content="Import any project and rebuild it step by step, with an AI guide and real checks." />
+		<title>KnYC — Know your code</title>
+	</head>
+	<body>
+		<header class="nav">
+			<a class="brand" href={base}><span class="logo">K</span>KnYC</a>
+			<a class="nav-link" href={`https://github.com/${REPO}`}>GitHub</a>
+		</header>
+
+		<main class="hero">
+			<p class="pill">Free and open source · GPL-3.0</p>
+			<h1>Know your code.</h1>
+			<p class="sub">
+				Import any project and rebuild it step by step, with an AI guide and real checks.
+				Understand every line, every step, and the architecture.
+			</p>
+
+			<div class="ctas">
+				<!-- Without JavaScript this stays a link to the full list below. -->
+				<a class="btn primary" id="download" href="#platforms">Download KnYC</a>
+				<a class="btn" href={`https://github.com/${REPO}`}>View on GitHub</a>
+			</div>
+			{release && <p class="meta">{release.version} · released {release.date}</p>}
+
+			<section class="platforms" id="platforms" aria-label="All platforms">
+				{
+					Object.entries(ASSETS).map(([platform, { label, files }]) => (
+						<div class="platform" data-platform={platform}>
+							<h2>{label}</h2>
+							<ul>
+								{files.map(({ name, file }) => (
+									<li>
+										<a href={`${DOWNLOAD_BASE}/${file}`}>{name}</a>
+									</li>
+								))}
+							</ul>
+						</div>
+					))
+				}
+			</section>
+		</main>
+
+		<footer class="footer">KnYC — Know your code. GPL-3.0.</footer>
+
+		<script define:vars={{ ASSETS, DOWNLOAD_BASE }}>
+			// Point the main button at the visitor's OS. Phones get the platform list instead.
+			const ua = navigator.userAgent;
+			const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+			const platform = /Mac/i.test(ua) ? 'macos' : /Win/i.test(ua) ? 'windows' : /Linux/i.test(ua) ? 'linux' : null;
+			const button = document.getElementById('download');
+			if (button && platform && !isMobile) {
+				button.textContent = `Download for ${ASSETS[platform].label}`;
+				button.setAttribute('href', `${DOWNLOAD_BASE}/${ASSETS[platform].files[0].file}`);
+			}
+		</script>
+	</body>
+</html>
+
+<style is:global>
+	body {
+		margin: 0;
+		background: var(--bg);
+		color: var(--text-primary);
+		font-family: var(--font-ui);
+		-webkit-font-smoothing: antialiased;
+	}
+	a {
+		color: inherit;
+	}
+	.nav {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 20px clamp(16px, 6vw, 80px);
+	}
+	.brand {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		font-weight: 600;
+		font-size: 17px;
+		text-decoration: none;
+	}
+	.logo {
+		display: grid;
+		place-items: center;
+		width: 28px;
+		height: 28px;
+		border-radius: 8px;
+		background: var(--accent);
+		color: var(--on-accent);
+		font-weight: 700;
+		font-size: 15px;
+	}
+	.nav-link {
+		color: var(--text-secondary);
+		text-decoration: none;
+		font-size: 14px;
+	}
+	.hero {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 20px;
+		padding: 72px 16px 96px;
+		text-align: center;
+	}
+	.pill {
+		margin: 0;
+		padding: 6px 12px;
+		border-radius: 20px;
+		background: var(--accent-2-soft);
+		color: var(--accent-2);
+		font-size: 13px;
+		font-weight: 500;
+	}
+	h1 {
+		margin: 0;
+		font-size: clamp(48px, 9vw, 84px);
+		font-weight: 700;
+		letter-spacing: -0.03em;
+	}
+	.sub {
+		max-width: 680px;
+		margin: 0;
+		color: var(--text-secondary);
+		font-size: 19px;
+		line-height: 1.55;
+	}
+	.ctas {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 12px;
+		margin-top: 8px;
+	}
+	.btn {
+		padding: 14px 22px;
+		border: 1px solid var(--border-strong);
+		border-radius: 10px;
+		background: var(--surface);
+		font-size: 16px;
+		font-weight: 500;
+		text-decoration: none;
+	}
+	.btn.primary {
+		border-color: var(--accent);
+		background: var(--accent);
+		color: var(--on-accent);
+		font-weight: 600;
+	}
+	.meta {
+		margin: 0;
+		color: var(--text-muted);
+		font-size: 13px;
+	}
+	.platforms {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+		gap: 16px;
+		width: min(900px, 100%);
+		margin-top: 48px;
+		text-align: left;
+	}
+	.platform {
+		padding: 20px;
+		border: 1px solid var(--border);
+		border-radius: 16px;
+		background: var(--surface);
+	}
+	.platform h2 {
+		margin: 0 0 10px;
+		font-size: 17px;
+	}
+	.platform ul {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		display: grid;
+		gap: 6px;
+		font-size: 14px;
+		color: var(--text-secondary);
+	}
+	.footer {
+		padding: 28px clamp(16px, 6vw, 120px);
+		border-top: 1px solid var(--border);
+		color: var(--text-muted);
+		font-size: 13px;
+	}
+</style>

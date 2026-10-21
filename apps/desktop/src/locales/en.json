@@ -1,0 +1,16 @@
+{
+  "app": {
+    "name": "KnYC",
+    "tagline": "Know your code.",
+    "subtitle": "Rebuild any project step by step, with an AI guide.",
+    "version": "Version {{version}}",
+    "comingSoon": "Importing projects arrives in a later milestone."
+  },
+  "theme": {
+    "label": "Theme",
+    "focus": "Focus",
+    "sage-camel": "Sage & Camel",
+    "light": "Light",
+    "dark": "Dark"
+  }
+}

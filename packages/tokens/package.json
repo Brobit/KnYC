@@ -1,0 +1,10 @@
+{
+  "name": "@knyc/tokens",
+  "version": "0.0.0",
+  "private": true,
+  "description": "KnYC design tokens shared by the desktop app and the landing page.",
+  "license": "GPL-3.0-only",
+  "exports": {
+    "./tokens.css": "./tokens.css"
+  }
+}

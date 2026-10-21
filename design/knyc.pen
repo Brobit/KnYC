@@ -29271,6 +29271,67 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "v5NTpK",
+      "x": 0,
+      "y": 6818,
+      "name": "App icon 1024",
+      "theme": {
+        "theme": "focus",
+        "mode": "dark"
+      },
+      "width": 1024,
+      "height": 1024,
+      "layout": "none",
+      "children": [
+        {
+          "type": "frame",
+          "id": "kz4Qo",
+          "x": 64,
+          "y": 64,
+          "name": "Tile",
+          "width": 896,
+          "height": 896,
+          "fill": {
+            "type": "gradient",
+            "gradientType": "linear",
+            "enabled": true,
+            "rotation": 180,
+            "size": {
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#6E9DF2",
+                "position": 0
+              },
+              {
+                "color": "#3A6FD8",
+                "position": 1
+              }
+            ]
+          },
+          "cornerRadius": 200,
+          "layout": "vertical",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "RJLqF",
+              "name": "K",
+              "fill": "#FFFFFF",
+              "content": "K",
+              "fontFamily": "Inter",
+              "fontSize": 560,
+              "fontWeight": "700",
+              "letterSpacing": -10
+            }
+          ]
+        }
+      ]
     }
   ],
   "themes": {
