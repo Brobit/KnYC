@@ -69,6 +69,10 @@ pub struct Symbol {
     /// Identifiers used inside the symbol (filtered later to known names).
     #[serde(skip)]
     pub uses: BTreeSet<String>,
+    /// Member names used inside the symbol (`x.reserveStock`, `this.getForUser`), to link calls to
+    /// methods of the classes it depends on.
+    #[serde(skip)]
+    pub members: BTreeSet<String>,
 }
 
 #[derive(Debug, Default)]
@@ -253,7 +257,8 @@ fn export(node: Node, src: &[u8], file: &mut ParsedFile) {
 
 fn symbol(name: &str, kind: SymbolKind, exported: bool, node: Node, src: &[u8]) -> Symbol {
     let mut uses = BTreeSet::new();
-    collect_identifiers(node, src, &mut uses);
+    let mut members = BTreeSet::new();
+    collect_identifiers(node, src, &mut uses, &mut members);
     uses.remove(name);
     Symbol {
         name: name.to_string(),
@@ -262,19 +267,30 @@ fn symbol(name: &str, kind: SymbolKind, exported: bool, node: Node, src: &[u8]) 
         start_line: node.start_position().row + 1,
         end_line: node.end_position().row + 1,
         uses,
+        members,
     }
 }
 
-fn collect_identifiers(node: Node, src: &[u8], out: &mut BTreeSet<String>) {
-    if matches!(
-        node.kind(),
-        "identifier" | "type_identifier" | "shorthand_property_identifier"
-    ) {
-        out.insert(text(node, src).to_string());
+fn collect_identifiers(
+    node: Node,
+    src: &[u8],
+    out: &mut BTreeSet<String>,
+    members: &mut BTreeSet<String>,
+) {
+    match node.kind() {
+        "identifier" | "type_identifier" | "shorthand_property_identifier" => {
+            out.insert(text(node, src).to_string());
+        }
+        "member_expression" => {
+            if let Some(property) = node.child_by_field_name("property") {
+                members.insert(text(property, src).to_string());
+            }
+        }
+        _ => {}
     }
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
-        collect_identifiers(child, src, out);
+        collect_identifiers(child, src, out, members);
     }
 }
 

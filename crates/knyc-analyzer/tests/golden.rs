@@ -89,3 +89,21 @@ fn every_golden_repo_has_a_clean_graph_ending_at_the_server() {
         assert!(g.external.contains_key("express"), "{name}");
     }
 }
+
+#[test]
+fn method_calls_through_injected_services_are_dependencies() {
+    let g = knyc_analyzer::graph::build(&golden("express-shop")).unwrap();
+    let has = |from: &str, to: &str| g.symbol_edges.contains(&(from.to_string(), to.to_string()));
+    // this.products.reserveStock(lines) inside checkout
+    assert!(has(
+        "src/orders/orders.service.ts#OrdersService.checkout",
+        "src/products/products.service.ts#ProductsService.reserveStock"
+    ));
+    // this.getForUser(…) inside changeStatus: a call to a method of the same class
+    assert!(has(
+        "src/orders/orders.service.ts#OrdersService.changeStatus",
+        "src/orders/orders.service.ts#OrdersService.getForUser"
+    ));
+    // No made-up edges for names that aren't methods of a known class.
+    assert!(!g.symbol_edges.iter().any(|(_, to)| to.ends_with(".json")));
+}
