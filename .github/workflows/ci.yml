@@ -25,6 +25,25 @@ jobs:
       - run: pnpm --filter @knyc/desktop build
       - run: pnpm --filter @knyc/landing build
 
+  golden:
+    name: Golden repo (${{ matrix.project }})
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [express-notes, express-shop, express-no-tests]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fixtures/golden/${{ matrix.project }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run build
+      - run: npm test --if-present
+
   rust:
     name: Rust (${{ matrix.os }})
     strategy:

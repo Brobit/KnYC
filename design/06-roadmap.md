@@ -34,11 +34,15 @@ Headless `knyc` CLI, no UI. **One stack: TypeScript + Node backend (Express) wit
 
 - Rust: intake, static scan, tree-sitter graph for TS/JS (`knyc-analyzer`); process runner
   (`knyc-runner`).
-- TS (`packages/core`): Zod schemas (design 03), AI layer (one provider: Claude API key),
+- Rust ↔ TS without Tauri: a small Rust binary **`knyc-sys`** (`scan`, `graph`, `run`) prints
+  JSON; the TS CLI spawns it. The Tauri app will call the same crates directly.
+- TS (`packages/core`): Zod schemas (design 03), AI layer (one provider for development: the
+  user's local **Claude Code CLI** in headless mode; API-key providers come later),
   summaries, curriculum plan + deterministic validation, reference timeline in `reference.git`,
   existing-test mapping, generated checks with red → green validation.
 - `knyc analyze <folder> --track backend --size standard` → writes `.knyc/` and a report.
 - 3 golden repos (small, medium, one without tests).
+- Tracked as GitHub milestone "M1 — Core spike", issues #4–#15.
 
 **Done when**: on the golden repos, ≥ 80 % of steps have validated (strong) checks and every `Rk`
 builds. **If not**: adjust the approach (bigger steps, more deterministic slicing, different
