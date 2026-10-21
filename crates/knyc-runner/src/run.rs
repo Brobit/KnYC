@@ -158,11 +158,12 @@ mod tests {
     use super::*;
 
     /// Node is required to develop KnYC, so tests use it as a portable scripting language.
-    /// Scripts must not contain double quotes (they delimit the script on every shell).
+    /// Scripts must only use single quotes (see the assertion).
     fn node(script: &str, cwd: &std::path::Path) -> RunSpec {
+        // Inside double quotes, sh treats ` and $ as shell syntax, and cmd ends the script at ".
         assert!(
-            !script.contains('"'),
-            "use single quotes or backticks in test scripts"
+            !script.contains(['"', '`', '$']),
+            "test scripts may only use single quotes (no \", ` or $)"
         );
         RunSpec::new(format!("node -e \"{script}\""), cwd)
     }
@@ -210,19 +211,40 @@ mod tests {
 
     /// A child that starts a grandchild writing `flag` after 1.5 s, then stays alive for 4 s.
     /// It ends on its own: a leftover process would keep `cargo test`'s output pipes open.
-    fn tree_script(flag: &std::path::Path) -> String {
-        format!(
-            "require('child_process').spawn(process.execPath, ['-e', 'setTimeout(()=>require(`fs`).writeFileSync(`{flag}`, `alive`), 1500)'], {{ stdio: 'ignore' }}); setTimeout(()=>process.exit(0), 4000)",
-            flag = flag.to_string_lossy().replace('\\', "/")
+    ///
+    /// Both scripts are files run with `node <file>`: inline `node -e "…"` scripts get mangled by
+    /// sh (backticks and `$` are shell syntax inside double quotes), which once made this test
+    /// pass on Unix for the wrong reason.
+    fn tree_spec(dir: &std::path::Path) -> (RunSpec, PathBuf) {
+        let flag = dir.join("grandchild-alive.txt");
+        std::fs::write(
+            dir.join("grandchild.js"),
+            "setTimeout(() => require('fs').writeFileSync('grandchild-alive.txt', 'alive'), 1500);\n",
         )
+        .unwrap();
+        std::fs::write(
+            dir.join("child.js"),
+            "require('child_process').spawn(process.execPath, ['grandchild.js'], { stdio: 'ignore' });\nsetTimeout(() => process.exit(0), 4000);\n",
+        )
+        .unwrap();
+        (RunSpec::new("node child.js", dir), flag)
+    }
+
+    #[test]
+    fn tree_scripts_really_write_the_flag() {
+        // Without any kill, the grandchild must write its file; otherwise the kill tests prove nothing.
+        let dir = tempfile::tempdir().unwrap();
+        let (spec, flag) = tree_spec(dir.path());
+        let r = run(&spec).unwrap();
+        assert!(r.success(), "{r:?}");
+        assert!(flag.exists(), "the grandchild never wrote its file");
     }
 
     #[test]
     fn control_a_plain_kill_leaves_the_grandchild_running() {
         // Proves the next test can fail: killing only the shell leaves the tree alive.
         let dir = tempfile::tempdir().unwrap();
-        let flag = dir.path().join("grandchild-alive.txt");
-        let spec = node(&tree_script(&flag), dir.path());
+        let (spec, flag) = tree_spec(dir.path());
         let mut child = shell(&spec.command)
             .current_dir(dir.path())
             .stdin(Stdio::null())
@@ -243,8 +265,7 @@ mod tests {
     #[test]
     fn timeout_kills_the_whole_process_tree() {
         let dir = tempfile::tempdir().unwrap();
-        let flag = dir.path().join("grandchild-alive.txt");
-        let mut spec = node(&tree_script(&flag), dir.path());
+        let (mut spec, flag) = tree_spec(dir.path());
         spec.timeout = Duration::from_millis(600);
 
         let r = run(&spec).unwrap();
