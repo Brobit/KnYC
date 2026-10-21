@@ -112,3 +112,67 @@ export async function knycSys<S extends z.ZodType>(args: string[], schema: S, bi
 
 export const scanProject = (folder: string, binary?: string) => knycSys(["scan", folder], scanSchema, binary);
 export const graphProject = (folder: string, binary?: string) => knycSys(["graph", folder], graphSchema, binary);
+
+export const intakeSchema = z.looseObject({
+  source: z.string(),
+  sandbox: z.string(),
+  hash: z.string(),
+  filesCopied: z.number(),
+  filesForAi: z.number(),
+});
+export type IntakeReport = z.infer<typeof intakeSchema>;
+
+const testCaseSchema = z.object({
+  file: z.string(),
+  name: z.string(),
+  status: z.enum(["pass", "fail", "skip"]),
+  durationMs: z.number(),
+  failure: z
+    .object({
+      message: z.string(),
+      expected: z.string().optional(),
+      actual: z.string().optional(),
+      file: z.string().optional(),
+      line: z.number().optional(),
+    })
+    .optional(),
+});
+
+export const checkOutcomeSchema = z.object({
+  status: z.enum(["pass", "fail", "timeout", "error"]),
+  run: z
+    .object({
+      exitCode: z.number().nullable(),
+      timedOut: z.boolean(),
+      durationMs: z.number(),
+      stdout: z.string(),
+      stderr: z.string(),
+      truncated: z.boolean(),
+    })
+    .optional(),
+  tests: z
+    .object({ success: z.boolean(), passed: z.number(), failed: z.number(), skipped: z.number(), tests: z.array(testCaseSchema) })
+    .optional(),
+  error: z.string().optional(),
+});
+export type CheckOutcome = z.infer<typeof checkOutcomeSchema>;
+
+export const intakeProject = (source: string, sandbox: string, binary?: string) =>
+  knycSys(["intake", source, sandbox], intakeSchema, binary);
+
+export interface RunOptions {
+  timeoutMs?: number;
+  env?: Record<string, string>;
+  /** Jest/Vitest JSON report the command writes, relative to cwd. */
+  report?: string;
+  binary?: string;
+}
+
+/** Runs a shell command line through `knyc-sys run` (timeout + process-tree kill). */
+export function runCommand(cwd: string, command: string, options: RunOptions = {}) {
+  const args = ["run", "--cwd", cwd, "--timeout-ms", String(options.timeoutMs ?? 120_000)];
+  for (const [k, v] of Object.entries(options.env ?? {})) args.push("--env", `${k}=${v}`);
+  if (options.report) args.push("--report", options.report);
+  args.push("--", ...command.split(" ").filter(Boolean));
+  return knycSys(args, checkOutcomeSchema, options.binary);
+}
