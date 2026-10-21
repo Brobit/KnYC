@@ -4,7 +4,7 @@
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use knyc_analyzer::{intake, scan};
+use knyc_analyzer::{graph, intake, scan};
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -32,6 +32,8 @@ enum Commands {
         #[arg(long)]
         no_toolchains: bool,
     },
+    /// Code graph: imports, exports, symbols, dependencies, cycles and layers (graph.json).
+    Graph { folder: PathBuf },
 }
 
 fn print(value: &impl serde::Serialize, pretty: bool) -> Result<()> {
@@ -62,5 +64,6 @@ fn main() -> Result<()> {
             )?,
             cli.pretty,
         ),
+        Commands::Graph { folder } => print(&graph::build(&folder)?, cli.pretty),
     }
 }
