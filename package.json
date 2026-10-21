@@ -1,0 +1,19 @@
+{
+  "name": "knyc",
+  "private": true,
+  "description": "Know your code: rebuild any project step by step, with an AI guide.",
+  "license": "GPL-3.0-only",
+  "repository": "github:Brobit/KnYC",
+  "packageManager": "pnpm@12.14.0",
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @knyc/desktop tauri dev",
+    "build": "pnpm --filter @knyc/desktop tauri build",
+    "landing:dev": "pnpm --filter @knyc/landing dev",
+    "landing:build": "pnpm --filter @knyc/landing build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test"
+  }
+}

@@ -23,7 +23,7 @@ Sizes are relative (S / M / L / XL), not dates.
 - pnpm + Cargo monorepo with the layout of design 01; `LICENSE` (GPL-3.0), README, CONTRIBUTING.
 - Tauri 2 app that opens a window with "Hello KnYC" (React + Tailwind + shadcn/ui, i18next wired).
 - CI (GitHub Actions): lint, typecheck, tests, and a **build matrix on macOS / Windows / Linux**
-  with `tauri-action`, publishing a draft pre-release with the stable asset names (design 05).
+  with `tauri-action`, creating a draft release with the stable asset names (design 05).
 - Landing page skeleton (Astro) deployed to GitHub Pages with a working "Download" button.
 
 **Done when**: someone on each OS can download `v0.0.1` from the landing page and open the app.
