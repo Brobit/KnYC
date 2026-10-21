@@ -258,16 +258,49 @@ fn symbol_edges(files: &[FileNode]) -> Vec<(String, String)> {
         for sym in file.symbols.iter().filter(|s| !s.name.contains('.')) {
             scope.insert(&sym.name, (file.path.as_str(), sym.name.as_str()));
         }
+        let is_class = |path: &str, name: &str| {
+            by_path.get(path).is_some_and(|f| {
+                f.symbols
+                    .iter()
+                    .any(|s| s.name == name && s.kind == parse::SymbolKind::Class)
+            })
+        };
         for sym in &file.symbols {
+            let from = format!("{}#{}", file.path, sym.name);
             let owner = sym.name.split('.').next().unwrap_or(&sym.name);
             for used in &sym.uses {
                 if let Some((path, target)) = scope.get(used.as_str())
                     && !(*path == file.path && (*target == sym.name || *target == owner))
                 {
-                    edges.insert((
-                        format!("{}#{}", file.path, sym.name),
-                        format!("{path}#{target}"),
-                    ));
+                    edges.insert((from.clone(), format!("{path}#{target}")));
+                }
+            }
+
+            // Method calls: `this.products.reserveStock()` → ProductsService.reserveStock.
+            // Candidate classes: those this symbol uses, those its class uses (constructor
+            // parameter types), and its own class.
+            let owner_sym = file.symbols.iter().find(|s| s.name == owner);
+            let mut classes: BTreeSet<(&str, &str)> = sym
+                .uses
+                .iter()
+                .chain(owner_sym.into_iter().flat_map(|o| o.uses.iter()))
+                .filter_map(|name| scope.get(name.as_str()).copied())
+                .filter(|(path, name)| is_class(path, name))
+                .collect();
+            if sym.name.contains('.') {
+                classes.insert((file.path.as_str(), owner));
+            }
+            for member in &sym.members {
+                for (path, class) in &classes {
+                    let method = format!("{class}.{member}");
+                    let exists = by_path.get(path).is_some_and(|f| {
+                        f.symbols
+                            .iter()
+                            .any(|s| s.name == method && s.kind == parse::SymbolKind::Method)
+                    });
+                    if exists && !(*path == file.path && method == sym.name) {
+                        edges.insert((from.clone(), format!("{path}#{method}")));
+                    }
                 }
             }
         }

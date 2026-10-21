@@ -1,0 +1,578 @@
+{
+  "schemaVersion": 1,
+  "id": "backend-standard",
+  "trackId": "backend",
+  "size": "standard",
+  "setupAsStep": false,
+  "sharedUnits": [],
+  "generatedWith": {
+    "planning": {
+      "providerId": "claude-cli",
+      "model": "sonnet"
+    },
+    "at": "2026-10-21T13:14:56.066Z"
+  },
+  "status": "preparing",
+  "milestones": [
+    {
+      "id": "m1",
+      "title": "Foundations",
+      "summary": "Set up configuration loading and the shared building blocks—error classes, ID generation, pagination, request logging, and input validation—that every later module will depend on.",
+      "stepIds": [
+        "s01",
+        "s02"
+      ]
+    },
+    {
+      "id": "m2",
+      "title": "Domain Models",
+      "summary": "Define the core data shapes and primitives for products, orders, payments, users, and authentication before any business logic is written.",
+      "stepIds": [
+        "s03",
+        "s04"
+      ]
+    },
+    {
+      "id": "m3",
+      "title": "Storage and Business Logic",
+      "summary": "Build the in-memory repositories and then layer the product catalog, user, cart, and order services and auth middleware on top of them.",
+      "stepIds": [
+        "s05",
+        "s06",
+        "s07",
+        "s08",
+        "s09",
+        "s10"
+      ]
+    },
+    {
+      "id": "m4",
+      "title": "Wiring and HTTP API",
+      "summary": "Wire every service together through a dependency container, expose them as REST routes, assemble the Express app, and start the server.",
+      "stepIds": [
+        "s11",
+        "s12",
+        "s13",
+        "s14",
+        "s15",
+        "s16",
+        "s17"
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "id": "s01",
+      "index": 0,
+      "title": "Configuration and error handling",
+      "goal": "loadConfig() returns a valid Config object from environment variables with sensible defaults, and the error factories plus errorHandler middleware produce correct HTTP status codes and JSON error bodies",
+      "concepts": [
+        "environment configuration",
+        "custom error classes",
+        "Express error middleware"
+      ],
+      "introduces": [
+        {
+          "unit": "src/config.ts",
+          "kind": "file",
+          "change": "add"
+        },
+        {
+          "unit": "src/shared/errors.ts",
+          "kind": "file",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [],
+      "checkIds": [],
+      "estimatedMinutes": 25,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s02",
+      "index": 1,
+      "title": "Shared utilities: IDs, pagination, logging, validation",
+      "goal": "paginate() correctly slices arrays and returns page metadata, uuid/sequentialIds generate usable identifiers, requestLogger logs method/path/status/duration, and validate() parses input or throws a formatted 400 error",
+      "concepts": [
+        "pagination",
+        "ID generation strategies",
+        "zod schema validation",
+        "request logging middleware"
+      ],
+      "introduces": [
+        {
+          "unit": "src/shared/ids.ts",
+          "kind": "file",
+          "change": "add"
+        },
+        {
+          "unit": "src/shared/logger.ts",
+          "kind": "file",
+          "change": "add"
+        },
+        {
+          "unit": "src/shared/pagination.ts",
+          "kind": "file",
+          "change": "add"
+        },
+        {
+          "unit": "src/shared/validate.ts",
+          "kind": "file",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s01"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 30,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s03",
+      "index": 2,
+      "title": "Product, order, and payment models",
+      "goal": "MockPaymentProvider.charge() succeeds for valid card tokens and fails for declined ones, refund() records the refunded reference, and the order state machine's transitions map correctly allows or rejects status changes",
+      "concepts": [
+        "domain modeling",
+        "interface-based abstraction",
+        "state machines",
+        "mock implementations"
+      ],
+      "introduces": [
+        {
+          "unit": "src/products/product.ts",
+          "kind": "file",
+          "change": "add"
+        },
+        {
+          "unit": "src/orders/order.ts",
+          "kind": "file",
+          "change": "add"
+        },
+        {
+          "unit": "src/payments/payment-provider.ts",
+          "kind": "file",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [],
+      "checkIds": [],
+      "estimatedMinutes": 30,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s04",
+      "index": 3,
+      "title": "User model, password hashing, and JWT tokens",
+      "goal": "hashPassword/verifyPassword correctly identify matching versus non-matching passwords, TokenService.sign/verify issues valid JWTs and rejects tampered or expired ones, and toPublicUser strips the password hash from a User",
+      "concepts": [
+        "scrypt password hashing",
+        "timing-safe comparison",
+        "JWT signing and verification"
+      ],
+      "introduces": [
+        {
+          "unit": "src/users/user.ts",
+          "kind": "file",
+          "change": "add"
+        },
+        {
+          "unit": "src/auth/password.ts",
+          "kind": "file",
+          "change": "add"
+        },
+        {
+          "unit": "src/auth/tokens.ts",
+          "kind": "file",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [],
+      "checkIds": [],
+      "estimatedMinutes": 35,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s05",
+      "index": 4,
+      "title": "In-memory repositories",
+      "goal": "Each repository's save/findById/all (plus findByUser, findByEmail, count) correctly stores and retrieves records in memory",
+      "concepts": [
+        "in-memory data stores",
+        "repository pattern"
+      ],
+      "introduces": [
+        {
+          "unit": "src/products/products.repository.ts",
+          "kind": "file",
+          "change": "add"
+        },
+        {
+          "unit": "src/orders/orders.repository.ts",
+          "kind": "file",
+          "change": "add"
+        },
+        {
+          "unit": "src/users/users.repository.ts",
+          "kind": "file",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s03",
+        "s04"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 25,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s06",
+      "index": 5,
+      "title": "Product catalog service",
+      "goal": "ProductsService.create/list/get/update manage the catalog correctly, list() applies search/filter/sort/pagination from validated query input, and reserveStock/releaseStock adjust inventory while rejecting insufficient or inactive stock",
+      "concepts": [
+        "zod request schemas",
+        "inventory reservation",
+        "search, filter, and sort"
+      ],
+      "introduces": [
+        {
+          "unit": "src/products/products.schemas.ts",
+          "kind": "file",
+          "change": "add"
+        },
+        {
+          "unit": "src/products/products.service.ts",
+          "kind": "file",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s01",
+        "s02",
+        "s03",
+        "s05"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 40,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s07",
+      "index": 6,
+      "title": "User registration and authentication service",
+      "goal": "UsersService.register creates a user (granting admin role to the first user registered) and returns a token, login authenticates correct credentials and rejects invalid ones, and getProfile returns public user data",
+      "concepts": [
+        "registration flow",
+        "first-user admin assignment",
+        "credential verification"
+      ],
+      "introduces": [
+        {
+          "unit": "src/users/users.service.ts",
+          "kind": "file",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s01",
+        "s02",
+        "s04",
+        "s05"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 35,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s08",
+      "index": 7,
+      "title": "Authentication and role middleware",
+      "goal": "requireAuth attaches the decoded user to requests carrying a valid Bearer token and rejects missing or invalid ones, requireRole blocks users lacking the required role, and currentUserId extracts the authenticated user's id or throws",
+      "concepts": [
+        "Express middleware",
+        "Bearer token parsing",
+        "role-based access control"
+      ],
+      "introduces": [
+        {
+          "unit": "src/auth/auth.middleware.ts",
+          "kind": "file",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s01",
+        "s04"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 25,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s09",
+      "index": 8,
+      "title": "Shopping cart service",
+      "goal": "CartService.add/setQuantity/clear/get manage a user's in-memory cart quantities, computing per-line and total costs while validating that products are active and available",
+      "concepts": [
+        "per-user in-memory state",
+        "computed totals",
+        "quantity validation"
+      ],
+      "introduces": [
+        {
+          "unit": "src/cart/cart.service.ts",
+          "kind": "file",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s01",
+        "s06"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 35,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s10",
+      "index": 9,
+      "title": "Order processing service",
+      "goal": "OrdersService.checkout reserves stock, charges the cart total, creates an order, and clears the cart, releasing stock and refunding if payment fails; changeStatus enforces valid transitions, role permissions, and releases stock on cancellation",
+      "concepts": [
+        "checkout orchestration",
+        "compensating actions on failure",
+        "order status transitions",
+        "role-based permissions"
+      ],
+      "introduces": [
+        {
+          "unit": "src/orders/orders.service.ts",
+          "kind": "file",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s01",
+        "s02",
+        "s03",
+        "s05",
+        "s06",
+        "s09"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 45,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s11",
+      "index": 10,
+      "title": "Dependency injection container",
+      "goal": "createContainer() instantiates repositories, token service, payment provider, and all domain services, wiring their dependencies together into one object, and accepts overrides for testing",
+      "concepts": [
+        "dependency injection",
+        "composition root",
+        "test overrides"
+      ],
+      "introduces": [
+        {
+          "unit": "src/container.ts",
+          "kind": "file",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s01",
+        "s02",
+        "s03",
+        "s04",
+        "s05",
+        "s06",
+        "s07",
+        "s09",
+        "s10"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 25,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s12",
+      "index": 11,
+      "title": "Product catalog routes",
+      "goal": "GET /products lists and paginates products, GET /products/:id returns one product, and admin-only POST /products and PATCH /products/:id create and update products",
+      "concepts": [
+        "Express routers",
+        "role-protected endpoints",
+        "request validation in routes"
+      ],
+      "introduces": [
+        {
+          "unit": "src/products/products.routes.ts",
+          "kind": "file",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s02",
+        "s04",
+        "s06",
+        "s08"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 30,
+      "prep": "planned",
+      "checkStrategy": "http"
+    },
+    {
+      "id": "s13",
+      "index": 12,
+      "title": "User and auth routes",
+      "goal": "POST /auth/register and POST /auth/login return a user profile and token on success or the correct error status on failure, and GET /me returns the authenticated caller's profile",
+      "concepts": [
+        "public vs authenticated routes",
+        "bearer auth in HTTP routes"
+      ],
+      "introduces": [
+        {
+          "unit": "src/users/users.routes.ts",
+          "kind": "file",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s02",
+        "s04",
+        "s07",
+        "s08"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 25,
+      "prep": "planned",
+      "checkStrategy": "http"
+    },
+    {
+      "id": "s14",
+      "index": 13,
+      "title": "Cart routes",
+      "goal": "Authenticated GET/POST /cart and PATCH /cart/:productId/quantity correctly read, add to, and update the caller's own cart",
+      "concepts": [
+        "per-user authenticated routes",
+        "REST resource modeling"
+      ],
+      "introduces": [
+        {
+          "unit": "src/cart/cart.routes.ts",
+          "kind": "file",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s02",
+        "s04",
+        "s08",
+        "s09"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 25,
+      "prep": "planned",
+      "checkStrategy": "http"
+    },
+    {
+      "id": "s15",
+      "index": 14,
+      "title": "Orders routes",
+      "goal": "POST /orders/checkout creates an order from the caller's cart, GET /orders lists the caller's orders, GET /orders/:id enforces access control, and PATCH /orders/:id/status transitions order status",
+      "concepts": [
+        "order lifecycle endpoints",
+        "access-controlled resource retrieval"
+      ],
+      "introduces": [
+        {
+          "unit": "src/orders/orders.routes.ts",
+          "kind": "file",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s02",
+        "s04",
+        "s08",
+        "s10"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 30,
+      "prep": "planned",
+      "checkStrategy": "http"
+    },
+    {
+      "id": "s16",
+      "index": 15,
+      "title": "Express app factory",
+      "goal": "createApp() assembles all routers and middleware into a working app: a full register → login → browse products → add to cart → checkout flow succeeds end-to-end, and unmatched routes return 404",
+      "concepts": [
+        "Express app factory",
+        "middleware ordering",
+        "end-to-end integration"
+      ],
+      "introduces": [
+        {
+          "unit": "src/app.ts",
+          "kind": "file",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s01",
+        "s02",
+        "s11",
+        "s12",
+        "s13",
+        "s14",
+        "s15"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 30,
+      "prep": "planned",
+      "checkStrategy": "existing-tests"
+    },
+    {
+      "id": "s17",
+      "index": 16,
+      "title": "Server entry point",
+      "goal": "Running the entry point starts an HTTP server on the configured port that accepts and responds to real requests",
+      "concepts": [
+        "server bootstrapping",
+        "configuration-driven startup"
+      ],
+      "introduces": [
+        {
+          "unit": "src/server.ts",
+          "kind": "file",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s01",
+        "s16"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 15,
+      "prep": "planned",
+      "checkStrategy": "command"
+    }
+  ]
+}

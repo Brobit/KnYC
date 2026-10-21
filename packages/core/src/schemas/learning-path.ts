@@ -4,6 +4,9 @@ import { id, isoDate, modelRef, trackId, unitId } from "./common.ts";
 export const pathSize = z.enum(["overview", "standard", "deep"]);
 export type PathSize = z.infer<typeof pathSize>;
 
+export const checkStrategy = z.enum(["existing-tests", "unit-test", "http", "command", "build"]);
+export type CheckStrategy = z.infer<typeof checkStrategy>;
+
 export const unitChange = z.object({
   unit: unitId,
   kind: z.enum(["file", "function", "class", "method", "component", "route", "config", "other"]),
@@ -23,6 +26,8 @@ export const step = z.object({
   checkIds: z.array(id).default([]),
   estimatedMinutes: z.number().int().positive(),
   prep: z.enum(["planned", "reference-ready", "checks-ready", "ready"]).default("planned"),
+  /** How the plan intends to check this step (design 02 ⑥); the checks stage may still fall back. */
+  checkStrategy: checkStrategy.optional(),
   /** weak = build-only or AI-judged (design 02 ⑧). */
   checkStrength: z.enum(["strong", "weak"]).optional(),
   /** Commit of R_k in the cache's reference.git, once built. */
