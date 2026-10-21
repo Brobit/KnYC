@@ -1,0 +1,213 @@
+{
+  "version": 1,
+  "files": [
+    {
+      "path": "src/config.ts",
+      "role": "Configuration loader",
+      "summary": "Loads and provides access to the app's configuration from environment variables: port, base URL, and short code length. Uses sensible defaults (port 3000, code length 6) when environment variables are not set.",
+      "keySymbols": [
+        {
+          "name": "Config",
+          "purpose": "Interface defining the structure of configuration values needed by the app"
+        },
+        {
+          "name": "loadConfig",
+          "purpose": "Function that reads environment variables and returns a Config object with defaults"
+        }
+      ]
+    },
+    {
+      "path": "src/errors.ts",
+      "role": "Error handling middleware",
+      "summary": "Defines HTTP error types and an Express error handler that catches errors from route handlers. If an error is an HttpError, it responds with the specified status and message; otherwise it logs the error and returns 500.",
+      "keySymbols": [
+        {
+          "name": "HttpError",
+          "purpose": "Custom error class that stores an HTTP status code and message for meaningful API responses"
+        },
+        {
+          "name": "errorHandler",
+          "purpose": "Express middleware that catches errors and sends appropriate JSON responses to clients"
+        }
+      ]
+    },
+    {
+      "path": "src/links/code-generator.ts",
+      "role": "Short code and alias generator",
+      "summary": "Generates random short codes from a carefully chosen alphabet (excluding confusing characters like 0/O and 1/I/l), and validates custom aliases. Maintains a set of reserved codes that cannot be used as short links (like 'api' and 'health').",
+      "keySymbols": [
+        {
+          "name": "generateCode",
+          "purpose": "Creates a random string of specified length from the safe alphabet for use as a short code"
+        },
+        {
+          "name": "isValidAlias",
+          "purpose": "Validates that a custom alias meets length and character requirements (3–32 alphanumeric, dash, or underscore)"
+        },
+        {
+          "name": "ALPHABET",
+          "purpose": "Defines the safe character set for generating short codes, excluding easily-confused characters"
+        },
+        {
+          "name": "RESERVED_CODES",
+          "purpose": "Set of path names already used by the app that cannot become short link codes"
+        }
+      ]
+    },
+    {
+      "path": "src/links/link.ts",
+      "role": "Link data model",
+      "summary": "Defines the structure of a link record: its short code, target URL, creation time, optional expiration time, visit count, and timestamp of the last visit.",
+      "keySymbols": [
+        {
+          "name": "Link",
+          "purpose": "Interface describing the shape of a link object stored in the system"
+        }
+      ]
+    },
+    {
+      "path": "src/links/links.store.ts",
+      "role": "In-memory link storage",
+      "summary": "Provides a simple in-memory Map-based store for Link objects, keyed by their short code. Supports checking existence, retrieving, saving, deleting, and listing all links.",
+      "keySymbols": [
+        {
+          "name": "LinksStore",
+          "purpose": "Class that manages the in-memory collection of links"
+        },
+        {
+          "name": "LinksStore.byCode",
+          "purpose": "Internal Map that stores Link objects indexed by their short code"
+        },
+        {
+          "name": "LinksStore.save",
+          "purpose": "Persists a link to the map, replacing any existing link with the same code"
+        },
+        {
+          "name": "LinksStore.get",
+          "purpose": "Retrieves a link by its short code, returning undefined if not found"
+        },
+        {
+          "name": "LinksStore.has",
+          "purpose": "Checks whether a link with a given code already exists"
+        }
+      ]
+    },
+    {
+      "path": "src/links/links.service.ts",
+      "role": "Link business logic",
+      "summary": "Orchestrates the creation, retrieval, deletion, and analytics of links. Validates input URLs and aliases, handles expiration checks, tracks visit counts, and ensures uniqueness by generating random codes or validating custom ones.",
+      "keySymbols": [
+        {
+          "name": "LinksService",
+          "purpose": "Main service class that implements link management business logic"
+        },
+        {
+          "name": "CreateLinkInput",
+          "purpose": "Interface for the input data needed to create a new link (URL, optional alias and expiration)"
+        },
+        {
+          "name": "parseUrl",
+          "purpose": "Validates that the input is a properly formatted HTTP or HTTPS URL, returning the normalized URL string"
+        },
+        {
+          "name": "LinksService.create",
+          "purpose": "Creates and stores a new link with validation, handling both random codes and custom aliases"
+        },
+        {
+          "name": "LinksService.visit",
+          "purpose": "Resolves a short code to its target URL and increments the visit counter; throws 410 if link has expired"
+        },
+        {
+          "name": "LinksService.topLinks",
+          "purpose": "Returns the most-visited links, sorted by visit count, up to a specified limit"
+        },
+        {
+          "name": "LinksService.remove",
+          "purpose": "Deletes a link by its short code, throwing 404 if it does not exist"
+        }
+      ]
+    },
+    {
+      "path": "src/links/links.routes.ts",
+      "role": "Express route handlers",
+      "summary": "Defines two sets of HTTP routes: a JSON API under /api/links for creating, retrieving, and deleting links plus viewing top links; and a catch-all redirect router that handles short codes as public 302 redirects to their target URLs.",
+      "keySymbols": [
+        {
+          "name": "linksApiRouter",
+          "purpose": "Creates an Express Router for the /api/links JSON API endpoints (POST, GET, DELETE)"
+        },
+        {
+          "name": "redirectRouter",
+          "purpose": "Creates an Express Router that intercepts short codes and performs 302 redirects to target URLs"
+        },
+        {
+          "name": "present",
+          "purpose": "Transforms a Link object into the JSON response format by adding a shortUrl property"
+        }
+      ]
+    },
+    {
+      "path": "src/app.ts",
+      "role": "Application factory",
+      "summary": "Assembles the Express app by configuring middleware, wiring up routes, and attaching error handling. Sets up the health check endpoint, mounts the links API router, and the catch-all redirect router, ensuring they run in the correct order.",
+      "keySymbols": [
+        {
+          "name": "createApp",
+          "purpose": "Factory function that instantiates and configures an Express app with all routes and middleware"
+        }
+      ]
+    },
+    {
+      "path": "src/server.ts",
+      "role": "Application server entry point",
+      "summary": "Loads application configuration and initializes an Express server for the URL shortener, starting it to listen on the configured port and logging its base URL on startup.",
+      "keySymbols": [
+        {
+          "name": "config",
+          "purpose": "Holds application configuration including server port and base URL"
+        }
+      ]
+    }
+  ],
+  "modules": [
+    {
+      "module": "src",
+      "summary": "Sets up and runs the Express application server for the URL shortener. Handles configuration loading, middleware setup, error handling, route mounting, and server initialization on startup.",
+      "files": [
+        "src/config.ts",
+        "src/errors.ts",
+        "src/app.ts",
+        "src/server.ts"
+      ]
+    },
+    {
+      "module": "src/links",
+      "summary": "Manages the core URL shortening functionality: generates short codes and aliases, stores links in memory, applies business logic (validation, expiration, visit tracking), and exposes the shortener through HTTP routes.",
+      "files": [
+        "src/links/code-generator.ts",
+        "src/links/link.ts",
+        "src/links/links.store.ts",
+        "src/links/links.service.ts",
+        "src/links/links.routes.ts"
+      ]
+    }
+  ],
+  "project": {
+    "name": "Express URL Shortener",
+    "purpose": "A TypeScript-based URL shortening service built with Express that generates short codes and aliases for URLs, stores them in memory, tracks visits, and exposes the functionality through HTTP routes.",
+    "architecture": "The server starts at src/server.ts and initializes an Express app configured in src/app.ts. The app mounts links routes from src/links/links.routes.ts, which expose HTTP endpoints. These routes delegate to src/links/links.service.ts, which applies business logic like validation and expiration. The service uses src/links/links.store.ts to read and write links from in-memory storage. At the foundation, src/links/link.ts defines the link data model, src/links/code-generator.ts generates short codes, src/config.ts loads environment configuration, and src/errors.ts defines error types. Each layer depends only on layers below it, creating a clean separation from data models and utilities up through storage and service logic to HTTP routes and finally server initialization.",
+    "keyConcepts": [
+      "URL shortening and code generation",
+      "In-memory data persistence",
+      "Layered architecture with separation of concerns",
+      "Express middleware and routing",
+      "TypeScript type safety",
+      "Error handling patterns",
+      "Configuration management",
+      "Service layer pattern"
+    ],
+    "entryPoints": [
+      "src/server.ts"
+    ]
+  }
+}
