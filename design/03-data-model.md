@@ -10,9 +10,11 @@ Everything KnYC stores, where it lives, and who owns each format.
    - Written by Rust (scan, graph, run results) → defined in Rust with `serde`, TypeScript types
      generated with **ts-rs**.
    - Written by TypeScript (paths, progress, lessons, settings) → defined with **Zod** in
-     `packages/core`. The same Zod schemas are given to the AI SDK for structured output, so the AI
+     `packages/core/src/schemas/`. The same Zod schemas are given to the AI SDK for structured output, so the AI
      returns exactly these shapes.
-2. Every JSON file has a `schemaVersion` (integer). `packages/core/migrations` upgrades old files on load.
+2. Every JSON file has a `schemaVersion` (integer). `loadDocument()` in
+   `packages/core/src/schemas/documents.ts` upgrades old files through the registered migrations,
+   then validates them; files from a newer KnYC are refused.
 3. IDs are short, stable strings (`s07`, `chk-s07-2`, `backend`), never array indexes.
 4. Code is referenced by **unit IDs**, not line numbers (line numbers change):
    `src/users/users.service.ts#UsersService.create`.
