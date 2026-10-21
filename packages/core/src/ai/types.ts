@@ -46,6 +46,8 @@ export interface AiProvider {
 export type AiErrorKind =
   /** Not logged in / key rejected: the user has to act. */
   | "auth"
+  /** Usage or rate limit reached (e.g. a subscription session limit): wait, then retry. */
+  | "limit"
   /** The provider program or service is missing or unreachable. */
   | "unavailable"
   | "timeout"

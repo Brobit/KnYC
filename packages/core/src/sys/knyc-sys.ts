@@ -16,6 +16,7 @@ export const scanSchema = z.looseObject({
   languages: z.array(z.object({ id: z.string(), files: z.number(), loc: z.number() })),
   frameworks: z.array(z.object({ profileId: z.string(), version: z.string().nullable(), root: z.string() })),
   testRunners: z.array(z.object({ runner: z.string(), root: z.string() })),
+  packages: z.array(z.looseObject({ root: z.string(), dependencies: z.record(z.string(), z.string()) })).default([]),
   commands: z.array(
     z.object({
       root: z.string(),

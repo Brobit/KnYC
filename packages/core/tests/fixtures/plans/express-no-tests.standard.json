@@ -1,0 +1,538 @@
+{
+  "schemaVersion": 1,
+  "id": "backend-standard",
+  "trackId": "backend",
+  "size": "standard",
+  "setupAsStep": false,
+  "sharedUnits": [],
+  "generatedWith": {
+    "planning": {
+      "providerId": "claude-cli",
+      "model": "sonnet"
+    },
+    "at": "2026-10-21T14:01:03.164Z"
+  },
+  "status": "preparing",
+  "milestones": [
+    {
+      "id": "m1",
+      "title": "Foundations",
+      "summary": "Set up the building blocks every other layer depends on: configuration, error handling, the link data model, and short-code generation.",
+      "stepIds": [
+        "s01",
+        "s02",
+        "s03",
+        "s04"
+      ]
+    },
+    {
+      "id": "m2",
+      "title": "In-memory storage",
+      "summary": "Build the storage layer that keeps links in memory, supporting lookup, insertion, deletion and listing.",
+      "stepIds": [
+        "s05",
+        "s06"
+      ]
+    },
+    {
+      "id": "m3",
+      "title": "Link business logic",
+      "summary": "Implement the service layer that validates input, creates links with codes or aliases, resolves and tracks visits, expires links, and ranks them.",
+      "stepIds": [
+        "s07",
+        "s08",
+        "s09",
+        "s10",
+        "s11"
+      ]
+    },
+    {
+      "id": "m4",
+      "title": "HTTP routes",
+      "summary": "Expose the link service over HTTP: a JSON API for managing links and a redirect route for visiting them.",
+      "stepIds": [
+        "s12",
+        "s13"
+      ]
+    },
+    {
+      "id": "m5",
+      "title": "Application and server",
+      "summary": "Wire every layer together into a running Express app and start the HTTP server.",
+      "stepIds": [
+        "s14",
+        "s15"
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "id": "s01",
+      "index": 0,
+      "title": "Load configuration from environment",
+      "goal": "loadConfig() returns a Config object populated from env vars with sensible defaults for port and base URL",
+      "concepts": [
+        "environment config",
+        "TypeScript interfaces",
+        "default values"
+      ],
+      "introduces": [
+        {
+          "unit": "src/config.ts#Config",
+          "kind": "other",
+          "change": "add"
+        },
+        {
+          "unit": "src/config.ts#loadConfig",
+          "kind": "function",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [],
+      "checkIds": [],
+      "estimatedMinutes": 15,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s02",
+      "index": 1,
+      "title": "Define HTTP errors and error-handling middleware",
+      "goal": "errorHandler middleware catches a thrown HttpError and sends a JSON response with its status code and message",
+      "concepts": [
+        "custom error classes",
+        "Express error middleware",
+        "status codes"
+      ],
+      "introduces": [
+        {
+          "unit": "src/errors.ts#HttpError",
+          "kind": "class",
+          "change": "add"
+        },
+        {
+          "unit": "src/errors.ts#errorHandler",
+          "kind": "function",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [],
+      "checkIds": [],
+      "estimatedMinutes": 20,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s03",
+      "index": 2,
+      "title": "Define the Link data model",
+      "goal": "The Link interface compiles and documents the fields of a stored link (code, url, alias, visits, expiresAt)",
+      "concepts": [
+        "data modeling",
+        "TypeScript interfaces"
+      ],
+      "introduces": [
+        {
+          "unit": "src/links/link.ts#Link",
+          "kind": "other",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [],
+      "checkIds": [],
+      "estimatedMinutes": 10,
+      "prep": "planned",
+      "checkStrategy": "build"
+    },
+    {
+      "id": "s04",
+      "index": 3,
+      "title": "Generate short codes and validate aliases",
+      "goal": "generateCode produces random codes from the safe alphabet, and isValidAlias accepts or rejects a proposed alias by length and allowed characters",
+      "concepts": [
+        "random generation",
+        "character sets",
+        "input validation"
+      ],
+      "introduces": [
+        {
+          "unit": "src/links/code-generator.ts#ALPHABET",
+          "kind": "other",
+          "change": "add"
+        },
+        {
+          "unit": "src/links/code-generator.ts#Random",
+          "kind": "other",
+          "change": "add"
+        },
+        {
+          "unit": "src/links/code-generator.ts#generateCode",
+          "kind": "function",
+          "change": "add"
+        },
+        {
+          "unit": "src/links/code-generator.ts#isValidAlias",
+          "kind": "function",
+          "change": "add"
+        },
+        {
+          "unit": "src/links/code-generator.ts#RESERVED_CODES",
+          "kind": "other",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [],
+      "checkIds": [],
+      "estimatedMinutes": 25,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s05",
+      "index": 4,
+      "title": "Store and retrieve links by code",
+      "goal": "LinksStore.save stores a link, and LinksStore.has/get correctly report existence and retrieve it by code",
+      "concepts": [
+        "in-memory storage",
+        "Map data structure",
+        "repository pattern"
+      ],
+      "introduces": [
+        {
+          "unit": "src/links/links.store.ts#LinksStore",
+          "kind": "class",
+          "change": "add"
+        },
+        {
+          "unit": "src/links/links.store.ts#LinksStore.has",
+          "kind": "method",
+          "change": "add"
+        },
+        {
+          "unit": "src/links/links.store.ts#LinksStore.get",
+          "kind": "method",
+          "change": "add"
+        },
+        {
+          "unit": "src/links/links.store.ts#LinksStore.save",
+          "kind": "method",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s03"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 25,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s06",
+      "index": 5,
+      "title": "Delete and list all links",
+      "goal": "LinksStore.delete removes a link by code and LinksStore.all returns every link currently stored",
+      "concepts": [
+        "collection iteration",
+        "deletion"
+      ],
+      "introduces": [
+        {
+          "unit": "src/links/links.store.ts#LinksStore.delete",
+          "kind": "method",
+          "change": "extend"
+        },
+        {
+          "unit": "src/links/links.store.ts#LinksStore.all",
+          "kind": "method",
+          "change": "extend"
+        }
+      ],
+      "dependsOn": [
+        "s03",
+        "s05"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 15,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s07",
+      "index": 6,
+      "title": "Validate and normalize input URLs",
+      "goal": "parseUrl accepts well-formed http/https URLs and throws an HttpError for anything malformed",
+      "concepts": [
+        "URL validation",
+        "input sanitization",
+        "throwing typed errors"
+      ],
+      "introduces": [
+        {
+          "unit": "src/links/links.service.ts#CreateLinkInput",
+          "kind": "other",
+          "change": "add"
+        },
+        {
+          "unit": "src/links/links.service.ts#parseUrl",
+          "kind": "function",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s02"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 20,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s08",
+      "index": 7,
+      "title": "Create shortened links with custom aliases",
+      "goal": "LinksService.create stores a new link using a generated code or a validated custom alias, rejecting reserved words and already-taken aliases",
+      "concepts": [
+        "service layer",
+        "dependency injection",
+        "business rule validation"
+      ],
+      "introduces": [
+        {
+          "unit": "src/links/links.service.ts#LinksService",
+          "kind": "class",
+          "change": "extend"
+        },
+        {
+          "unit": "src/links/links.service.ts#LinksService.create",
+          "kind": "method",
+          "change": "extend"
+        },
+        {
+          "unit": "src/links/links.service.ts#LinksService.checkAlias",
+          "kind": "method",
+          "change": "extend"
+        },
+        {
+          "unit": "src/links/links.service.ts#LinksService.uniqueCode",
+          "kind": "method",
+          "change": "extend"
+        }
+      ],
+      "dependsOn": [
+        "s02",
+        "s03",
+        "s04",
+        "s05",
+        "s06",
+        "s07"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 40,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s09",
+      "index": 8,
+      "title": "Fetch and delete links by code",
+      "goal": "LinksService.get returns the matching link or throws a 404, and LinksService.remove deletes an existing link",
+      "concepts": [
+        "lookup by key",
+        "404 handling"
+      ],
+      "introduces": [
+        {
+          "unit": "src/links/links.service.ts#LinksService.get",
+          "kind": "method",
+          "change": "extend"
+        },
+        {
+          "unit": "src/links/links.service.ts#LinksService.remove",
+          "kind": "method",
+          "change": "extend"
+        }
+      ],
+      "dependsOn": [
+        "s02",
+        "s03",
+        "s05",
+        "s06",
+        "s08"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 20,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s10",
+      "index": 9,
+      "title": "Track visits and expire links",
+      "goal": "LinksService.visit resolves a code to its target URL and increments its visit count, throwing a 410 once the link has expired",
+      "concepts": [
+        "visit tracking",
+        "expiration logic",
+        "stateful mutation"
+      ],
+      "introduces": [
+        {
+          "unit": "src/links/links.service.ts#LinksService.visit",
+          "kind": "method",
+          "change": "extend"
+        }
+      ],
+      "dependsOn": [
+        "s02",
+        "s05",
+        "s08",
+        "s09"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 25,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s11",
+      "index": 10,
+      "title": "Rank links by popularity",
+      "goal": "LinksService.topLinks returns the most-visited links sorted descending by visit count, limited to a given count",
+      "concepts": [
+        "sorting",
+        "aggregation"
+      ],
+      "introduces": [
+        {
+          "unit": "src/links/links.service.ts#LinksService.topLinks",
+          "kind": "method",
+          "change": "extend"
+        }
+      ],
+      "dependsOn": [
+        "s03",
+        "s06",
+        "s08"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 15,
+      "prep": "planned",
+      "checkStrategy": "unit-test"
+    },
+    {
+      "id": "s12",
+      "index": 11,
+      "title": "Expose the links JSON API",
+      "goal": "POST /api/links creates a link, GET /api/links/:code fetches it, and DELETE /api/links/:code removes it, all returning JSON including a shortUrl field",
+      "concepts": [
+        "Express routers",
+        "REST endpoints",
+        "JSON responses"
+      ],
+      "introduces": [
+        {
+          "unit": "src/links/links.routes.ts#present",
+          "kind": "function",
+          "change": "add"
+        },
+        {
+          "unit": "src/links/links.routes.ts#linksApiRouter",
+          "kind": "function",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s03",
+        "s08",
+        "s09",
+        "s11"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 35,
+      "prep": "planned",
+      "checkStrategy": "http"
+    },
+    {
+      "id": "s13",
+      "index": 12,
+      "title": "Redirect short codes to target URLs",
+      "goal": "GET /:code responds with a 302 redirect to the stored URL and records a visit on the link",
+      "concepts": [
+        "HTTP redirects",
+        "route parameters"
+      ],
+      "introduces": [
+        {
+          "unit": "src/links/links.routes.ts#redirectRouter",
+          "kind": "function",
+          "change": "extend"
+        }
+      ],
+      "dependsOn": [
+        "s08",
+        "s09",
+        "s10"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 20,
+      "prep": "planned",
+      "checkStrategy": "http"
+    },
+    {
+      "id": "s14",
+      "index": 13,
+      "title": "Assemble the Express application",
+      "goal": "createApp() builds an Express app wiring config, store, service, both routers, and the error handler into one working pipeline",
+      "concepts": [
+        "app factory pattern",
+        "middleware composition",
+        "dependency wiring"
+      ],
+      "introduces": [
+        {
+          "unit": "src/app.ts#createApp",
+          "kind": "function",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s01",
+        "s02",
+        "s05",
+        "s08",
+        "s09",
+        "s12",
+        "s13"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 30,
+      "prep": "planned",
+      "checkStrategy": "http"
+    },
+    {
+      "id": "s15",
+      "index": 14,
+      "title": "Start the HTTP server",
+      "goal": "Running the entry point loads config, starts listening on the configured port, and logs the base URL to the console",
+      "concepts": [
+        "server bootstrapping",
+        "process entry point"
+      ],
+      "introduces": [
+        {
+          "unit": "src/server.ts",
+          "kind": "file",
+          "change": "add"
+        }
+      ],
+      "dependsOn": [
+        "s01",
+        "s14"
+      ],
+      "checkIds": [],
+      "estimatedMinutes": 15,
+      "prep": "planned",
+      "checkStrategy": "command"
+    }
+  ]
+}

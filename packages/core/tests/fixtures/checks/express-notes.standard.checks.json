@@ -1,0 +1,638 @@
+{
+  "report": [
+    {
+      "stepId": "s01",
+      "strength": "merged",
+      "existing": 0,
+      "generated": 0,
+      "aiCalls": 0,
+      "notes": [
+        "doesn't build alone; merged into s02"
+      ]
+    },
+    {
+      "stepId": "s02",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 3,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s03",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 3,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s04",
+      "strength": "weak",
+      "existing": 0,
+      "generated": 0,
+      "aiCalls": 1,
+      "notes": [
+        "no runtime check: Note and NoteInput are TypeScript-only (interface/type alias), erased at compile time. dist/notes/note.js has no runtime exports or behavior to assert; correctness is enforced by the TS compiler type-checking consumers, not by a Node runtime test."
+      ]
+    },
+    {
+      "stepId": "s05",
+      "strength": "strong",
+      "existing": 2,
+      "generated": 0,
+      "aiCalls": 0,
+      "notes": []
+    },
+    {
+      "stepId": "s06",
+      "strength": "strong",
+      "existing": 1,
+      "generated": 0,
+      "aiCalls": 0,
+      "notes": []
+    },
+    {
+      "stepId": "s07",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 1,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s08",
+      "strength": "strong",
+      "existing": 4,
+      "generated": 0,
+      "aiCalls": 0,
+      "notes": []
+    },
+    {
+      "stepId": "s09",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 1,
+      "aiCalls": 2,
+      "notes": []
+    },
+    {
+      "stepId": "s10",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 1,
+      "aiCalls": 3,
+      "notes": []
+    },
+    {
+      "stepId": "s11",
+      "strength": "strong",
+      "existing": 5,
+      "generated": 0,
+      "aiCalls": 0,
+      "notes": []
+    },
+    {
+      "stepId": "s12",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 1,
+      "aiCalls": 2,
+      "notes": []
+    }
+  ],
+  "checks": [
+    {
+      "schemaVersion": 1,
+      "id": "chk-s02-1",
+      "stepId": "s02",
+      "label": "HttpError carries status, message, details",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s02-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s02-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s02-2",
+      "stepId": "s02",
+      "label": "NotFoundError sets status 404 and message",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s02-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s02-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s02-3",
+      "stepId": "s02",
+      "label": "ValidationError sets status 400 and details array",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s02-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s02-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s03-1",
+      "stepId": "s03",
+      "label": "notFoundHandler returns 404 JSON for unknown route",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s03-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s03-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s03-2",
+      "stepId": "s03",
+      "label": "errorHandler maps thrown HttpError to its status and message",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s03-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s03-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s03-3",
+      "stepId": "s03",
+      "label": "errorHandler maps unknown thrown errors to 500 Internal server error",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s03-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s03-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s04-1",
+      "stepId": "s04",
+      "label": "The project builds",
+      "origin": "generated",
+      "timeoutMs": 300000,
+      "spec": {
+        "kind": "build",
+        "root": ".",
+        "command": "npm run build"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s05-1",
+      "stepId": "s05",
+      "label": "NotesStore creates notes with incrementing ids and timestamps",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "NotesStore creates notes with incrementing ids and timestamps"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s05-2",
+      "stepId": "s05",
+      "label": "NotesStore filters by tag",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "NotesStore filters by tag"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s06-1",
+      "stepId": "s06",
+      "label": "NotesStore updates and removes notes",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "NotesStore updates and removes notes"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s07-1",
+      "stepId": "s07",
+      "label": "notes.validation module compiles and loads",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s07-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s07-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s08-1",
+      "stepId": "s08",
+      "label": "parseNoteInput accepts a full note and normalizes tags",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "parseNoteInput accepts a full note and normalizes tags"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s08-2",
+      "stepId": "s08",
+      "label": "parseNoteInput allows partial input when patching",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "parseNoteInput allows partial input when patching"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s08-3",
+      "stepId": "s08",
+      "label": "parseNoteInput defaults tags to an empty list",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "parseNoteInput defaults tags to an empty list"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s08-4",
+      "stepId": "s08",
+      "label": "parseNoteInput rejects a missing title and a long title",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "parseNoteInput rejects a missing title and a long title"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s09-1",
+      "stepId": "s09",
+      "label": "notes.routes module compiles and loads without error",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s09-2-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s09-2-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s10-1",
+      "stepId": "s10",
+      "label": "POST /notes creates and GET /notes/:id returns it",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s10-3-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s10-3-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s11-1",
+      "stepId": "s11",
+      "label": "/notes creates, reads, lists, updates and deletes a note",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "/notes creates, reads, lists, updates and deletes a note"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s11-2",
+      "stepId": "s11",
+      "label": "/notes returns 400 for a non-numeric id",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "/notes returns 400 for a non-numeric id"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s11-3",
+      "stepId": "s11",
+      "label": "/notes returns 400 with details for invalid input",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "/notes returns 400 with details for invalid input"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s11-4",
+      "stepId": "s11",
+      "label": "/notes returns 404 for unknown routes",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "/notes returns 404 for unknown routes"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s11-5",
+      "stepId": "s11",
+      "label": "GET /health returns ok",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "GET /health returns ok"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s12-1",
+      "stepId": "s12",
+      "label": "server.js starts and listens, logging its URL",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T13:51:10.966Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s12-2-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s12-2-1.test.mjs"
+        ]
+      }
+    }
+  ],
+  "files": {
+    ".knyc-checks/s02-1-1.test.mjs": "import test from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { HttpError, NotFoundError, ValidationError } from \"../dist/errors.js\";\n\ntest(\"HttpError carries status, message, and optional details\", () => {\n  const err = new HttpError(418, \"teapot\", { reason: \"short and stout\" });\n  assert.ok(err instanceof Error);\n  assert.equal(err.status, 418);\n  assert.equal(err.message, \"teapot\");\n  assert.deepEqual(err.details, { reason: \"short and stout\" });\n\n  const plain = new HttpError(500, \"oops\");\n  assert.equal(plain.details, undefined);\n});\n",
+    ".knyc-checks/s02-1-2.test.mjs": "import test from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { HttpError, NotFoundError } from \"../dist/errors.js\";\n\ntest(\"NotFoundError is a 404 HttpError with a formatted message\", () => {\n  const err = new NotFoundError(\"Note\");\n  assert.ok(err instanceof HttpError);\n  assert.equal(err.status, 404);\n  assert.equal(err.message, \"Note not found\");\n});\n",
+    ".knyc-checks/s02-1-3.test.mjs": "import test from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { HttpError, ValidationError } from \"../dist/errors.js\";\n\ntest(\"ValidationError is a 400 HttpError carrying details\", () => {\n  const err = new ValidationError([\"title is required\", \"title too long\"]);\n  assert.ok(err instanceof HttpError);\n  assert.equal(err.status, 400);\n  assert.equal(err.message, \"Invalid request\");\n  assert.deepEqual(err.details, [\"title is required\", \"title too long\"]);\n});\n",
+    ".knyc-checks/s03-1-1.test.mjs": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport express from 'express';\nimport { notFoundHandler, errorHandler } from '../dist/errors.js';\n\ntest('notFoundHandler returns 404 with JSON error body', async () => {\n  const app = express();\n  app.use(notFoundHandler);\n  app.use(errorHandler);\n\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once('listening', resolve));\n  const port = server.address().port;\n\n  try {\n    const res = await fetch(`http://localhost:${port}/does-not-exist`);\n    assert.equal(res.status, 404);\n    const body = await res.json();\n    assert.equal(typeof body.error, 'string');\n    assert.ok(body.error.length > 0);\n  } finally {\n    await new Promise((resolve) => server.close(resolve));\n  }\n});\n",
+    ".knyc-checks/s03-1-2.test.mjs": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport express from 'express';\nimport { ValidationError, errorHandler } from '../dist/errors.js';\n\ntest('errorHandler returns HttpError status/message/details as JSON', async () => {\n  const app = express();\n  app.get('/boom', (_req, _res) => {\n    throw new ValidationError({ field: 'name' });\n  });\n  app.use(errorHandler);\n\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once('listening', resolve));\n  const port = server.address().port;\n\n  try {\n    const res = await fetch(`http://localhost:${port}/boom`);\n    assert.equal(res.status, 400);\n    const body = await res.json();\n    assert.equal(body.error, 'Invalid request');\n    assert.deepEqual(body.details, { field: 'name' });\n  } finally {\n    await new Promise((resolve) => server.close(resolve));\n  }\n});\n",
+    ".knyc-checks/s03-1-3.test.mjs": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport express from 'express';\nimport { errorHandler } from '../dist/errors.js';\n\ntest('errorHandler returns 500 for non-HttpError errors', async () => {\n  const app = express();\n  app.get('/crash', (_req, _res) => {\n    throw new Error('unexpected');\n  });\n  app.use(errorHandler);\n\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once('listening', resolve));\n  const port = server.address().port;\n\n  try {\n    const res = await fetch(`http://localhost:${port}/crash`);\n    assert.equal(res.status, 500);\n    const body = await res.json();\n    assert.equal(body.error, 'Internal server error');\n  } finally {\n    await new Promise((resolve) => server.close(resolve));\n  }\n});\n",
+    ".knyc-checks/s07-1-1.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\n\ntest(\"notes.validation module exists and loads after build\", async () => {\n  const mod = await import(\"../dist/notes/notes.validation.js\");\n  assert.equal(typeof mod, \"object\");\n});\n",
+    ".knyc-checks/s09-2-1.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\n\ntest('notes.routes module can be imported', async () => {\n  const mod = await import('../dist/notes/notes.routes.js');\n  assert.equal(typeof mod, 'object');\n});\n",
+    ".knyc-checks/s10-3-1.test.mjs": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport express from 'express';\nimport { notesRouter } from '../dist/notes/notes.routes.js';\nimport { NotesStore } from '../dist/notes/notes.store.js';\n\nfunction makeApp() {\n  const app = express();\n  app.use(express.json());\n  app.use('/notes', notesRouter(new NotesStore(), 200));\n  app.use((err, req, res, next) => {\n    const status = err.statusCode || 500;\n    res.status(status).json({ error: err.message, details: err.details });\n  });\n  return app;\n}\n\ntest('POST /notes creates and GET /notes/:id returns it', async () => {\n  const app = makeApp();\n  const server = app.listen(0);\n  const { port } = server.address();\n  try {\n    const base = `http://localhost:${port}`;\n    const postRes = await fetch(`${base}/notes`, {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify({ title: 'Hello', body: 'World' }),\n    });\n    assert.strictEqual(postRes.status, 201);\n    const created = await postRes.json();\n    assert.strictEqual(created.title, 'Hello');\n\n    const getRes = await fetch(`${base}/notes/${created.id}`);\n    assert.strictEqual(getRes.status, 200);\n    const fetched = await getRes.json();\n    assert.strictEqual(fetched.id, created.id);\n    assert.strictEqual(fetched.title, 'Hello');\n  } finally {\n    server.close();\n  }\n});\n",
+    ".knyc-checks/s12-2-1.test.mjs": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport http from 'node:http';\n\ntest('server.js starts and listens, logging its URL', async () => {\n  let capturedServer;\n  const originalListen = http.Server.prototype.listen;\n  http.Server.prototype.listen = function (...args) {\n    capturedServer = this;\n    return originalListen.apply(this, args);\n  };\n\n  let loggedLine = '';\n  let resolveLog;\n  const logged = new Promise((resolve) => {\n    resolveLog = resolve;\n  });\n  const originalLog = console.log;\n  console.log = (msg) => {\n    loggedLine = String(msg);\n    resolveLog();\n  };\n\n  try {\n    await import('../dist/server.js');\n    await Promise.race([\n      logged,\n      new Promise((_, reject) =>\n        setTimeout(() => reject(new Error('timed out waiting for the server to log its URL')), 1500),\n      ),\n    ]);\n  } finally {\n    console.log = originalLog;\n    http.Server.prototype.listen = originalListen;\n  }\n\n  assert.ok(capturedServer, 'expected the server to call listen()');\n  assert.ok(capturedServer.listening, 'expected the server to be listening');\n\n  const address = capturedServer.address();\n  assert.equal(typeof address, 'object', 'expected server.address() to return connection info');\n  assert.ok(address.port > 0, 'expected a listening port greater than 0');\n\n  assert.match(\n    loggedLine,\n    /express-notes listening on http:\\/\\/localhost:\\d+/,\n    'expected a log message with the server URL',\n  );\n  assert.ok(\n    loggedLine.includes(String(address.port)),\n    'expected the logged URL to include the actual listening port',\n  );\n\n  const res = await fetch(`http://localhost:${address.port}/`);\n  assert.ok(res.status >= 100 && res.status < 600, 'expected the server to respond to a request');\n\n  await new Promise((resolve) => capturedServer.close(resolve));\n});\n"
+  },
+  "discarded": []
+}

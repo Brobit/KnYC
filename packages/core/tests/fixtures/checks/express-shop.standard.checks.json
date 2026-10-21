@@ -1,0 +1,1538 @@
+{
+  "report": [
+    {
+      "stepId": "s01",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 3,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s02",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 3,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s03",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 3,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s04",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 3,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s05",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 3,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s06",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 3,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s07",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 2,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s08",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 3,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s09",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 3,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s10",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 3,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s11",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 2,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s12",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 2,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s13",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 3,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s14",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 3,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s15",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 3,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s16",
+      "strength": "strong",
+      "existing": 16,
+      "generated": 0,
+      "aiCalls": 0,
+      "notes": []
+    },
+    {
+      "stepId": "s17",
+      "strength": "weak",
+      "existing": 0,
+      "generated": 0,
+      "aiCalls": 3,
+      "notes": [
+        "attempt 1: Claude Code error: You've hit your session limit · resets 6:40pm (Europe/Paris)",
+        "attempt 2: Claude Code error: You've hit your session limit · resets 6:40pm (Europe/Paris)",
+        "attempt 3: Claude Code error: You've hit your session limit · resets 6:40pm (Europe/Paris)"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "schemaVersion": 1,
+      "id": "chk-s01-1",
+      "stepId": "s01",
+      "label": "loadConfig returns sensible defaults",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s01-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s01-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s01-2",
+      "stepId": "s01",
+      "label": "loadConfig reads values from env",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s01-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s01-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s01-3",
+      "stepId": "s01",
+      "label": "errorHandler and factories produce correct status/JSON",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s01-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s01-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s02-1",
+      "stepId": "s02",
+      "label": "uuid/sequentialIds and paginate() work correctly",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s02-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s02-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s02-2",
+      "stepId": "s02",
+      "label": "requestLogger logs method, path, status, and duration",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s02-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s02-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s02-3",
+      "stepId": "s02",
+      "label": "validate() returns parsed data or throws formatted 400 HttpError",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s02-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s02-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s03-1",
+      "stepId": "s03",
+      "label": "MockPaymentProvider.charge succeeds for tok_ok, fails for tok_declined",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s03-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s03-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s03-2",
+      "stepId": "s03",
+      "label": "MockPaymentProvider.refund records the refunded reference",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s03-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s03-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s03-3",
+      "stepId": "s03",
+      "label": "order transitions map allows/rejects correct status changes",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s03-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s03-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s04-1",
+      "stepId": "s04",
+      "label": "hashPassword/verifyPassword match and reject",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s04-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s04-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s04-2",
+      "stepId": "s04",
+      "label": "TokenService signs valid JWTs and rejects tampered/expired ones",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s04-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s04-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s04-3",
+      "stepId": "s04",
+      "label": "toPublicUser strips passwordHash from a User",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s04-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s04-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s05-1",
+      "stepId": "s05",
+      "label": "ProductsRepository save/findById/all work in memory",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s05-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s05-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s05-2",
+      "stepId": "s05",
+      "label": "UsersRepository save/findById/findByEmail/count work",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s05-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s05-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s05-3",
+      "stepId": "s05",
+      "label": "OrdersRepository save/findById/findByUser/all work",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s05-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s05-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s06-1",
+      "stepId": "s06",
+      "label": "ProductsService create/get/update manage catalog",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s06-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s06-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s06-2",
+      "stepId": "s06",
+      "label": "list applies search/filter/sort/pagination and hides inactive by default",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s06-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s06-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s06-3",
+      "stepId": "s06",
+      "label": "reserveStock/releaseStock adjust inventory and reject bad reservations",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s06-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s06-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s07-1",
+      "stepId": "s07",
+      "label": "login accepts correct credentials and rejects invalid ones",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s07-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s07-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s07-2",
+      "stepId": "s07",
+      "label": "getProfile returns public user data without password hash, errors for unknown id",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s07-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s07-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s08-1",
+      "stepId": "s08",
+      "label": "requireAuth rejects missing/invalid token, accepts valid one",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s08-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s08-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s08-2",
+      "stepId": "s08",
+      "label": "requireRole allows matching role, blocks others with 403",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s08-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s08-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s08-3",
+      "stepId": "s08",
+      "label": "currentUserId returns the authenticated id or throws unauthorized",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s08-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s08-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s09-1",
+      "stepId": "s09",
+      "label": "add() builds cart lines with totals",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s09-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s09-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s09-2",
+      "stepId": "s09",
+      "label": "add() rejects inactive products",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s09-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s09-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s09-3",
+      "stepId": "s09",
+      "label": "setQuantity(0) removes line; missing product rejected",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s09-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s09-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s10-1",
+      "stepId": "s10",
+      "label": "checkout reserves stock, charges, creates paid order, clears cart",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s10-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s10-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s10-2",
+      "stepId": "s10",
+      "label": "checkout with declined card releases stock and does not clear cart",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s10-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s10-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s10-3",
+      "stepId": "s10",
+      "label": "changeStatus enforces roles, transitions, and releases stock + refunds on cancel",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s10-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s10-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s11-1",
+      "stepId": "s11",
+      "label": "createContainer wires services end-to-end",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s11-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s11-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s11-2",
+      "stepId": "s11",
+      "label": "createContainer respects newId and payments overrides",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s11-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s11-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s12-1",
+      "stepId": "s12",
+      "label": "GET /products/:id returns one product or 404 for inactive/missing",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s12-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s12-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s12-2",
+      "stepId": "s12",
+      "label": "Admin-only POST and PATCH /products create and update",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s12-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s12-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s13-1",
+      "stepId": "s13",
+      "label": "POST /auth/register returns 201 with user and token",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s13-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s13-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s13-2",
+      "stepId": "s13",
+      "label": "POST /auth/login with wrong password returns 401",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s13-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s13-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s13-3",
+      "stepId": "s13",
+      "label": "GET /me returns the authenticated caller's profile",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s13-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s13-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s14-1",
+      "stepId": "s14",
+      "label": "GET /cart without auth returns 401",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s14-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s14-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s14-2",
+      "stepId": "s14",
+      "label": "POST /cart/items adds product and GET /cart reflects it",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s14-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s14-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s14-3",
+      "stepId": "s14",
+      "label": "PUT updates/removes quantity; carts are per-user",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s14-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s14-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s15-1",
+      "stepId": "s15",
+      "label": "POST /orders checkout creates order from caller's cart",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s15-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s15-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s15-2",
+      "stepId": "s15",
+      "label": "GET /orders/:id returns 403 for another non-admin user's order",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s15-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s15-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s15-3",
+      "stepId": "s15",
+      "label": "PATCH /orders/:id/status enforces role transitions",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s15-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s15-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s16-1",
+      "stepId": "s16",
+      "label": "/auth and /me logs in and returns the profile",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "/auth and /me logs in and returns the profile"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s16-2",
+      "stepId": "s16",
+      "label": "/auth and /me registers the first user as admin and the next as customer",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "/auth and /me registers the first user as admin and the next as customer"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s16-3",
+      "stepId": "s16",
+      "label": "/auth and /me rejects duplicate emails and short passwords",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "/auth and /me rejects duplicate emails and short passwords"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s16-4",
+      "stepId": "s16",
+      "label": "/auth and /me rejects wrong passwords and missing tokens",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "/auth and /me rejects wrong passwords and missing tokens"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s16-5",
+      "stepId": "s16",
+      "label": "TokenService round-trips a payload and rejects tampered tokens",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "TokenService round-trips a payload and rejects tampered tokens"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s16-6",
+      "stepId": "s16",
+      "label": "password hashing verifies the right password only",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "password hashing verifies the right password only"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s16-7",
+      "stepId": "s16",
+      "label": "/cart adds items, computes totals and removes a line with quantity 0",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "/cart adds items, computes totals and removes a line with quantity 0"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s16-8",
+      "stepId": "s16",
+      "label": "/orders checks out the cart, decrements stock and empties the cart",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "/orders checks out the cart, decrements stock and empties the cart"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s16-9",
+      "stepId": "s16",
+      "label": "/orders hides other users' orders",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "/orders hides other users' orders"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s16-10",
+      "stepId": "s16",
+      "label": "/orders lets a customer cancel a paid order and refunds it",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "/orders lets a customer cancel a paid order and refunds it"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s16-11",
+      "stepId": "s16",
+      "label": "/orders only lets admins ship, and enforces the status flow",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "/orders only lets admins ship, and enforces the status flow"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s16-12",
+      "stepId": "s16",
+      "label": "/orders refuses an empty cart, too little stock and declined cards",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "/orders refuses an empty cart, too little stock and declined cards"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s16-13",
+      "stepId": "s16",
+      "label": "/products lets only admins create and update products",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "/products lets only admins create and update products"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s16-14",
+      "stepId": "s16",
+      "label": "/products lists, searches and sorts active products",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "/products lists, searches and sorts active products"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s16-15",
+      "stepId": "s16",
+      "label": "/products validates input",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "/products validates input"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s16-16",
+      "stepId": "s16",
+      "label": "paginate slices items and computes totals",
+      "origin": "repo",
+      "timeoutMs": 120000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:43:39.716Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "vitest",
+        "command": "npx vitest run --reporter=json --outputFile=.knyc-report.json",
+        "filter": [
+          "paginate slices items and computes totals"
+        ],
+        "files": []
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s17-1",
+      "stepId": "s17",
+      "label": "The project builds",
+      "origin": "generated",
+      "timeoutMs": 300000,
+      "spec": {
+        "kind": "build",
+        "root": ".",
+        "command": "npm run build"
+      }
+    }
+  ],
+  "files": {
+    ".knyc-checks/s01-1-1.test.mjs": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { loadConfig } from '../dist/config.js';\n\ntest('loadConfig defaults', () => {\n  const config = loadConfig({});\n  assert.equal(config.port, 3000);\n  assert.equal(config.jwtSecret, 'dev-secret-change-me');\n  assert.equal(config.jwtExpiresInSeconds, 3600);\n  assert.equal(typeof config.logRequests, 'boolean');\n});\n",
+    ".knyc-checks/s01-1-2.test.mjs": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { loadConfig } from '../dist/config.js';\n\ntest('loadConfig reads env overrides', () => {\n  const config = loadConfig({\n    PORT: '4321',\n    JWT_SECRET: 'super-secret',\n    JWT_EXPIRES_IN: '120',\n    NODE_ENV: 'production',\n    LOG_REQUESTS: 'false',\n  });\n  assert.equal(config.port, 4321);\n  assert.equal(config.jwtSecret, 'super-secret');\n  assert.equal(config.jwtExpiresInSeconds, 120);\n  assert.equal(config.logRequests, false);\n});\n",
+    ".knyc-checks/s01-1-3.test.mjs": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport express from 'express';\nimport {\n  badRequest,\n  unauthorized,\n  forbidden,\n  notFound,\n  conflict,\n  notFoundHandler,\n  errorHandler,\n} from '../dist/shared/errors.js';\n\ntest('error factories and middleware produce correct responses', async () => {\n  const app = express();\n\n  app.get('/bad', (_req, _res, next) => next(badRequest('bad input', { field: 'x' })));\n  app.get('/unauth', (_req, _res, next) => next(unauthorized()));\n  app.get('/forbidden', (_req, _res, next) => next(forbidden()));\n  app.get('/notfound', (_req, _res, next) => next(notFound('Widget')));\n  app.get('/conflict', (_req, _res, next) => next(conflict('already exists')));\n  app.get('/boom', (_req, _res, next) => next(new Error('kaboom')));\n\n  app.use(notFoundHandler);\n  app.use(errorHandler);\n\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once('listening', resolve));\n  const port = server.address().port;\n  const base = `http://localhost:${port}`;\n\n  try {\n    const bad = await fetch(`${base}/bad`);\n    assert.equal(bad.status, 400);\n    const badBody = await bad.json();\n    assert.equal(badBody.error, 'bad input');\n    assert.deepEqual(badBody.details, { field: 'x' });\n\n    const unauth = await fetch(`${base}/unauth`);\n    assert.equal(unauth.status, 401);\n    assert.equal((await unauth.json()).error, 'Authentication required');\n\n    const forb = await fetch(`${base}/forbidden`);\n    assert.equal(forb.status, 403);\n    assert.equal((await forb.json()).error, 'Not allowed');\n\n    const nf = await fetch(`${base}/notfound`);\n    assert.equal(nf.status, 404);\n    assert.equal((await nf.json()).error, 'Widget not found');\n\n    const conf = await fetch(`${base}/conflict`);\n    assert.equal(conf.status, 409);\n    assert.equal((await conf.json()).error, 'already exists');\n\n    const boom = await fetch(`${base}/boom`);\n    assert.equal(boom.status, 500);\n    assert.equal((await boom.json()).error, 'Internal server error');\n\n    const unrouted = await fetch(`${base}/does-not-exist`);\n    assert.equal(unrouted.status, 404);\n    assert.equal((await unrouted.json()).error, 'Route not found');\n  } finally {\n    await new Promise((resolve) => server.close(resolve));\n  }\n});\n",
+    ".knyc-checks/s02-1-1.test.mjs": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { uuid, sequentialIds } from '../dist/shared/ids.js';\nimport { paginate, paginationSchema } from '../dist/shared/pagination.js';\n\ntest('uuid generates distinct usable strings', () => {\n  const a = uuid();\n  const b = uuid();\n  assert.equal(typeof a, 'string');\n  assert.ok(a.length > 10);\n  assert.notEqual(a, b);\n});\n\ntest('sequentialIds generates deterministic prefixed ids', () => {\n  const gen = sequentialIds('user');\n  assert.equal(gen(), 'user-1');\n  assert.equal(gen(), 'user-2');\n  assert.equal(gen(), 'user-3');\n});\n\ntest('paginate slices items and returns metadata', () => {\n  const items = Array.from({ length: 25 }, (_, i) => i);\n  const parsed = paginationSchema.parse({ page: '2', pageSize: '10' });\n  const result = paginate(items, parsed);\n  assert.deepEqual(result.items, items.slice(10, 20));\n  assert.equal(result.page, 2);\n  assert.equal(result.pageSize, 10);\n  assert.equal(result.total, 25);\n  assert.equal(result.totalPages, 3);\n});\n\ntest('paginate defaults page/pageSize and handles empty input', () => {\n  const parsed = paginationSchema.parse({});\n  assert.equal(parsed.page, 1);\n  assert.equal(parsed.pageSize, 20);\n  const result = paginate([], parsed);\n  assert.deepEqual(result.items, []);\n  assert.equal(result.total, 0);\n  assert.equal(result.totalPages, 1);\n});\n",
+    ".knyc-checks/s02-1-2.test.mjs": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport express from 'express';\nimport { requestLogger } from '../dist/shared/logger.js';\n\ntest('requestLogger logs a line with method, path, status and ms duration', async () => {\n  const logs = [];\n  const originalLog = console.log;\n  console.log = (...args) => { logs.push(args.join(' ')); };\n\n  const app = express();\n  app.use(requestLogger);\n  app.get('/ping', (_req, res) => res.status(200).json({ ok: true }));\n\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once('listening', resolve));\n  const port = server.address().port;\n\n  try {\n    const res = await fetch(`http://localhost:${port}/ping`);\n    await res.json();\n    await new Promise((resolve) => setTimeout(resolve, 50));\n\n    const line = logs.find((l) => l.includes('/ping'));\n    assert.ok(line, 'expected a log line for /ping');\n    assert.match(line, /GET/);\n    assert.match(line, /\\/ping/);\n    assert.match(line, /200/);\n    assert.match(line, /\\d+(\\.\\d+)?ms/);\n  } finally {\n    console.log = originalLog;\n    await new Promise((resolve) => server.close(resolve));\n  }\n});\n",
+    ".knyc-checks/s02-1-3.test.mjs": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { z } from 'zod';\nimport { validate } from '../dist/shared/validate.js';\nimport { HttpError } from '../dist/shared/errors.js';\n\nconst schema = z.object({ name: z.string().min(1) });\n\ntest('validate returns parsed data when input matches schema', () => {\n  const result = validate(schema, { name: 'Ada' });\n  assert.deepEqual(result, { name: 'Ada' });\n});\n\ntest('validate throws a 400 HttpError with readable details on bad input', () => {\n  assert.throws(\n    () => validate(schema, { name: '' }),\n    (err) => {\n      assert.ok(err instanceof HttpError);\n      assert.equal(err.status, 400);\n      assert.equal(err.message, 'Invalid request');\n      assert.ok(Array.isArray(err.details));\n      assert.ok(err.details.some((d) => d.includes('name')));\n      return true;\n    },\n  );\n});\n",
+    ".knyc-checks/s03-1-1.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { MockPaymentProvider } from '../dist/payments/payment-provider.js';\n\ntest('charge succeeds for valid card token', async () => {\n  const provider = new MockPaymentProvider();\n  const result = await provider.charge(1000, 'tok_ok');\n  assert.equal(result.ok, true);\n  assert.equal(typeof result.reference, 'string');\n  assert.ok(result.reference.length > 0);\n});\n\ntest('charge fails for declined card token', async () => {\n  const provider = new MockPaymentProvider();\n  const result = await provider.charge(1000, 'tok_declined');\n  assert.equal(result.ok, false);\n  assert.equal(result.reference, undefined);\n  assert.equal(typeof result.reason, 'string');\n});\n\ntest('charge fails for invalid amount', async () => {\n  const provider = new MockPaymentProvider();\n  const result = await provider.charge(0, 'tok_ok');\n  assert.equal(result.ok, false);\n});\n",
+    ".knyc-checks/s03-1-2.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { MockPaymentProvider } from '../dist/payments/payment-provider.js';\n\ntest('refund records the reference', async () => {\n  const provider = new MockPaymentProvider();\n  const charge = await provider.charge(500, 'tok_ok');\n  assert.equal(charge.ok, true);\n  await provider.refund(charge.reference);\n  assert.deepEqual(provider.refunded, [charge.reference]);\n});\n\ntest('multiple refunds are all recorded in order', async () => {\n  const provider = new MockPaymentProvider();\n  const c1 = await provider.charge(100, 'tok_ok');\n  const c2 = await provider.charge(200, 'tok_ok');\n  await provider.refund(c1.reference);\n  await provider.refund(c2.reference);\n  assert.deepEqual(provider.refunded, [c1.reference, c2.reference]);\n});\n",
+    ".knyc-checks/s03-1-3.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { transitions } from '../dist/orders/order.js';\n\ntest('paid can transition to shipped or cancelled', () => {\n  assert.deepEqual(transitions.paid.sort(), ['cancelled', 'shipped'].sort());\n});\n\ntest('shipped can only transition to delivered', () => {\n  assert.deepEqual(transitions.shipped, ['delivered']);\n});\n\ntest('delivered and cancelled are terminal states', () => {\n  assert.deepEqual(transitions.delivered, []);\n  assert.deepEqual(transitions.cancelled, []);\n});\n",
+    ".knyc-checks/s04-1-1.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { hashPassword, verifyPassword } from '../dist/auth/password.js';\n\ntest('verifyPassword returns true for correct password and false for wrong one', async () => {\n  const stored = await hashPassword('correct-horse-battery-staple');\n  assert.equal(typeof stored, 'string');\n  assert.ok(stored.includes(':'));\n  assert.equal(await verifyPassword('correct-horse-battery-staple', stored), true);\n  assert.equal(await verifyPassword('wrong-password', stored), false);\n});\n\ntest('two hashes of the same password differ (random salt) but both verify', async () => {\n  const a = await hashPassword('same-password');\n  const b = await hashPassword('same-password');\n  assert.notEqual(a, b);\n  assert.equal(await verifyPassword('same-password', a), true);\n  assert.equal(await verifyPassword('same-password', b), true);\n});\n",
+    ".knyc-checks/s04-1-2.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { TokenService } from '../dist/auth/tokens.js';\n\ntest('sign/verify round-trips payload', () => {\n  const service = new TokenService('top-secret', 60);\n  const token = service.sign({ sub: 'user-1', role: 'customer' });\n  const payload = service.verify(token);\n  assert.equal(payload?.sub, 'user-1');\n  assert.equal(payload?.role, 'customer');\n});\n\ntest('verify rejects a tampered token', () => {\n  const service = new TokenService('top-secret', 60);\n  const token = service.sign({ sub: 'user-1', role: 'customer' });\n  const tampered = token.slice(0, -2) + (token.slice(-2) === 'AA' ? 'BB' : 'AA');\n  assert.equal(service.verify(tampered), null);\n});\n\ntest('verify rejects an expired token', async () => {\n  const service = new TokenService('top-secret', 1);\n  const token = service.sign({ sub: 'user-1', role: 'customer' });\n  await new Promise((resolve) => setTimeout(resolve, 1500));\n  assert.equal(service.verify(token), null);\n});\n",
+    ".knyc-checks/s04-1-3.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { toPublicUser } from '../dist/users/user.js';\n\ntest('toPublicUser omits passwordHash but keeps other fields', () => {\n  const user = {\n    id: 'u1',\n    email: 'a@b.com',\n    name: 'Alice',\n    role: 'customer',\n    passwordHash: 'salt:hash',\n    createdAt: '2024-01-01T00:00:00.000Z',\n  };\n  const pub = toPublicUser(user);\n  assert.equal(pub.id, 'u1');\n  assert.equal(pub.email, 'a@b.com');\n  assert.equal(pub.name, 'Alice');\n  assert.equal(pub.role, 'customer');\n  assert.equal(pub.createdAt, '2024-01-01T00:00:00.000Z');\n  assert.equal('passwordHash' in pub, false);\n});\n",
+    ".knyc-checks/s05-1-1.test.mjs": "import test from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { ProductsRepository } from \"../dist/products/products.repository.js\";\n\ntest(\"ProductsRepository save/findById/all\", () => {\n  const repo = new ProductsRepository();\n  assert.deepEqual(repo.all(), []);\n  assert.equal(repo.findById(\"p1\"), undefined);\n\n  const product = {\n    id: \"p1\",\n    name: \"Widget\",\n    description: \"A widget\",\n    priceCents: 1000,\n    stock: 5,\n    category: \"tools\",\n    active: true,\n  };\n  const saved = repo.save(product);\n  assert.equal(saved, product);\n  assert.deepEqual(repo.findById(\"p1\"), product);\n  assert.deepEqual(repo.all(), [product]);\n\n  const product2 = { ...product, id: \"p2\", name: \"Gadget\" };\n  repo.save(product2);\n  assert.equal(repo.all().length, 2);\n});\n",
+    ".knyc-checks/s05-1-2.test.mjs": "import test from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { UsersRepository } from \"../dist/users/users.repository.js\";\n\ntest(\"UsersRepository save/findById/findByEmail/count\", () => {\n  const repo = new UsersRepository();\n  assert.equal(repo.count(), 0);\n  assert.equal(repo.findById(\"u1\"), undefined);\n  assert.equal(repo.findByEmail(\"a@b.com\"), undefined);\n\n  const user = {\n    id: \"u1\",\n    email: \"a@b.com\",\n    name: \"Alice\",\n    role: \"customer\",\n    passwordHash: \"hash\",\n    createdAt: new Date().toISOString(),\n  };\n  repo.save(user);\n  assert.equal(repo.count(), 1);\n  assert.deepEqual(repo.findById(\"u1\"), user);\n  assert.deepEqual(repo.findByEmail(\"a@b.com\"), user);\n\n  const user2 = { ...user, id: \"u2\", email: \"c@d.com\" };\n  repo.save(user2);\n  assert.equal(repo.count(), 2);\n});\n",
+    ".knyc-checks/s05-1-3.test.mjs": "import test from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { OrdersRepository } from \"../dist/orders/orders.repository.js\";\n\ntest(\"OrdersRepository save/findById/findByUser/all\", () => {\n  const repo = new OrdersRepository();\n  assert.deepEqual(repo.all(), []);\n  assert.equal(repo.findById(\"o1\"), undefined);\n  assert.deepEqual(repo.findByUser(\"u1\"), []);\n\n  const makeOrder = (id, userId, createdAt) => ({\n    id,\n    userId,\n    lines: [{ productId: \"p1\", name: \"Widget\", unitPriceCents: 100, quantity: 1 }],\n    totalCents: 100,\n    status: \"paid\",\n    paymentReference: \"ref1\",\n    createdAt,\n  });\n\n  const o1 = makeOrder(\"o1\", \"u1\", \"2024-01-01T00:00:00.000Z\");\n  const o2 = makeOrder(\"o2\", \"u1\", \"2024-02-01T00:00:00.000Z\");\n  const o3 = makeOrder(\"o3\", \"u2\", \"2024-01-15T00:00:00.000Z\");\n\n  repo.save(o1);\n  repo.save(o2);\n  repo.save(o3);\n\n  assert.deepEqual(repo.findById(\"o2\"), o2);\n  assert.equal(repo.all().length, 3);\n\n  const u1Orders = repo.findByUser(\"u1\");\n  assert.equal(u1Orders.length, 2);\n  // sorted most recent first\n  assert.equal(u1Orders[0].id, \"o2\");\n  assert.equal(u1Orders[1].id, \"o1\");\n\n  assert.deepEqual(repo.findByUser(\"u3\"), []);\n});\n",
+    ".knyc-checks/s06-1-1.test.mjs": "import test from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { ProductsRepository } from \"../dist/products/products.repository.js\";\nimport { ProductsService } from \"../dist/products/products.service.js\";\nimport { sequentialIds } from \"../dist/shared/ids.js\";\n\ntest(\"create assigns id and active=true, get retrieves it, update merges fields\", () => {\n  const repo = new ProductsRepository();\n  const service = new ProductsService(repo, sequentialIds(\"prod\"));\n\n  const created = service.create({\n    name: \"Widget\",\n    description: \"A widget\",\n    priceCents: 1000,\n    stock: 5,\n    category: \"tools\",\n  });\n  assert.equal(created.id, \"prod-1\");\n  assert.equal(created.active, true);\n\n  const fetched = service.get(\"prod-1\");\n  assert.equal(fetched.name, \"Widget\");\n\n  assert.throws(() => service.get(\"missing\"), /not found/i);\n\n  const updated = service.update(\"prod-1\", { stock: 20, active: false });\n  assert.equal(updated.stock, 20);\n  assert.equal(updated.active, false);\n  assert.equal(updated.name, \"Widget\");\n});\n",
+    ".knyc-checks/s06-1-2.test.mjs": "import test from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { ProductsRepository } from \"../dist/products/products.repository.js\";\nimport { ProductsService } from \"../dist/products/products.service.js\";\nimport { sequentialIds } from \"../dist/shared/ids.js\";\n\ntest(\"list: search, category filter, sort, pagination, active-only default\", () => {\n  const repo = new ProductsRepository();\n  const service = new ProductsService(repo, sequentialIds(\"prod\"));\n\n  service.create({ name: \"Blue Mug\", description: \"ceramic\", priceCents: 500, stock: 10, category: \"home\" });\n  service.create({ name: \"Red Mug\", description: \"glass\", priceCents: 300, stock: 10, category: \"home\" });\n  service.create({ name: \"Hammer\", description: \"steel tool\", priceCents: 1200, stock: 10, category: \"tools\" });\n  const inactive = service.create({ name: \"Old Mug\", description: \"ceramic\", priceCents: 100, stock: 10, category: \"home\" });\n  service.update(inactive.id, { active: false });\n\n  const base = { page: 1, pageSize: 20 };\n\n  const byCategory = service.list({ ...base, sort: \"price\" }, false);\n  const homeOnly = byCategory.items.filter((p) => p.category === \"home\");\n  assert.equal(homeOnly.length, 2);\n  assert.ok(!byCategory.items.some((p) => p.name === \"Old Mug\"));\n\n  const searched = service.list({ ...base, q: \"mug\", sort: \"-price\" }, false);\n  assert.deepEqual(searched.items.map((p) => p.name), [\"Blue Mug\", \"Red Mug\"]);\n\n  const categoryFiltered = service.list({ ...base, category: \"tools\", sort: \"name\" }, false);\n  assert.equal(categoryFiltered.items.length, 1);\n  assert.equal(categoryFiltered.items[0].name, \"Hammer\");\n\n  const page1 = service.list({ page: 1, pageSize: 2, sort: \"name\" }, false);\n  assert.equal(page1.items.length, 2);\n  assert.equal(page1.total, 3);\n  assert.equal(page1.totalPages, 2);\n\n  const withInactive = service.list({ ...base, sort: \"name\" }, true);\n  assert.ok(withInactive.items.some((p) => p.name === \"Old Mug\"));\n});\n",
+    ".knyc-checks/s06-1-3.test.mjs": "import test from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { ProductsRepository } from \"../dist/products/products.repository.js\";\nimport { ProductsService } from \"../dist/products/products.service.js\";\nimport { sequentialIds } from \"../dist/shared/ids.js\";\n\ntest(\"reserveStock decrements stock, releaseStock increments, rejects insufficient/inactive stock\", () => {\n  const repo = new ProductsRepository();\n  const service = new ProductsService(repo, sequentialIds(\"prod\"));\n\n  const p1 = service.create({ name: \"Pen\", description: \"\", priceCents: 100, stock: 5, category: \"office\" });\n  const p2 = service.create({ name: \"Book\", description: \"\", priceCents: 200, stock: 2, category: \"office\" });\n\n  service.reserveStock([\n    { productId: p1.id, quantity: 2 },\n    { productId: p2.id, quantity: 1 },\n  ]);\n  assert.equal(service.get(p1.id).stock, 3);\n  assert.equal(service.get(p2.id).stock, 1);\n\n  assert.throws(\n    () => service.reserveStock([{ productId: p2.id, quantity: 10 }]),\n    /not enough stock/i,\n  );\n  assert.equal(service.get(p2.id).stock, 1, \"stock unchanged after failed reservation\");\n\n  service.update(p1.id, { active: false });\n  assert.throws(\n    () => service.reserveStock([{ productId: p1.id, quantity: 1 }]),\n    /no longer available/i,\n  );\n\n  service.releaseStock([{ productId: p2.id, quantity: 1 }]);\n  assert.equal(service.get(p2.id).stock, 2);\n});\n",
+    ".knyc-checks/s07-1-2.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { UsersRepository } from '../dist/users/users.repository.js';\nimport { UsersService } from '../dist/users/users.service.js';\nimport { TokenService } from '../dist/auth/tokens.js';\nimport { sequentialIds } from '../dist/shared/ids.js';\n\ntest('login works with correct password and fails otherwise', async () => {\n  const repo = new UsersRepository();\n  const tokens = new TokenService('test-secret', 3600);\n  const service = new UsersService(repo, tokens, sequentialIds('user'));\n\n  await service.register({ email: 'carol@example.com', name: 'Carol', password: 'correct-horse' });\n\n  const result = await service.login({ email: 'Carol@example.com', password: 'correct-horse' });\n  assert.equal(result.user.email, 'carol@example.com');\n  assert.equal(typeof result.token, 'string');\n\n  await assert.rejects(\n    () => service.login({ email: 'carol@example.com', password: 'wrong-password' }),\n    (err) => err.status === 401,\n  );\n\n  await assert.rejects(\n    () => service.login({ email: 'unknown@example.com', password: 'whatever1' }),\n    (err) => err.status === 401,\n  );\n});\n",
+    ".knyc-checks/s07-1-3.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { UsersRepository } from '../dist/users/users.repository.js';\nimport { UsersService } from '../dist/users/users.service.js';\nimport { TokenService } from '../dist/auth/tokens.js';\nimport { sequentialIds } from '../dist/shared/ids.js';\n\ntest('getProfile exposes public fields only and throws 404 when missing', async () => {\n  const repo = new UsersRepository();\n  const tokens = new TokenService('test-secret', 3600);\n  const service = new UsersService(repo, tokens, sequentialIds('user'));\n\n  const { user } = await service.register({ email: 'dave@example.com', name: 'Dave', password: 'password123' });\n\n  const profile = service.getProfile(user.id);\n  assert.equal(profile.id, user.id);\n  assert.equal(profile.email, 'dave@example.com');\n  assert.equal(profile.name, 'Dave');\n  assert.equal(profile.passwordHash, undefined);\n\n  assert.throws(() => service.getProfile('does-not-exist'), (err) => err.status === 404);\n});\n",
+    ".knyc-checks/s08-1-1.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport express from \"express\";\nimport { requireAuth } from \"../dist/auth/auth.middleware.js\";\nimport { TokenService } from \"../dist/auth/tokens.js\";\nimport { errorHandler } from \"../dist/shared/errors.js\";\n\nasync function startServer() {\n  const tokens = new TokenService(\"test-secret\", 3600);\n  const app = express();\n  app.get(\"/protected\", requireAuth(tokens), (req, res) => {\n    res.json({ user: req.user });\n  });\n  app.use(errorHandler);\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once(\"listening\", resolve));\n  const { port } = server.address();\n  return { server, base: `http://localhost:${port}`, tokens };\n}\n\ntest(\"requireAuth rejects missing Authorization header with 401\", async () => {\n  const { server, base } = await startServer();\n  try {\n    const res = await fetch(`${base}/protected`);\n    assert.equal(res.status, 401);\n  } finally {\n    server.close();\n  }\n});\n\ntest(\"requireAuth rejects invalid token with 401\", async () => {\n  const { server, base } = await startServer();\n  try {\n    const res = await fetch(`${base}/protected`, {\n      headers: { Authorization: \"Bearer not-a-real-token\" },\n    });\n    assert.equal(res.status, 401);\n  } finally {\n    server.close();\n  }\n});\n\ntest(\"requireAuth attaches decoded user for a valid token\", async () => {\n  const { server, base, tokens } = await startServer();\n  try {\n    const token = tokens.sign({ sub: \"user-1\", role: \"customer\" });\n    const res = await fetch(`${base}/protected`, {\n      headers: { Authorization: `Bearer ${token}` },\n    });\n    assert.equal(res.status, 200);\n    const body = await res.json();\n    assert.equal(body.user.sub, \"user-1\");\n    assert.equal(body.user.role, \"customer\");\n  } finally {\n    server.close();\n  }\n});\n",
+    ".knyc-checks/s08-1-2.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport express from \"express\";\nimport { requireAuth, requireRole } from \"../dist/auth/auth.middleware.js\";\nimport { TokenService } from \"../dist/auth/tokens.js\";\nimport { errorHandler } from \"../dist/shared/errors.js\";\n\nasync function startServer() {\n  const tokens = new TokenService(\"test-secret\", 3600);\n  const app = express();\n  app.get(\"/admin-only\", requireAuth(tokens), requireRole(\"admin\"), (_req, res) => {\n    res.json({ ok: true });\n  });\n  app.use(errorHandler);\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once(\"listening\", resolve));\n  const { port } = server.address();\n  return { server, base: `http://localhost:${port}`, tokens };\n}\n\ntest(\"requireRole blocks a user without the required role\", async () => {\n  const { server, base, tokens } = await startServer();\n  try {\n    const token = tokens.sign({ sub: \"user-1\", role: \"customer\" });\n    const res = await fetch(`${base}/admin-only`, {\n      headers: { Authorization: `Bearer ${token}` },\n    });\n    assert.equal(res.status, 403);\n  } finally {\n    server.close();\n  }\n});\n\ntest(\"requireRole allows a user with the required role\", async () => {\n  const { server, base, tokens } = await startServer();\n  try {\n    const token = tokens.sign({ sub: \"admin-1\", role: \"admin\" });\n    const res = await fetch(`${base}/admin-only`, {\n      headers: { Authorization: `Bearer ${token}` },\n    });\n    assert.equal(res.status, 200);\n    const body = await res.json();\n    assert.equal(body.ok, true);\n  } finally {\n    server.close();\n  }\n});\n",
+    ".knyc-checks/s08-1-3.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { currentUserId } from \"../dist/auth/auth.middleware.js\";\nimport { HttpError } from \"../dist/shared/errors.js\";\n\ntest(\"currentUserId returns req.user.sub when set\", () => {\n  const req = { user: { sub: \"user-42\", role: \"customer\" } };\n  assert.equal(currentUserId(req), \"user-42\");\n});\n\ntest(\"currentUserId throws an unauthorized HttpError when req.user is missing\", () => {\n  const req = {};\n  assert.throws(() => currentUserId(req), (err) => {\n    assert.ok(err instanceof HttpError);\n    assert.equal(err.status, 401);\n    return true;\n  });\n});\n",
+    ".knyc-checks/s09-1-1.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { CartService } from '../dist/cart/cart.service.js';\nimport { ProductsService } from '../dist/products/products.service.js';\nimport { ProductsRepository } from '../dist/products/products.repository.js';\nimport { sequentialIds } from '../dist/shared/ids.js';\n\ntest('add() computes line totals and cart total', () => {\n  const products = new ProductsService(new ProductsRepository(), sequentialIds());\n  const p = products.create({ name: 'Widget', description: 'd', priceCents: 500, stock: 10, category: 'misc' });\n  const cart = new CartService(products);\n  cart.add('u1', { productId: p.id, quantity: 2 });\n  const result = cart.get('u1');\n  assert.equal(result.lines.length, 1);\n  assert.equal(result.lines[0].quantity, 2);\n  assert.equal(result.lines[0].lineTotalCents, 1000);\n  assert.equal(result.totalCents, 1000);\n});\n",
+    ".knyc-checks/s09-1-2.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { CartService } from '../dist/cart/cart.service.js';\nimport { ProductsService } from '../dist/products/products.service.js';\nimport { ProductsRepository } from '../dist/products/products.repository.js';\nimport { sequentialIds } from '../dist/shared/ids.js';\n\ntest('add() throws when product is not active', () => {\n  const products = new ProductsService(new ProductsRepository(), sequentialIds());\n  const p = products.create({ name: 'Widget', description: 'd', priceCents: 500, stock: 10, category: 'misc' });\n  products.update(p.id, { active: false });\n  const cart = new CartService(products);\n  assert.throws(() => cart.add('u1', { productId: p.id, quantity: 1 }), /no longer available/);\n});\n",
+    ".knyc-checks/s09-1-3.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { CartService } from '../dist/cart/cart.service.js';\nimport { ProductsService } from '../dist/products/products.service.js';\nimport { ProductsRepository } from '../dist/products/products.repository.js';\nimport { sequentialIds } from '../dist/shared/ids.js';\n\ntest('setQuantity removes line at 0 and rejects items not in cart', () => {\n  const products = new ProductsService(new ProductsRepository(), sequentialIds());\n  const p = products.create({ name: 'Widget', description: 'd', priceCents: 500, stock: 10, category: 'misc' });\n  const cart = new CartService(products);\n  cart.add('u1', { productId: p.id, quantity: 3 });\n  const updated = cart.setQuantity('u1', p.id, 0);\n  assert.equal(updated.lines.length, 0);\n  assert.equal(updated.totalCents, 0);\n  assert.throws(() => cart.setQuantity('u1', p.id, 1), /not in the cart/);\n});\n",
+    ".knyc-checks/s10-1-1.test.mjs": "import test from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { ProductsRepository } from \"../dist/products/products.repository.js\";\nimport { ProductsService } from \"../dist/products/products.service.js\";\nimport { CartService } from \"../dist/cart/cart.service.js\";\nimport { OrdersRepository } from \"../dist/orders/orders.repository.js\";\nimport { OrdersService } from \"../dist/orders/orders.service.js\";\nimport { MockPaymentProvider } from \"../dist/payments/payment-provider.js\";\nimport { sequentialIds } from \"../dist/shared/ids.js\";\n\ntest(\"checkout reserves stock, charges, creates order, clears cart\", async () => {\n  const productsRepo = new ProductsRepository();\n  const products = new ProductsService(productsRepo, sequentialIds(\"prod\"));\n  const cart = new CartService(products);\n  const ordersRepo = new OrdersRepository();\n  const payments = new MockPaymentProvider();\n  const orders = new OrdersService(ordersRepo, cart, products, payments, sequentialIds(\"order\"));\n\n  const product = products.create({\n    name: \"Widget\",\n    description: \"A widget\",\n    priceCents: 1000,\n    category: \"misc\",\n    stock: 5,\n  });\n\n  cart.add(\"user-1\", { productId: product.id, quantity: 2 });\n\n  const order = await orders.checkout(\"user-1\", \"tok_ok\");\n\n  assert.equal(order.status, \"paid\");\n  assert.equal(order.totalCents, 2000);\n  assert.equal(order.userId, \"user-1\");\n  assert.equal(products.get(product.id).stock, 3);\n  assert.equal(cart.get(\"user-1\").lines.length, 0);\n  assert.equal(orders.getForUser(\"user-1\", order.id).id, order.id);\n});\n",
+    ".knyc-checks/s10-1-2.test.mjs": "import test from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { ProductsRepository } from \"../dist/products/products.repository.js\";\nimport { ProductsService } from \"../dist/products/products.service.js\";\nimport { CartService } from \"../dist/cart/cart.service.js\";\nimport { OrdersRepository } from \"../dist/orders/orders.repository.js\";\nimport { OrdersService } from \"../dist/orders/orders.service.js\";\nimport { MockPaymentProvider } from \"../dist/payments/payment-provider.js\";\nimport { sequentialIds } from \"../dist/shared/ids.js\";\nimport { HttpError } from \"../dist/shared/errors.js\";\n\ntest(\"checkout with declined card releases stock, leaves cart intact\", async () => {\n  const productsRepo = new ProductsRepository();\n  const products = new ProductsService(productsRepo, sequentialIds(\"prod\"));\n  const cart = new CartService(products);\n  const ordersRepo = new OrdersRepository();\n  const payments = new MockPaymentProvider();\n  const orders = new OrdersService(ordersRepo, cart, products, payments, sequentialIds(\"order\"));\n\n  const product = products.create({\n    name: \"Gadget\",\n    description: \"A gadget\",\n    priceCents: 500,\n    category: \"misc\",\n    stock: 4,\n  });\n\n  cart.add(\"user-2\", { productId: product.id, quantity: 3 });\n\n  await assert.rejects(\n    () => orders.checkout(\"user-2\", \"tok_declined\"),\n    (err) => err instanceof HttpError && err.status === 402,\n  );\n\n  assert.equal(products.get(product.id).stock, 4);\n  assert.equal(cart.get(\"user-2\").lines.length, 1);\n  assert.equal(orders.listForUser(\"user-2\").length, 0);\n});\n",
+    ".knyc-checks/s10-1-3.test.mjs": "import test from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { ProductsRepository } from \"../dist/products/products.repository.js\";\nimport { ProductsService } from \"../dist/products/products.service.js\";\nimport { CartService } from \"../dist/cart/cart.service.js\";\nimport { OrdersRepository } from \"../dist/orders/orders.repository.js\";\nimport { OrdersService } from \"../dist/orders/orders.service.js\";\nimport { MockPaymentProvider } from \"../dist/payments/payment-provider.js\";\nimport { sequentialIds } from \"../dist/shared/ids.js\";\nimport { HttpError } from \"../dist/shared/errors.js\";\n\ntest(\"changeStatus: roles, transitions, cancel releases stock and refunds\", async () => {\n  const productsRepo = new ProductsRepository();\n  const products = new ProductsService(productsRepo, sequentialIds(\"prod\"));\n  const cart = new CartService(products);\n  const ordersRepo = new OrdersRepository();\n  const payments = new MockPaymentProvider();\n  const orders = new OrdersService(ordersRepo, cart, products, payments, sequentialIds(\"order\"));\n\n  const product = products.create({\n    name: \"Thing\",\n    description: \"A thing\",\n    priceCents: 200,\n    category: \"misc\",\n    stock: 10,\n  });\n\n  cart.add(\"user-3\", { productId: product.id, quantity: 2 });\n  const order = await orders.checkout(\"user-3\", \"tok_ok\");\n  assert.equal(products.get(product.id).stock, 8);\n\n  // non-admin cannot update shipping status\n  await assert.rejects(\n    () => orders.changeStatus(\"user-3\", order.id, \"shipped\", false),\n    (err) => err instanceof HttpError && err.status === 403,\n  );\n\n  // admin cancels: stock released, payment refunded\n  const cancelled = await orders.changeStatus(\"user-3\", order.id, \"cancelled\", true);\n  assert.equal(cancelled.status, \"cancelled\");\n  assert.equal(products.get(product.id).stock, 10);\n  assert.deepEqual(payments.refunded, [order.paymentReference]);\n\n  // invalid transition from cancelled\n  await assert.rejects(\n    () => orders.changeStatus(\"user-3\", order.id, \"shipped\", true),\n    (err) => err instanceof HttpError && err.status === 400,\n  );\n});\n",
+    ".knyc-checks/s11-1-1.test.mjs": "import test from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { createContainer } from \"../dist/container.js\";\nimport { loadConfig } from \"../dist/config.js\";\n\ntest(\"createContainer wires repositories and services together\", async () => {\n  const config = loadConfig({ JWT_SECRET: \"test-secret\", JWT_EXPIRES_IN: \"3600\", NODE_ENV: \"test\" });\n  const container = createContainer(config);\n\n  assert.ok(container.tokens);\n  assert.ok(container.users);\n  assert.ok(container.products);\n  assert.ok(container.cart);\n  assert.ok(container.orders);\n  assert.ok(container.payments);\n\n  const auth = await container.users.register({\n    email: \"alice@example.com\",\n    name: \"Alice\",\n    password: \"password123\",\n  });\n  assert.equal(auth.user.role, \"admin\");\n  const payload = container.tokens.verify(auth.token);\n  assert.equal(payload?.sub, auth.user.id);\n\n  const product = container.products.create({\n    name: \"Widget\",\n    description: \"A widget\",\n    priceCents: 500,\n    stock: 10,\n    category: \"misc\",\n  });\n\n  container.cart.add(auth.user.id, { productId: product.id, quantity: 2 });\n  const cart = container.cart.get(auth.user.id);\n  assert.equal(cart.totalCents, 1000);\n\n  const order = await container.orders.checkout(auth.user.id, \"tok_ok\");\n  assert.equal(order.status, \"paid\");\n  assert.equal(order.totalCents, 1000);\n\n  const updatedProduct = container.products.get(product.id);\n  assert.equal(updatedProduct.stock, 8);\n});\n",
+    ".knyc-checks/s11-1-2.test.mjs": "import test from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { createContainer } from \"../dist/container.js\";\nimport { loadConfig } from \"../dist/config.js\";\nimport { sequentialIds } from \"../dist/shared/ids.js\";\n\ntest(\"createContainer uses override newId and payment provider\", async () => {\n  const config = loadConfig({ JWT_SECRET: \"test-secret\", JWT_EXPIRES_IN: \"3600\", NODE_ENV: \"test\" });\n\n  let chargeCalls = 0;\n  const fakePayments = {\n    async charge(amountCents, cardToken) {\n      chargeCalls++;\n      return { ok: true, reference: \"custom-ref\" };\n    },\n    async refund() {},\n  };\n\n  const container = createContainer(config, {\n    newId: sequentialIds(\"id\"),\n    payments: fakePayments,\n  });\n\n  assert.equal(container.payments, fakePayments);\n\n  const auth = await container.users.register({\n    email: \"bob@example.com\",\n    name: \"Bob\",\n    password: \"password123\",\n  });\n  assert.equal(auth.user.id, \"id-1\");\n\n  const product = container.products.create({\n    name: \"Gadget\",\n    description: \"A gadget\",\n    priceCents: 300,\n    stock: 5,\n    category: \"misc\",\n  });\n  assert.equal(product.id, \"id-2\");\n\n  container.cart.add(auth.user.id, { productId: product.id, quantity: 1 });\n  const order = await container.orders.checkout(auth.user.id, \"anything\");\n  assert.equal(chargeCalls, 1);\n  assert.equal(order.paymentReference, \"custom-ref\");\n  assert.equal(order.id, \"id-3\");\n});\n",
+    ".knyc-checks/s12-1-2.test.mjs": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport express from 'express';\nimport { productsRouter } from '../dist/products/products.routes.js';\nimport { ProductsService } from '../dist/products/products.service.js';\nimport { ProductsRepository } from '../dist/products/products.repository.js';\nimport { sequentialIds } from '../dist/shared/ids.js';\nimport { TokenService } from '../dist/auth/tokens.js';\nimport { errorHandler, notFoundHandler } from '../dist/shared/errors.js';\n\nasync function startApp() {\n  const repo = new ProductsRepository();\n  const service = new ProductsService(repo, sequentialIds());\n  const tokens = new TokenService('secret', 3600);\n  const active = service.create({ name: 'Apple', description: '', priceCents: 100, stock: 5, category: 'fruit' });\n  const inactive = service.create({ name: 'Carrot', description: '', priceCents: 300, stock: 5, category: 'veg' });\n  service.update(inactive.id, { active: false });\n\n  const app = express();\n  app.use(express.json());\n  app.use('/products', productsRouter(service, tokens));\n  app.use(notFoundHandler);\n  app.use(errorHandler);\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once('listening', resolve));\n  const port = server.address().port;\n  return { server, base: `http://127.0.0.1:${port}`, active, inactive };\n}\n\ntest('GET /products/:id returns the product', async () => {\n  const { server, base, active } = await startApp();\n  try {\n    const res = await fetch(`${base}/products/${active.id}`);\n    assert.equal(res.status, 200);\n    const body = await res.json();\n    assert.equal(body.name, 'Apple');\n  } finally {\n    server.close();\n  }\n});\n\ntest('GET /products/:id returns 404 for inactive or unknown product', async () => {\n  const { server, base, inactive } = await startApp();\n  try {\n    const res = await fetch(`${base}/products/${inactive.id}`);\n    assert.equal(res.status, 404);\n    const res2 = await fetch(`${base}/products/does-not-exist`);\n    assert.equal(res2.status, 404);\n  } finally {\n    server.close();\n  }\n});\n",
+    ".knyc-checks/s12-1-3.test.mjs": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport express from 'express';\nimport { productsRouter } from '../dist/products/products.routes.js';\nimport { ProductsService } from '../dist/products/products.service.js';\nimport { ProductsRepository } from '../dist/products/products.repository.js';\nimport { sequentialIds } from '../dist/shared/ids.js';\nimport { TokenService } from '../dist/auth/tokens.js';\nimport { errorHandler, notFoundHandler } from '../dist/shared/errors.js';\n\nasync function startApp() {\n  const repo = new ProductsRepository();\n  const service = new ProductsService(repo, sequentialIds());\n  const tokens = new TokenService('secret', 3600);\n\n  const app = express();\n  app.use(express.json());\n  app.use('/products', productsRouter(service, tokens));\n  app.use(notFoundHandler);\n  app.use(errorHandler);\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once('listening', resolve));\n  const port = server.address().port;\n  return { server, base: `http://127.0.0.1:${port}`, tokens };\n}\n\ntest('POST /products rejects unauthenticated and non-admin requests', async () => {\n  const { server, base, tokens } = await startApp();\n  try {\n    const payload = { name: 'Apple', description: '', priceCents: 100, stock: 5, category: 'fruit' };\n    const anon = await fetch(`${base}/products`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });\n    assert.equal(anon.status, 401);\n\n    const customerToken = tokens.sign({ sub: 'u1', role: 'customer' });\n    const customerRes = await fetch(`${base}/products`, {\n      method: 'POST',\n      headers: { 'content-type': 'application/json', authorization: `Bearer ${customerToken}` },\n      body: JSON.stringify(payload),\n    });\n    assert.equal(customerRes.status, 403);\n  } finally {\n    server.close();\n  }\n});\n\ntest('Admin can create and then update a product', async () => {\n  const { server, base, tokens } = await startApp();\n  try {\n    const adminToken = tokens.sign({ sub: 'admin1', role: 'admin' });\n    const payload = { name: 'Apple', description: '', priceCents: 100, stock: 5, category: 'fruit' };\n    const createRes = await fetch(`${base}/products`, {\n      method: 'POST',\n      headers: { 'content-type': 'application/json', authorization: `Bearer ${adminToken}` },\n      body: JSON.stringify(payload),\n    });\n    assert.equal(createRes.status, 201);\n    const created = await createRes.json();\n    assert.equal(created.name, 'Apple');\n\n    const patchRes = await fetch(`${base}/products/${created.id}`, {\n      method: 'PATCH',\n      headers: { 'content-type': 'application/json', authorization: `Bearer ${adminToken}` },\n      body: JSON.stringify({ priceCents: 999 }),\n    });\n    assert.equal(patchRes.status, 200);\n    const updated = await patchRes.json();\n    assert.equal(updated.priceCents, 999);\n  } finally {\n    server.close();\n  }\n});\n",
+    ".knyc-checks/s13-1-1.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport express from \"express\";\nimport { UsersRepository } from \"../dist/users/users.repository.js\";\nimport { UsersService } from \"../dist/users/users.service.js\";\nimport { TokenService } from \"../dist/auth/tokens.js\";\nimport { authRouter, meRouter } from \"../dist/users/users.routes.js\";\nimport { errorHandler, notFoundHandler } from \"../dist/shared/errors.js\";\nimport { uuid } from \"../dist/shared/ids.js\";\n\nfunction buildApp() {\n  const repo = new UsersRepository();\n  const tokens = new TokenService(\"test-secret\", 3600);\n  const users = new UsersService(repo, tokens, uuid);\n  const app = express();\n  app.use(express.json());\n  app.use(\"/auth\", authRouter(users));\n  app.use(\"/me\", meRouter(users, tokens));\n  app.use(notFoundHandler);\n  app.use(errorHandler);\n  return app;\n}\n\ntest(\"POST /auth/register returns 201 with user profile and token\", async () => {\n  const app = buildApp();\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once(\"listening\", resolve));\n  const port = server.address().port;\n  try {\n    const res = await fetch(`http://localhost:${port}/auth/register`, {\n      method: \"POST\",\n      headers: { \"content-type\": \"application/json\" },\n      body: JSON.stringify({ email: \"alice@example.com\", name: \"Alice\", password: \"password123\" }),\n    });\n    assert.equal(res.status, 201);\n    const body = await res.json();\n    assert.equal(body.user.email, \"alice@example.com\");\n    assert.equal(body.user.name, \"Alice\");\n    assert.equal(body.user.passwordHash, undefined);\n    assert.equal(typeof body.token, \"string\");\n    assert.ok(body.token.length > 0);\n  } finally {\n    await new Promise((resolve) => server.close(resolve));\n  }\n});\n",
+    ".knyc-checks/s13-1-2.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport express from \"express\";\nimport { UsersRepository } from \"../dist/users/users.repository.js\";\nimport { UsersService } from \"../dist/users/users.service.js\";\nimport { TokenService } from \"../dist/auth/tokens.js\";\nimport { authRouter, meRouter } from \"../dist/users/users.routes.js\";\nimport { errorHandler, notFoundHandler } from \"../dist/shared/errors.js\";\nimport { uuid } from \"../dist/shared/ids.js\";\n\nfunction buildApp() {\n  const repo = new UsersRepository();\n  const tokens = new TokenService(\"test-secret\", 3600);\n  const users = new UsersService(repo, tokens, uuid);\n  const app = express();\n  app.use(express.json());\n  app.use(\"/auth\", authRouter(users));\n  app.use(\"/me\", meRouter(users, tokens));\n  app.use(notFoundHandler);\n  app.use(errorHandler);\n  return app;\n}\n\ntest(\"POST /auth/login rejects wrong password with 401\", async () => {\n  const app = buildApp();\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once(\"listening\", resolve));\n  const port = server.address().port;\n  try {\n    const registerRes = await fetch(`http://localhost:${port}/auth/register`, {\n      method: \"POST\",\n      headers: { \"content-type\": \"application/json\" },\n      body: JSON.stringify({ email: \"bob@example.com\", name: \"Bob\", password: \"password123\" }),\n    });\n    assert.equal(registerRes.status, 201);\n\n    const loginRes = await fetch(`http://localhost:${port}/auth/login`, {\n      method: \"POST\",\n      headers: { \"content-type\": \"application/json\" },\n      body: JSON.stringify({ email: \"bob@example.com\", password: \"wrong-password\" }),\n    });\n    assert.equal(loginRes.status, 401);\n\n    const okLoginRes = await fetch(`http://localhost:${port}/auth/login`, {\n      method: \"POST\",\n      headers: { \"content-type\": \"application/json\" },\n      body: JSON.stringify({ email: \"bob@example.com\", password: \"password123\" }),\n    });\n    assert.equal(okLoginRes.status, 200);\n    const body = await okLoginRes.json();\n    assert.equal(typeof body.token, \"string\");\n  } finally {\n    await new Promise((resolve) => server.close(resolve));\n  }\n});\n",
+    ".knyc-checks/s13-1-3.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport express from \"express\";\nimport { UsersRepository } from \"../dist/users/users.repository.js\";\nimport { UsersService } from \"../dist/users/users.service.js\";\nimport { TokenService } from \"../dist/auth/tokens.js\";\nimport { authRouter, meRouter } from \"../dist/users/users.routes.js\";\nimport { errorHandler, notFoundHandler } from \"../dist/shared/errors.js\";\nimport { uuid } from \"../dist/shared/ids.js\";\n\nfunction buildApp() {\n  const repo = new UsersRepository();\n  const tokens = new TokenService(\"test-secret\", 3600);\n  const users = new UsersService(repo, tokens, uuid);\n  const app = express();\n  app.use(express.json());\n  app.use(\"/auth\", authRouter(users));\n  app.use(\"/me\", meRouter(users, tokens));\n  app.use(notFoundHandler);\n  app.use(errorHandler);\n  return app;\n}\n\ntest(\"GET /me returns the caller's own profile, and rejects missing/invalid auth\", async () => {\n  const app = buildApp();\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once(\"listening\", resolve));\n  const port = server.address().port;\n  try {\n    const registerRes = await fetch(`http://localhost:${port}/auth/register`, {\n      method: \"POST\",\n      headers: { \"content-type\": \"application/json\" },\n      body: JSON.stringify({ email: \"carol@example.com\", name: \"Carol\", password: \"password123\" }),\n    });\n    const { user, token } = await registerRes.json();\n\n    const meRes = await fetch(`http://localhost:${port}/me`, {\n      headers: { authorization: `Bearer ${token}` },\n    });\n    assert.equal(meRes.status, 200);\n    const profile = await meRes.json();\n    assert.equal(profile.id, user.id);\n    assert.equal(profile.email, \"carol@example.com\");\n\n    const unauthedRes = await fetch(`http://localhost:${port}/me`);\n    assert.equal(unauthedRes.status, 401);\n  } finally {\n    await new Promise((resolve) => server.close(resolve));\n  }\n});\n",
+    ".knyc-checks/s14-1-1.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport express from \"express\";\nimport { cartRouter } from \"../dist/cart/cart.routes.js\";\nimport { CartService } from \"../dist/cart/cart.service.js\";\nimport { TokenService } from \"../dist/auth/tokens.js\";\nimport { errorHandler, notFoundHandler, notFound } from \"../dist/shared/errors.js\";\n\nfunction makeFakeProducts() {\n  const products = new Map([\n    [\"p1\", { id: \"p1\", name: \"Widget\", priceCents: 500, active: true }],\n  ]);\n  return {\n    get(id) {\n      const p = products.get(id);\n      if (!p) throw notFound(\"Product not found\");\n      return p;\n    },\n  };\n}\n\nasync function startServer() {\n  const tokens = new TokenService(\"test-secret\", 3600);\n  const products = makeFakeProducts();\n  const cart = new CartService(products);\n  const app = express();\n  app.use(express.json());\n  app.use(\"/cart\", cartRouter(cart, tokens));\n  app.use(notFoundHandler);\n  app.use(errorHandler);\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once(\"listening\", resolve));\n  const port = server.address().port;\n  return { server, tokens, baseUrl: `http://127.0.0.1:${port}` };\n}\n\ntest(\"GET /cart without auth returns 401\", async () => {\n  const { server, baseUrl } = await startServer();\n  try {\n    const res = await fetch(`${baseUrl}/cart`);\n    assert.equal(res.status, 401);\n  } finally {\n    server.close();\n  }\n});\n",
+    ".knyc-checks/s14-1-2.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport express from \"express\";\nimport { cartRouter } from \"../dist/cart/cart.routes.js\";\nimport { CartService } from \"../dist/cart/cart.service.js\";\nimport { TokenService } from \"../dist/auth/tokens.js\";\nimport { errorHandler, notFoundHandler, notFound } from \"../dist/shared/errors.js\";\n\nfunction makeFakeProducts() {\n  const products = new Map([\n    [\"p1\", { id: \"p1\", name: \"Widget\", priceCents: 500, active: true }],\n  ]);\n  return {\n    get(id) {\n      const p = products.get(id);\n      if (!p) throw notFound(\"Product not found\");\n      return p;\n    },\n  };\n}\n\nasync function startServer() {\n  const tokens = new TokenService(\"test-secret\", 3600);\n  const products = makeFakeProducts();\n  const cart = new CartService(products);\n  const app = express();\n  app.use(express.json());\n  app.use(\"/cart\", cartRouter(cart, tokens));\n  app.use(notFoundHandler);\n  app.use(errorHandler);\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once(\"listening\", resolve));\n  const port = server.address().port;\n  return { server, tokens, baseUrl: `http://127.0.0.1:${port}` };\n}\n\ntest(\"POST /cart/items adds product and GET /cart reflects it\", async () => {\n  const { server, tokens, baseUrl } = await startServer();\n  try {\n    const token = tokens.sign({ sub: \"user-1\", role: \"customer\" });\n    const headers = { Authorization: `Bearer ${token}`, \"Content-Type\": \"application/json\" };\n\n    const addRes = await fetch(`${baseUrl}/cart/items`, {\n      method: \"POST\",\n      headers,\n      body: JSON.stringify({ productId: \"p1\", quantity: 2 }),\n    });\n    assert.equal(addRes.status, 201);\n    const added = await addRes.json();\n    assert.equal(added.totalCents, 1000);\n\n    const getRes = await fetch(`${baseUrl}/cart`, { headers });\n    assert.equal(getRes.status, 200);\n    const got = await getRes.json();\n    assert.equal(got.lines.length, 1);\n    assert.equal(got.lines[0].productId, \"p1\");\n    assert.equal(got.lines[0].quantity, 2);\n    assert.equal(got.totalCents, 1000);\n  } finally {\n    server.close();\n  }\n});\n",
+    ".knyc-checks/s14-1-3.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport express from \"express\";\nimport { cartRouter } from \"../dist/cart/cart.routes.js\";\nimport { CartService } from \"../dist/cart/cart.service.js\";\nimport { TokenService } from \"../dist/auth/tokens.js\";\nimport { errorHandler, notFoundHandler, notFound } from \"../dist/shared/errors.js\";\n\nfunction makeFakeProducts() {\n  const products = new Map([\n    [\"p1\", { id: \"p1\", name: \"Widget\", priceCents: 500, active: true }],\n  ]);\n  return {\n    get(id) {\n      const p = products.get(id);\n      if (!p) throw notFound(\"Product not found\");\n      return p;\n    },\n  };\n}\n\nasync function startServer() {\n  const tokens = new TokenService(\"test-secret\", 3600);\n  const products = makeFakeProducts();\n  const cart = new CartService(products);\n  const app = express();\n  app.use(express.json());\n  app.use(\"/cart\", cartRouter(cart, tokens));\n  app.use(notFoundHandler);\n  app.use(errorHandler);\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once(\"listening\", resolve));\n  const port = server.address().port;\n  return { server, tokens, baseUrl: `http://127.0.0.1:${port}` };\n}\n\ntest(\"PUT sets/removes quantity and carts are per-user\", async () => {\n  const { server, tokens, baseUrl } = await startServer();\n  try {\n    const tokenA = tokens.sign({ sub: \"user-A\", role: \"customer\" });\n    const tokenB = tokens.sign({ sub: \"user-B\", role: \"customer\" });\n    const headersA = { Authorization: `Bearer ${tokenA}`, \"Content-Type\": \"application/json\" };\n    const headersB = { Authorization: `Bearer ${tokenB}`, \"Content-Type\": \"application/json\" };\n\n    await fetch(`${baseUrl}/cart/items`, {\n      method: \"POST\",\n      headers: headersA,\n      body: JSON.stringify({ productId: \"p1\", quantity: 1 }),\n    });\n\n    const putRes = await fetch(`${baseUrl}/cart/items/p1`, {\n      method: \"PUT\",\n      headers: headersA,\n      body: JSON.stringify({ quantity: 5 }),\n    });\n    assert.equal(putRes.status, 200);\n    const updated = await putRes.json();\n    assert.equal(updated.lines[0].quantity, 5);\n\n    const zeroRes = await fetch(`${baseUrl}/cart/items/p1`, {\n      method: \"PUT\",\n      headers: headersA,\n      body: JSON.stringify({ quantity: 0 }),\n    });\n    assert.equal(zeroRes.status, 200);\n    const cleared = await zeroRes.json();\n    assert.equal(cleared.lines.length, 0);\n\n    const getB = await fetch(`${baseUrl}/cart`, { headers: headersB });\n    const gotB = await getB.json();\n    assert.equal(gotB.lines.length, 0);\n  } finally {\n    server.close();\n  }\n});\n",
+    ".knyc-checks/s15-1-1.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport express from \"express\";\nimport { ordersRouter } from \"../dist/orders/orders.routes.js\";\nimport { OrdersService } from \"../dist/orders/orders.service.js\";\nimport { OrdersRepository } from \"../dist/orders/orders.repository.js\";\nimport { TokenService } from \"../dist/auth/tokens.js\";\nimport { sequentialIds } from \"../dist/shared/ids.js\";\nimport { errorHandler, notFoundHandler } from \"../dist/shared/errors.js\";\n\nfunction buildApp(cartByUser) {\n  const tokens = new TokenService(\"test-secret\", 3600);\n  const ordersRepo = new OrdersRepository();\n  const fakeCart = {\n    get: (userId) => cartByUser.get(userId) ?? { lines: [], totalCents: 0 },\n    clear: () => {},\n  };\n  const fakeProducts = { reserveStock: () => {}, releaseStock: () => {} };\n  const fakePayments = {\n    charge: async (_amount, cardToken) => ({ ok: true, reference: `pay_${cardToken}` }),\n    refund: async () => {},\n  };\n  const orders = new OrdersService(ordersRepo, fakeCart, fakeProducts, fakePayments, sequentialIds());\n  const app = express();\n  app.use(express.json());\n  app.use(\"/orders\", ordersRouter(orders, tokens));\n  app.use(notFoundHandler);\n  app.use(errorHandler);\n  return { app, tokens, ordersRepo };\n}\n\ntest(\"POST /orders checkout creates an order from the caller's cart\", async () => {\n  const cartByUser = new Map();\n  cartByUser.set(\"user-1\", {\n    lines: [{ productId: \"p1\", name: \"Widget\", unitPriceCents: 500, quantity: 2 }],\n    totalCents: 1000,\n  });\n  const { app, tokens } = buildApp(cartByUser);\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once(\"listening\", resolve));\n  const port = server.address().port;\n  const token = tokens.sign({ sub: \"user-1\", role: \"customer\" });\n\n  try {\n    const res = await fetch(`http://localhost:${port}/orders`, {\n      method: \"POST\",\n      headers: { \"content-type\": \"application/json\", authorization: `Bearer ${token}` },\n      body: JSON.stringify({ cardToken: \"tok_abc\" }),\n    });\n    assert.equal(res.status, 201);\n    const body = await res.json();\n    assert.equal(body.userId, \"user-1\");\n    assert.equal(body.status, \"paid\");\n    assert.equal(body.totalCents, 1000);\n    assert.equal(body.lines.length, 1);\n  } finally {\n    server.close();\n  }\n});\n",
+    ".knyc-checks/s15-1-2.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport express from \"express\";\nimport { ordersRouter } from \"../dist/orders/orders.routes.js\";\nimport { OrdersService } from \"../dist/orders/orders.service.js\";\nimport { OrdersRepository } from \"../dist/orders/orders.repository.js\";\nimport { TokenService } from \"../dist/auth/tokens.js\";\nimport { sequentialIds } from \"../dist/shared/ids.js\";\nimport { errorHandler, notFoundHandler } from \"../dist/shared/errors.js\";\n\nfunction buildApp() {\n  const tokens = new TokenService(\"test-secret\", 3600);\n  const ordersRepo = new OrdersRepository();\n  const fakeCart = { get: () => ({ lines: [], totalCents: 0 }), clear: () => {} };\n  const fakeProducts = { reserveStock: () => {}, releaseStock: () => {} };\n  const fakePayments = { charge: async () => ({ ok: true, reference: \"pay_z\" }), refund: async () => {} };\n  const orders = new OrdersService(ordersRepo, fakeCart, fakeProducts, fakePayments, sequentialIds());\n  const app = express();\n  app.use(express.json());\n  app.use(\"/orders\", ordersRouter(orders, tokens));\n  app.use(notFoundHandler);\n  app.use(errorHandler);\n  return { app, tokens, ordersRepo };\n}\n\ntest(\"GET /orders/:id forbids access to another user's order\", async () => {\n  const { app, tokens, ordersRepo } = buildApp();\n  ordersRepo.save({\n    id: \"order-1\",\n    userId: \"owner-1\",\n    lines: [],\n    totalCents: 0,\n    status: \"paid\",\n    paymentReference: \"pay_x\",\n    createdAt: new Date().toISOString(),\n  });\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once(\"listening\", resolve));\n  const port = server.address().port;\n  const token = tokens.sign({ sub: \"other-user\", role: \"customer\" });\n\n  try {\n    const res = await fetch(`http://localhost:${port}/orders/order-1`, {\n      headers: { authorization: `Bearer ${token}` },\n    });\n    assert.equal(res.status, 403);\n  } finally {\n    server.close();\n  }\n});\n",
+    ".knyc-checks/s15-1-3.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport express from \"express\";\nimport { ordersRouter } from \"../dist/orders/orders.routes.js\";\nimport { OrdersService } from \"../dist/orders/orders.service.js\";\nimport { OrdersRepository } from \"../dist/orders/orders.repository.js\";\nimport { TokenService } from \"../dist/auth/tokens.js\";\nimport { sequentialIds } from \"../dist/shared/ids.js\";\nimport { errorHandler, notFoundHandler } from \"../dist/shared/errors.js\";\n\nfunction buildApp() {\n  const tokens = new TokenService(\"test-secret\", 3600);\n  const ordersRepo = new OrdersRepository();\n  const fakeCart = { get: () => ({ lines: [], totalCents: 0 }), clear: () => {} };\n  const fakeProducts = { reserveStock: () => {}, releaseStock: () => {} };\n  const fakePayments = { charge: async () => ({ ok: true, reference: \"pay_z\" }), refund: async () => {} };\n  const orders = new OrdersService(ordersRepo, fakeCart, fakeProducts, fakePayments, sequentialIds());\n  const app = express();\n  app.use(express.json());\n  app.use(\"/orders\", ordersRouter(orders, tokens));\n  app.use(notFoundHandler);\n  app.use(errorHandler);\n  return { app, tokens, ordersRepo };\n}\n\ntest(\"PATCH /orders/:id/status: non-admin cannot ship, but can cancel own order\", async () => {\n  const { app, tokens, ordersRepo } = buildApp();\n  ordersRepo.save({\n    id: \"order-2\",\n    userId: \"owner-2\",\n    lines: [],\n    totalCents: 500,\n    status: \"paid\",\n    paymentReference: \"pay_y\",\n    createdAt: new Date().toISOString(),\n  });\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once(\"listening\", resolve));\n  const port = server.address().port;\n  const ownerToken = tokens.sign({ sub: \"owner-2\", role: \"customer\" });\n\n  try {\n    const shipRes = await fetch(`http://localhost:${port}/orders/order-2/status`, {\n      method: \"PATCH\",\n      headers: { \"content-type\": \"application/json\", authorization: `Bearer ${ownerToken}` },\n      body: JSON.stringify({ status: \"shipped\" }),\n    });\n    assert.equal(shipRes.status, 403);\n\n    const cancelRes = await fetch(`http://localhost:${port}/orders/order-2/status`, {\n      method: \"PATCH\",\n      headers: { \"content-type\": \"application/json\", authorization: `Bearer ${ownerToken}` },\n      body: JSON.stringify({ status: \"cancelled\" }),\n    });\n    assert.equal(cancelRes.status, 200);\n    const body = await cancelRes.json();\n    assert.equal(body.status, \"cancelled\");\n  } finally {\n    server.close();\n  }\n});\n"
+  },
+  "discarded": []
+}
