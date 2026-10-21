@@ -56,3 +56,36 @@ fn lockfile_is_kept_for_builds_but_not_sent_to_the_ai() {
         .unwrap();
     assert!(lock.not_for_ai.is_some());
 }
+
+#[test]
+fn express_notes_layers_match_its_readme() {
+    let g = knyc_analyzer::graph::build(&golden("express-notes")).unwrap();
+    assert_eq!(
+        g.layers,
+        vec![
+            vec!["src/config.ts", "src/errors.ts", "src/notes/note.ts"],
+            vec!["src/notes/notes.store.ts", "src/notes/notes.validation.ts"],
+            vec!["src/notes/notes.routes.ts"],
+            vec!["src/app.ts"],
+            vec!["src/server.ts"],
+        ]
+    );
+    assert!(g.symbol_edges.contains(&(
+        "src/notes/notes.routes.ts#notesRouter".into(),
+        "src/notes/notes.validation.ts#parseNoteInput".into()
+    )));
+}
+
+#[test]
+fn every_golden_repo_has_a_clean_graph_ending_at_the_server() {
+    for name in ["express-notes", "express-shop", "express-no-tests"] {
+        let g = knyc_analyzer::graph::build(&golden(name)).unwrap();
+        assert!(g.cycles.is_empty(), "{name}");
+        assert!(g.unresolved.is_empty(), "{name}");
+        assert!(g.files.iter().all(|f| !f.parse_errors), "{name}");
+        let n = g.layers.len();
+        assert_eq!(g.layers[n - 1], vec!["src/server.ts"], "{name}");
+        assert_eq!(g.layers[n - 2], vec!["src/app.ts"], "{name}");
+        assert!(g.external.contains_key("express"), "{name}");
+    }
+}

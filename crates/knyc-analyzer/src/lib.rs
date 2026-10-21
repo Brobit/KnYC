@@ -1,6 +1,7 @@
 //! Project intake, static scan and (later) code graph for KnYC.
 //! See design/02-analysis-pipeline.md, stages ① and ②.
 
+pub mod graph;
 pub mod intake;
 pub mod scan;
 pub mod secrets;
