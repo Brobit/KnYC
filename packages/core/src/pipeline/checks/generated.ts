@@ -66,6 +66,9 @@ Rules for each check file:
 - Import the project's code from its compiled output, with exactly these specifiers:
 ${[...ctx.importPaths].map(([src, spec]) => `  - ${src} → "${spec}"`).join("\n")}
 - Before this step, the modules or functions it adds don't exist: the check must fail then (a failing import is fine).
+- Test behavior: call the code and assert on what it returns or does. A check that only imports a module, or only
+  checks that something exists or is a function, proves nothing. If the step only adds types or nothing callable,
+  return no checks and say why.
 - Servers: listen on port 0, read the port from server.address(), and close them at the end.
 - No timers longer than 2 seconds, no network access outside localhost, no files written.
 ${
