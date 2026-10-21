@@ -18,6 +18,9 @@ process.stdin.setEncoding("utf8").on("data", (d) => (stdin += d)).on("end", () =
   if (mode === "auth") {
     return console.log(JSON.stringify({ ...base, is_error: true, result: "Failed to authenticate: OAuth session expired and could not be refreshed" }));
   }
+  if (mode === "limit") {
+    return console.log(JSON.stringify({ ...base, is_error: true, result: "You've hit your session limit · resets 6:40pm (Europe/Paris)" }));
+  }
   if (mode === "crash") {
     console.error("segfault-ish failure");
     process.exit(3);

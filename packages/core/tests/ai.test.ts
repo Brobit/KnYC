@@ -68,6 +68,7 @@ describe("ClaudeCliProvider (against a fake claude)", () => {
 
   it.each([
     ["auth", "auth"],
+    ["limit", "limit"],
     ["crash", "provider"],
     ["prose", "invalid-output"],
   ] as const)("reports %s as an AiError of kind %s", async (mode, kind) => {

@@ -102,7 +102,7 @@ export interface TimelineOptions {
   onStep?: (build: StepBuild) => void;
 }
 
-async function git(cwd: string, ...args: string[]): Promise<string> {
+export async function git(cwd: string, ...args: string[]): Promise<string> {
   const { stdout } = await exec("git", args, { cwd, maxBuffer: 64 * 1024 * 1024 });
   return stdout.trim();
 }

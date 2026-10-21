@@ -1,0 +1,770 @@
+{
+  "report": [
+    {
+      "stepId": "s01",
+      "strength": "merged",
+      "existing": 0,
+      "generated": 0,
+      "aiCalls": 0,
+      "notes": [
+        "doesn't build alone; merged into s02"
+      ]
+    },
+    {
+      "stepId": "s02",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 3,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s03",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 1,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s04",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 3,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s05",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 2,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s06",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 2,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s07",
+      "strength": "weak",
+      "existing": 0,
+      "generated": 0,
+      "aiCalls": 1,
+      "notes": [
+        "no runtime check: This step only adds a private, unexported `parseUrl` function and the type-only `CreateLinkInput` interface. Nothing new is exported at runtime, so there's no observable behavior to import/assert on yet via compiled output."
+      ]
+    },
+    {
+      "stepId": "s08",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 2,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s09",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 1,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s10",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 2,
+      "aiCalls": 2,
+      "notes": []
+    },
+    {
+      "stepId": "s11",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 1,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s12",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 3,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s13",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 3,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s14",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 2,
+      "aiCalls": 1,
+      "notes": []
+    },
+    {
+      "stepId": "s15",
+      "strength": "strong",
+      "existing": 0,
+      "generated": 1,
+      "aiCalls": 1,
+      "notes": []
+    }
+  ],
+  "checks": [
+    {
+      "schemaVersion": 1,
+      "id": "chk-s02-1",
+      "stepId": "s02",
+      "label": "errorHandler sends JSON with HttpError status and message",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s02-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s02-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s02-2",
+      "stepId": "s02",
+      "label": "errorHandler returns 500 for unknown errors",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s02-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s02-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s02-3",
+      "stepId": "s02",
+      "label": "HttpError exposes status and message",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s02-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s02-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s03-1",
+      "stepId": "s03",
+      "label": "dist/links/link.js module exists and loads",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s03-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s03-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s04-1",
+      "stepId": "s04",
+      "label": "generateCode produces correct length and alphabet",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s04-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s04-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s04-2",
+      "stepId": "s04",
+      "label": "isValidAlias accepts/rejects by length and charset",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s04-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s04-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s04-3",
+      "stepId": "s04",
+      "label": "RESERVED_CODES contains reserved paths",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s04-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s04-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s05-1",
+      "stepId": "s05",
+      "label": "save stores link; has/get retrieve by code",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s05-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s05-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s05-2",
+      "stepId": "s05",
+      "label": "unknown code reports false/undefined",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s05-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s05-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s06-1",
+      "stepId": "s06",
+      "label": "LinksStore.delete removes and returns boolean",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s06-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s06-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s06-2",
+      "stepId": "s06",
+      "label": "LinksStore.all returns every stored link",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s06-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s06-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s07-1",
+      "stepId": "s07",
+      "label": "The project builds",
+      "origin": "generated",
+      "timeoutMs": 300000,
+      "spec": {
+        "kind": "build",
+        "root": ".",
+        "command": "npm run build"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s08-1",
+      "stepId": "s08",
+      "label": "create() accepts a valid custom alias and uses it as the code",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s08-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s08-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s08-2",
+      "stepId": "s08",
+      "label": "create() rejects reserved and already-taken aliases",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s08-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s08-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s09-1",
+      "stepId": "s09",
+      "label": "remove deletes an existing link and 404s afterwards / on unknown code",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s09-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s09-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s10-1",
+      "stepId": "s10",
+      "label": "visit resolves the url and increments visits",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s10-2-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s10-2-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s10-2",
+      "stepId": "s10",
+      "label": "visit throws 410 Gone for an expired link",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s10-2-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s10-2-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s11-1",
+      "stepId": "s11",
+      "label": "topLinks sorts by visits descending and respects limit",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s11-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s11-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s12-1",
+      "stepId": "s12",
+      "label": "POST /api/links returns 201 with shortUrl",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s12-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s12-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s12-2",
+      "stepId": "s12",
+      "label": "GET /api/links/:code fetches the created link as JSON",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s12-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s12-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s12-3",
+      "stepId": "s12",
+      "label": "DELETE /api/links/:code removes the link",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s12-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s12-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s13-1",
+      "stepId": "s13",
+      "label": "GET /:code redirects 302 to stored URL and counts visit",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s13-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s13-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s13-2",
+      "stepId": "s13",
+      "label": "GET /:code for unknown code returns 404",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s13-1-2.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s13-1-2.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s13-3",
+      "stepId": "s13",
+      "label": "GET /:code for expired link returns 410",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s13-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s13-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s14-1",
+      "stepId": "s14",
+      "label": "GET /health returns ok status via createApp",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s14-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s14-1-1.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s14-2",
+      "stepId": "s14",
+      "label": "Unknown code returns 404 JSON via wired error handler",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s14-1-3.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s14-1-3.test.mjs"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chk-s15-1",
+      "stepId": "s15",
+      "label": "Server listens on configured port and logs base URL",
+      "origin": "generated",
+      "timeoutMs": 60000,
+      "validation": {
+        "failsOnPrevious": true,
+        "passesOnReference": true,
+        "at": "2026-10-21T14:22:31.122Z"
+      },
+      "spec": {
+        "kind": "test",
+        "root": ".",
+        "runner": "other",
+        "command": "node --test .knyc-checks/s15-1-1.test.mjs",
+        "filter": [],
+        "files": [
+          ".knyc-checks/s15-1-1.test.mjs"
+        ]
+      }
+    }
+  ],
+  "files": {
+    ".knyc-checks/s02-1-1.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport express from \"express\";\nimport { HttpError, errorHandler } from \"../dist/errors.js\";\n\ntest(\"errorHandler catches HttpError and responds with status + message\", async () => {\n  const app = express();\n  app.get(\"/boom\", (_req, _res) => {\n    throw new HttpError(404, \"Not Found\");\n  });\n  app.use(errorHandler);\n\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once(\"listening\", resolve));\n  const { port } = server.address();\n\n  try {\n    const res = await fetch(`http://localhost:${port}/boom`);\n    assert.equal(res.status, 404);\n    const body = await res.json();\n    assert.deepEqual(body, { error: \"Not Found\" });\n  } finally {\n    await new Promise((resolve) => server.close(resolve));\n  }\n});\n",
+    ".knyc-checks/s02-1-2.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport express from \"express\";\nimport { errorHandler } from \"../dist/errors.js\";\n\ntest(\"errorHandler responds 500 with generic message for non-HttpError\", async () => {\n  const app = express();\n  app.get(\"/crash\", (_req, _res) => {\n    throw new Error(\"unexpected\");\n  });\n  app.use(errorHandler);\n\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once(\"listening\", resolve));\n  const { port } = server.address();\n\n  try {\n    const res = await fetch(`http://localhost:${port}/crash`);\n    assert.equal(res.status, 500);\n    const body = await res.json();\n    assert.deepEqual(body, { error: \"Internal server error\" });\n  } finally {\n    await new Promise((resolve) => server.close(resolve));\n  }\n});\n",
+    ".knyc-checks/s02-1-3.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { HttpError } from \"../dist/errors.js\";\n\ntest(\"HttpError stores status and message\", () => {\n  const err = new HttpError(422, \"Invalid input\");\n  assert.equal(err.status, 422);\n  assert.equal(err.message, \"Invalid input\");\n  assert.ok(err instanceof Error);\n});\n",
+    ".knyc-checks/s03-1-1.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\n\ntest('src/links/link.ts compiles and produces a loadable module', async () => {\n  const mod = await import('../dist/links/link.js');\n  assert.equal(typeof mod, 'object');\n});\n",
+    ".knyc-checks/s04-1-1.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { generateCode } from '../dist/links/code-generator.js';\n\ntest('generateCode returns a string of requested length using only safe alphabet chars', () => {\n  const code = generateCode(8);\n  assert.equal(typeof code, 'string');\n  assert.equal(code.length, 8);\n  assert.match(code, /^[a-km-np-zA-HJ-NP-Z2-9]+$/);\n});\n\ntest('generateCode uses the provided random function deterministically', () => {\n  let calls = 0;\n  const random = () => { calls++; return 0; };\n  const code = generateCode(5, random);\n  assert.equal(calls, 5);\n  assert.equal(code, 'aaaaa');\n});\n",
+    ".knyc-checks/s04-1-2.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { isValidAlias } from '../dist/links/code-generator.js';\n\ntest('isValidAlias accepts valid aliases', () => {\n  assert.equal(isValidAlias('abc'), true);\n  assert.equal(isValidAlias('my-alias_123'), true);\n  assert.equal(isValidAlias('a'.repeat(32)), true);\n});\n\ntest('isValidAlias rejects invalid aliases', () => {\n  assert.equal(isValidAlias('ab'), false); // too short\n  assert.equal(isValidAlias('a'.repeat(33)), false); // too long\n  assert.equal(isValidAlias('bad alias'), false); // space not allowed\n  assert.equal(isValidAlias('bad!alias'), false); // symbol not allowed\n});\n",
+    ".knyc-checks/s04-1-3.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { RESERVED_CODES } from '../dist/links/code-generator.js';\n\ntest('RESERVED_CODES includes api and health', () => {\n  assert.equal(RESERVED_CODES.has('api'), true);\n  assert.equal(RESERVED_CODES.has('health'), true);\n  assert.equal(RESERVED_CODES.has('not-reserved'), false);\n});\n",
+    ".knyc-checks/s05-1-1.test.mjs": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { LinksStore } from '../dist/links/links.store.js';\n\ntest('save stores link; has/get retrieve by code', () => {\n  const store = new LinksStore();\n  const link = {\n    code: 'abc123',\n    url: 'https://example.com',\n    createdAt: new Date().toISOString(),\n    expiresAt: null,\n    visits: 0,\n    lastVisitAt: null,\n  };\n\n  assert.equal(store.has('abc123'), false);\n  assert.equal(store.get('abc123'), undefined);\n\n  const saved = store.save(link);\n  assert.deepEqual(saved, link);\n\n  assert.equal(store.has('abc123'), true);\n  assert.deepEqual(store.get('abc123'), link);\n});\n",
+    ".knyc-checks/s05-1-2.test.mjs": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { LinksStore } from '../dist/links/links.store.js';\n\ntest('unknown code reports false/undefined', () => {\n  const store = new LinksStore();\n  store.save({\n    code: 'known',\n    url: 'https://example.com',\n    createdAt: new Date().toISOString(),\n    expiresAt: null,\n    visits: 0,\n    lastVisitAt: null,\n  });\n\n  assert.equal(store.has('unknown'), false);\n  assert.equal(store.get('unknown'), undefined);\n});\n",
+    ".knyc-checks/s06-1-1.test.mjs": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { LinksStore } from '../dist/links/links.store.js';\n\ntest('delete removes an existing link and returns true, false if missing', () => {\n  const store = new LinksStore();\n  store.save({\n    code: 'abc123',\n    url: 'https://example.com',\n    createdAt: new Date().toISOString(),\n    expiresAt: null,\n    visits: 0,\n    lastVisitAt: null,\n  });\n\n  assert.equal(store.has('abc123'), true);\n  const result = store.delete('abc123');\n  assert.equal(result, true);\n  assert.equal(store.has('abc123'), false);\n  assert.equal(store.get('abc123'), undefined);\n\n  const resultMissing = store.delete('doesnotexist');\n  assert.equal(resultMissing, false);\n});\n",
+    ".knyc-checks/s06-1-2.test.mjs": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { LinksStore } from '../dist/links/links.store.js';\n\ntest('all returns every currently stored link', () => {\n  const store = new LinksStore();\n  assert.deepEqual(store.all(), []);\n\n  const link1 = {\n    code: 'aaa111',\n    url: 'https://a.example.com',\n    createdAt: new Date().toISOString(),\n    expiresAt: null,\n    visits: 0,\n    lastVisitAt: null,\n  };\n  const link2 = {\n    code: 'bbb222',\n    url: 'https://b.example.com',\n    createdAt: new Date().toISOString(),\n    expiresAt: null,\n    visits: 0,\n    lastVisitAt: null,\n  };\n  store.save(link1);\n  store.save(link2);\n\n  const all = store.all();\n  assert.equal(all.length, 2);\n  const codes = all.map((l) => l.code).sort();\n  assert.deepEqual(codes, ['aaa111', 'bbb222']);\n\n  store.delete('aaa111');\n  const afterDelete = store.all();\n  assert.equal(afterDelete.length, 1);\n  assert.equal(afterDelete[0].code, 'bbb222');\n});\n",
+    ".knyc-checks/s08-1-2.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { LinksService } from '../dist/links/links.service.js';\nimport { LinksStore } from '../dist/links/links.store.js';\n\ntest('create uses custom alias as code', () => {\n  const store = new LinksStore();\n  const service = new LinksService(store, 6);\n\n  const link = service.create({ url: 'https://example.com', alias: 'my-alias' });\n\n  assert.equal(link.code, 'my-alias');\n  assert.equal(store.has('my-alias'), true);\n});\n",
+    ".knyc-checks/s08-1-3.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { LinksService } from '../dist/links/links.service.js';\nimport { LinksStore } from '../dist/links/links.store.js';\nimport { HttpError } from '../dist/errors.js';\n\ntest('create rejects reserved alias', () => {\n  const store = new LinksStore();\n  const service = new LinksService(store, 6);\n\n  assert.throws(\n    () => service.create({ url: 'https://example.com', alias: 'api' }),\n    (err) => err instanceof HttpError && err.status === 400,\n  );\n});\n\ntest('create rejects already-taken alias', () => {\n  const store = new LinksStore();\n  const service = new LinksService(store, 6);\n\n  service.create({ url: 'https://example.com', alias: 'taken-one' });\n\n  assert.throws(\n    () => service.create({ url: 'https://other.com', alias: 'taken-one' }),\n    (err) => err instanceof HttpError && err.status === 409,\n  );\n});\n",
+    ".knyc-checks/s09-1-2.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { LinksService } from \"../dist/links/links.service.js\";\nimport { LinksStore } from \"../dist/links/links.store.js\";\nimport { HttpError } from \"../dist/errors.js\";\n\ntest(\"remove deletes an existing link\", () => {\n  const store = new LinksStore();\n  const service = new LinksService(store);\n  const created = service.create({ url: \"https://example.com\" });\n\n  service.remove(created.code);\n\n  assert.equal(store.has(created.code), false);\n  assert.throws(() => service.get(created.code), HttpError);\n});\n\ntest(\"remove throws HttpError 404 for unknown code\", () => {\n  const store = new LinksStore();\n  const service = new LinksService(store);\n\n  assert.throws(\n    () => service.remove(\"doesNotExist\"),\n    (err) => {\n      assert.ok(err instanceof HttpError);\n      assert.equal(err.status, 404);\n      return true;\n    },\n  );\n});\n",
+    ".knyc-checks/s10-2-1.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { LinksService } from \"../dist/links/links.service.js\";\nimport { LinksStore } from \"../dist/links/links.store.js\";\n\ntest(\"visit resolves the url and increments visits\", () => {\n  const store = new LinksStore();\n  const service = new LinksService(store);\n  const created = service.create({ url: \"https://example.com\" });\n  const before = store.get(created.code);\n  assert.ok(before);\n  const resolvedUrl = service.visit(created.code);\n  assert.equal(resolvedUrl, before.url);\n  const after = store.get(created.code);\n  assert.equal(after.visits, before.visits + 1);\n  assert.ok(after.lastVisitAt);\n});\n",
+    ".knyc-checks/s10-2-2.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { LinksService } from \"../dist/links/links.service.js\";\nimport { LinksStore } from \"../dist/links/links.store.js\";\nimport { HttpError } from \"../dist/errors.js\";\n\ntest(\"visit throws 410 Gone for an expired link\", () => {\n  const store = new LinksStore();\n  const service = new LinksService(store);\n  const past = new Date(Date.now() - 60_000).toISOString();\n  store.save({\n    code: \"expired1\",\n    url: \"https://example.com/\",\n    createdAt: new Date(Date.now() - 120_000).toISOString(),\n    expiresAt: past,\n    visits: 0,\n    lastVisitAt: null,\n  });\n\n  assert.throws(\n    () => service.visit(\"expired1\"),\n    (err) => err instanceof HttpError && err.status === 410,\n  );\n});\n",
+    ".knyc-checks/s11-1-1.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { LinksService } from \"../dist/links/links.service.js\";\nimport { LinksStore } from \"../dist/links/links.store.js\";\n\nfunction makeLink(code, visits) {\n  return {\n    code,\n    url: `https://example.com/${code}`,\n    createdAt: new Date().toISOString(),\n    expiresAt: null,\n    visits,\n    lastVisitAt: null,\n  };\n}\n\ntest(\"topLinks returns most-visited links sorted descending, limited to count\", () => {\n  const store = new LinksStore();\n  store.save(makeLink(\"low\", 2));\n  store.save(makeLink(\"high\", 50));\n  store.save(makeLink(\"mid\", 10));\n  store.save(makeLink(\"zero\", 0));\n\n  const service = new LinksService(store);\n  const top2 = service.topLinks(2);\n\n  assert.equal(top2.length, 2);\n  assert.equal(top2[0].code, \"high\");\n  assert.equal(top2[0].visits, 50);\n  assert.equal(top2[1].code, \"mid\");\n  assert.equal(top2[1].visits, 10);\n});\n\ntest(\"topLinks returns empty array when there are no links\", () => {\n  const store = new LinksStore();\n  const service = new LinksService(store);\n  const result = service.topLinks(5);\n  assert.deepEqual(result, []);\n});\n",
+    ".knyc-checks/s12-1-1.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport express from 'express';\nimport { linksApiRouter } from '../dist/links/links.routes.js';\nimport { LinksService } from '../dist/links/links.service.js';\nimport { LinksStore } from '../dist/links/links.store.js';\nimport { errorHandler } from '../dist/errors.js';\n\nfunction makeServer() {\n  const app = express();\n  app.use(express.json());\n  const service = new LinksService(new LinksStore(), 6, () => 0.5);\n  app.use('/api/links', linksApiRouter(service, 'http://localhost:9999'));\n  app.use(errorHandler);\n  return app;\n}\n\ntest('POST /api/links returns 201 with shortUrl', async () => {\n  const app = makeServer();\n  const server = app.listen(0);\n  const port = server.address().port;\n  try {\n    const res = await fetch(`http://localhost:${port}/api/links`, {\n      method: 'POST',\n      headers: { 'content-type': 'application/json' },\n      body: JSON.stringify({ url: 'https://example.com' }),\n    });\n    assert.equal(res.status, 201);\n    const body = await res.json();\n    assert.equal(body.url, 'https://example.com/');\n    assert.equal(typeof body.code, 'string');\n    assert.equal(body.shortUrl, `http://localhost:9999/${body.code}`);\n  } finally {\n    server.close();\n  }\n});\n",
+    ".knyc-checks/s12-1-2.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport express from 'express';\nimport { linksApiRouter } from '../dist/links/links.routes.js';\nimport { LinksService } from '../dist/links/links.service.js';\nimport { LinksStore } from '../dist/links/links.store.js';\nimport { errorHandler } from '../dist/errors.js';\n\nfunction makeServer() {\n  const app = express();\n  app.use(express.json());\n  const service = new LinksService(new LinksStore(), 6, () => 0.5);\n  app.use('/api/links', linksApiRouter(service, 'http://localhost:9999'));\n  app.use(errorHandler);\n  return app;\n}\n\ntest('GET /api/links/:code returns the link with shortUrl', async () => {\n  const app = makeServer();\n  const server = app.listen(0);\n  const port = server.address().port;\n  try {\n    const createRes = await fetch(`http://localhost:${port}/api/links`, {\n      method: 'POST',\n      headers: { 'content-type': 'application/json' },\n      body: JSON.stringify({ url: 'https://example.com', alias: 'abc123' }),\n    });\n    assert.equal(createRes.status, 201);\n\n    const getRes = await fetch(`http://localhost:${port}/api/links/abc123`);\n    assert.equal(getRes.status, 200);\n    const body = await getRes.json();\n    assert.equal(body.code, 'abc123');\n    assert.equal(body.shortUrl, `http://localhost:9999/abc123`);\n\n    const missingRes = await fetch(`http://localhost:${port}/api/links/doesnotexist`);\n    assert.equal(missingRes.status, 404);\n  } finally {\n    server.close();\n  }\n});\n",
+    ".knyc-checks/s12-1-3.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport express from 'express';\nimport { linksApiRouter } from '../dist/links/links.routes.js';\nimport { LinksService } from '../dist/links/links.service.js';\nimport { LinksStore } from '../dist/links/links.store.js';\nimport { errorHandler } from '../dist/errors.js';\n\nfunction makeServer() {\n  const app = express();\n  app.use(express.json());\n  const service = new LinksService(new LinksStore(), 6, () => 0.5);\n  app.use('/api/links', linksApiRouter(service, 'http://localhost:9999'));\n  app.use(errorHandler);\n  return app;\n}\n\ntest('DELETE /api/links/:code removes it, subsequent GET is 404', async () => {\n  const app = makeServer();\n  const server = app.listen(0);\n  const port = server.address().port;\n  try {\n    const createRes = await fetch(`http://localhost:${port}/api/links`, {\n      method: 'POST',\n      headers: { 'content-type': 'application/json' },\n      body: JSON.stringify({ url: 'https://example.com', alias: 'delme01' }),\n    });\n    assert.equal(createRes.status, 201);\n\n    const delRes = await fetch(`http://localhost:${port}/api/links/delme01`, { method: 'DELETE' });\n    assert.equal(delRes.status, 204);\n\n    const getRes = await fetch(`http://localhost:${port}/api/links/delme01`);\n    assert.equal(getRes.status, 404);\n  } finally {\n    server.close();\n  }\n});\n",
+    ".knyc-checks/s13-1-1.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport express from \"express\";\nimport { LinksStore } from \"../dist/links/links.store.js\";\nimport { LinksService } from \"../dist/links/links.service.js\";\nimport { redirectRouter } from \"../dist/links/links.routes.js\";\n\nfunction startApp() {\n  const store = new LinksStore();\n  const service = new LinksService(store, 6, () => 0.5);\n  const app = express();\n  app.use(redirectRouter(service));\n  const server = app.listen(0);\n  return { server, service };\n}\n\ntest(\"GET /:code redirects 302 to the long URL and records a visit\", async () => {\n  const { server, service } = startApp();\n  try {\n    const link = service.create({ url: \"https://example.com/page\" });\n    const port = server.address().port;\n    const res = await fetch(`http://localhost:${port}/${link.code}`, { redirect: \"manual\" });\n    assert.equal(res.status, 302);\n    assert.equal(res.headers.get(\"location\"), \"https://example.com/page\");\n    const stored = service.get(link.code);\n    assert.equal(stored.visits, 1);\n    assert.ok(stored.lastVisitAt);\n  } finally {\n    server.close();\n  }\n});\n",
+    ".knyc-checks/s13-1-2.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport express from \"express\";\nimport { LinksStore } from \"../dist/links/links.store.js\";\nimport { LinksService } from \"../dist/links/links.service.js\";\nimport { redirectRouter } from \"../dist/links/links.routes.js\";\nimport { errorHandler } from \"../dist/errors.js\";\n\ntest(\"GET /:code with unknown code returns 404\", async () => {\n  const store = new LinksStore();\n  const service = new LinksService(store, 6, () => 0.5);\n  const app = express();\n  app.use(redirectRouter(service));\n  app.use(errorHandler);\n  const server = app.listen(0);\n  try {\n    const port = server.address().port;\n    const res = await fetch(`http://localhost:${port}/doesnotexist`, { redirect: \"manual\" });\n    assert.equal(res.status, 404);\n  } finally {\n    server.close();\n  }\n});\n",
+    ".knyc-checks/s13-1-3.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport express from \"express\";\nimport { LinksStore } from \"../dist/links/links.store.js\";\nimport { LinksService } from \"../dist/links/links.service.js\";\nimport { redirectRouter } from \"../dist/links/links.routes.js\";\nimport { errorHandler } from \"../dist/errors.js\";\n\ntest(\"GET /:code for an expired link returns 410 instead of redirecting\", async () => {\n  const store = new LinksStore();\n  let current = new Date(\"2024-01-01T00:00:00.000Z\");\n  const service = new LinksService(store, 6, () => 0.5, () => current);\n  const link = service.create({ url: \"https://example.com\", expiresInMinutes: 1 });\n  current = new Date(\"2024-01-01T00:02:00.000Z\");\n\n  const app = express();\n  app.use(redirectRouter(service));\n  app.use(errorHandler);\n  const server = app.listen(0);\n  try {\n    const port = server.address().port;\n    const res = await fetch(`http://localhost:${port}/${link.code}`, { redirect: \"manual\" });\n    assert.equal(res.status, 410);\n  } finally {\n    server.close();\n  }\n});\n",
+    ".knyc-checks/s14-1-1.test.mjs": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { createApp } from '../dist/app.js';\n\ntest('GET /health returns ok status', async () => {\n  const app = createApp({ port: 0, baseUrl: 'http://localhost:0', codeLength: 6 });\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once('listening', resolve));\n  const port = server.address().port;\n  try {\n    const res = await fetch(`http://localhost:${port}/health`);\n    assert.equal(res.status, 200);\n    const body = await res.json();\n    assert.deepEqual(body, { status: 'ok' });\n  } finally {\n    server.close();\n  }\n});\n",
+    ".knyc-checks/s14-1-3.test.mjs": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { createApp } from '../dist/app.js';\n\ntest('GET /api/links/:code for unknown code returns 404 json error', async () => {\n  const app = createApp({ port: 0, baseUrl: 'http://localhost:0', codeLength: 6 });\n  const server = app.listen(0);\n  await new Promise((resolve) => server.once('listening', resolve));\n  const port = server.address().port;\n  try {\n    const res = await fetch(`http://localhost:${port}/api/links/doesnotexist`);\n    assert.equal(res.status, 404);\n    const body = await res.json();\n    assert.equal(body.error, 'Link not found');\n  } finally {\n    server.close();\n  }\n});\n",
+    ".knyc-checks/s15-1-1.test.mjs": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { spawn } from \"node:child_process\";\nimport net from \"node:net\";\nimport path from \"node:path\";\nimport url from \"node:url\";\n\nconst __dirname = path.dirname(url.fileURLToPath(import.meta.url));\nconst serverPath = path.join(__dirname, \"..\", \"dist\", \"server.js\");\n\nfunction getFreePort() {\n  return new Promise((resolve, reject) => {\n    const srv = net.createServer();\n    srv.listen(0, () => {\n      const { port } = srv.address();\n      srv.close(() => resolve(port));\n    });\n    srv.on(\"error\", reject);\n  });\n}\n\ntest(\"running the entry point starts listening and logs the base URL\", async () => {\n  const port = await getFreePort();\n  const baseUrl = `http://localhost:${port}`;\n\n  const child = spawn(process.execPath, [serverPath], {\n    env: { ...process.env, PORT: String(port), BASE_URL: baseUrl },\n    stdio: [\"ignore\", \"pipe\", \"pipe\"],\n  });\n\n  let stdout = \"\";\n  child.stdout.on(\"data\", (chunk) => {\n    stdout += chunk.toString();\n  });\n  let stderr = \"\";\n  child.stderr.on(\"data\", (chunk) => {\n    stderr += chunk.toString();\n  });\n\n  try {\n    await new Promise((resolve, reject) => {\n      const timer = setTimeout(() => {\n        reject(new Error(`Server did not log the base URL in time. stderr: ${stderr}`));\n      }, 2000);\n      child.stdout.on(\"data\", function check() {\n        if (stdout.includes(baseUrl)) {\n          clearTimeout(timer);\n          child.stdout.removeListener(\"data\", check);\n          resolve();\n        }\n      });\n      child.on(\"error\", (err) => {\n        clearTimeout(timer);\n        reject(err);\n      });\n      child.on(\"exit\", (code) => {\n        if (!stdout.includes(baseUrl)) {\n          clearTimeout(timer);\n          reject(new Error(`Server exited early (code ${code}). stderr: ${stderr}`));\n        }\n      });\n    });\n\n    assert.match(stdout, new RegExp(baseUrl.replace(/[.*+?^${}()|[\\]\\\\]/g, \"\\\\$&\")));\n\n    const res = await fetch(`${baseUrl}/health`);\n    assert.equal(res.status, 200);\n    const body = await res.json();\n    assert.deepEqual(body, { status: \"ok\" });\n  } finally {\n    child.kill();\n  }\n});\n"
+  },
+  "discarded": []
+}

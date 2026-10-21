@@ -84,6 +84,7 @@ export function extractJson(result: CliResult): unknown {
 }
 
 const AUTH_ERROR = /authenticat|oauth|log ?in|api key|unauthori[sz]ed|\b401\b/i;
+const LIMIT_ERROR = /session limit|usage limit|rate limit|limit reached|\b429\b|overloaded/i;
 
 export class ClaudeCliProvider implements AiProvider {
   readonly id = "claude-cli";
@@ -116,6 +117,9 @@ export class ClaudeCliProvider implements AiProvider {
       }
       if (result.is_error) {
         const message = result.result ?? "unknown error";
+        if (LIMIT_ERROR.test(message)) {
+          throw new AiError("limit", `Claude Code usage limit reached: ${message}`);
+        }
         if (AUTH_ERROR.test(message)) {
           throw new AiError("auth", `Claude Code is not logged in (${message}). Run \`claude\` and use /login.`);
         }
