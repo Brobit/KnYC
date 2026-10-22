@@ -44,7 +44,8 @@ function App() {
           aiStatus={{ label: "Claude Code", ok: true }}
           actions={actions}
         />
-        <main className="min-h-0 flex-1 overflow-auto">
+        {/* The workspace lays out its own panels (dockview keeps hidden ones mounted, which must not scroll the page). */}
+        <main className={screen === "workspace" ? "min-h-0 flex-1 overflow-clip" : "min-h-0 flex-1 overflow-auto"}>
           {screen === "workspace" ? <Workspace onReady={setWorkspace} /> : <DesignSystem />}
         </main>
       </div>

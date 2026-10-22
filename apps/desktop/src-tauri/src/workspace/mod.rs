@@ -15,6 +15,7 @@ use std::sync::Mutex;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager, State};
 
+use crate::run::RunState;
 use crate::terminal::TerminalState;
 use tauri_plugin_dialog::DialogExt;
 
@@ -37,6 +38,11 @@ impl WorkspaceState {
     pub fn root(&self) -> Option<PathBuf> {
         let open = self.0.lock().ok()?;
         open.as_ref().map(|o| o.scope.root().to_path_buf())
+    }
+
+    /// A path inside the opened folder (see [`Scope::resolve`]).
+    pub fn resolve(&self, rel: &str) -> FsResult<PathBuf> {
+        self.scope()?.resolve(rel)
     }
 
     fn scope(&self) -> FsResult<Scope> {
@@ -103,6 +109,7 @@ fn open_folder(app: &AppHandle, state: &WorkspaceState, path: PathBuf) -> FsResu
     };
     // Shells belong to the folder they started in.
     app.state::<TerminalState>().close_all();
+    app.state::<RunState>().stop_all();
     let app = app.clone();
     let watcher = watch(&scope, move |payload| {
         let _ = app.emit(CHANGED_EVENT, payload);
@@ -141,6 +148,7 @@ pub fn workspace_open(
 #[tauri::command]
 pub fn workspace_close(app: AppHandle, state: State<'_, WorkspaceState>) -> FsResult<()> {
     app.state::<TerminalState>().close_all();
+    app.state::<RunState>().stop_all();
     *state.0.lock().map_err(|e| FsError::Io(e.to_string()))? = None;
     Ok(())
 }

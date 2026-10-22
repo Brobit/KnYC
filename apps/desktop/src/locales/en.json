@@ -42,7 +42,7 @@
       "explorer": "The files of the step you are rebuilding appear here.",
       "editor": "Open a file from the Explorer to edit it.",
       "terminal": "Open a folder to start a terminal in it.",
-      "run": "Run the app and its checks.",
+      "run": "Open a folder to run its commands here.",
       "output": "Build and check output.",
       "lesson": "The lesson for the current step: goal, explanation, checks and hints."
     }
@@ -100,6 +100,37 @@
     "close": "Close terminal {{number}}",
     "exited": "Process exited with code {{code}}.",
     "failed": "The terminal could not start: {{detail}}"
+  },
+  "run": {
+    "commands": "Commands",
+    "reload": "Find commands again",
+    "loading": "Looking for commands…",
+    "none": "No package.json with commands in this folder.",
+    "scanFailed": "Could not read the project: {{detail}}",
+    "pick": "Run a command to see its output here.",
+    "start": "Run",
+    "stop": "Stop",
+    "startNamed": "Run {{name}}",
+    "stopNamed": "Stop {{name}}",
+    "running": "Running…",
+    "succeeded": "Done in {{duration}}",
+    "failed": "Exit code {{code}} after {{duration}}",
+    "failedNoCode": "Ended after {{duration}}",
+    "stopped": "Stopped after {{duration}}",
+    "failedToStart": "Could not start: {{detail}}",
+    "kinds": {
+      "install": "Install dependencies",
+      "build": "Build",
+      "test": "Test",
+      "run": "Start the app",
+      "script": "Script"
+    },
+    "status": {
+      "running": "Running",
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "stopped": "Stopped"
+    }
   },
   "designSystem": {
     "title": "Design system",
