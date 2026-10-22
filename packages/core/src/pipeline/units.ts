@@ -17,6 +17,8 @@ export interface Atom {
   kind: AtomKind;
   /** Class atom id, for methods. */
   parent?: string;
+  /** Exported from its file (a method follows its class). Whole-file atoms count as exported. */
+  exported: boolean;
   lines: number;
   /** 1-based, inclusive line range in the original file (the whole file for file atoms). */
   startLine: number;
@@ -45,14 +47,15 @@ export function buildUnits(graph: Graph): Units {
     const file = files.get(path);
     if (!file || file.test) continue;
     const fileAtoms: Atom[] = [];
+    const exportedSymbols = new Set(file.symbols.filter((s) => s.exported).map((s) => s.name));
     for (const symbol of file.symbols) {
       const lines = symbol.endLine - symbol.startLine + 1;
       const range = { startLine: symbol.startLine, endLine: symbol.endLine };
       if (!symbol.name.includes(".") && ATOM_KINDS.has(symbol.kind)) {
-        fileAtoms.push({ id: `${path}#${symbol.name}`, file: path, kind: symbol.kind as AtomKind, lines, ...range });
+        fileAtoms.push({ id: `${path}#${symbol.name}`, file: path, kind: symbol.kind as AtomKind, exported: symbol.exported, lines, ...range });
       } else if (symbol.kind === "method" && !symbol.name.endsWith(".constructor")) {
         const owner = symbol.name.split(".")[0]!;
-        fileAtoms.push({ id: `${path}#${symbol.name}`, file: path, kind: "method", parent: `${path}#${owner}`, lines, ...range });
+        fileAtoms.push({ id: `${path}#${symbol.name}`, file: path, kind: "method", parent: `${path}#${owner}`, exported: exportedSymbols.has(owner), lines, ...range });
       }
       // Fields and constructors belong to their class atom.
     }
@@ -60,7 +63,7 @@ export function buildUnits(graph: Graph): Units {
     // unit: its statements aren't symbols, so splitting it would lose what they need.
     if (fileAtoms.every((a) => a.kind === "variable")) {
       fileAtoms.length = 0;
-      fileAtoms.push({ id: path, file: path, kind: "file", lines: file.loc, startLine: 1, endLine: file.loc });
+      fileAtoms.push({ id: path, file: path, kind: "file", exported: true, lines: file.loc, startLine: 1, endLine: file.loc });
     }
     for (const atom of fileAtoms) {
       atoms.push(atom);
@@ -98,6 +101,17 @@ export function buildUnits(graph: Graph): Units {
   return { atoms, byId, byFile, needs };
 }
 
+const BEHAVIOR_KINDS = new Set<AtomKind>(["function", "class", "method", "variable"]);
+
+/**
+ * Code a check can run: an exported function, class, method or value, or a whole file of top-level
+ * code (an entry point). Types, interfaces, enums and private helpers alone give a step nothing to
+ * check (design/08, improvement 1).
+ */
+export function hasBehavior(atom: Atom): boolean {
+  return atom.kind === "file" || (atom.exported && BEHAVIOR_KINDS.has(atom.kind));
+}
+
 /** Unit list for prompts: one line per atom, grouped by file, with what it needs. */
 export function describeUnits(units: Units, purposes: Map<string, string> = new Map()): string {
   const lines: string[] = [];
@@ -108,7 +122,7 @@ export function describeUnits(units: Units, purposes: Map<string, string> = new 
       const needs = [...units.needs.get(id)!].map((n) => n.replace(/^.*#/, "")).sort();
       const purpose = purposes.get(id);
       lines.push(
-        `  - ${id} (${atom.kind}, ${atom.lines} lines)${purpose ? ` — ${purpose}` : ""}${needs.length ? ` · needs: ${needs.join(", ")}` : ""}`,
+        `  - ${id} (${atom.kind}, ${atom.lines} lines${atom.exported ? "" : ", private"})${purpose ? ` — ${purpose}` : ""}${needs.length ? ` · needs: ${needs.join(", ")}` : ""}`,
       );
     }
   }

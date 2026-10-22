@@ -2,14 +2,18 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   AiClient,
+  behaviorCount,
   buildUnits,
   generatePlan,
   graphSchema,
+  hasBehavior,
   learningPath,
   placeUnits,
   planPrompt,
+  planSchema,
   profiles,
   stepRange,
+  stepsWithoutBehavior,
   toLearningPath,
   type AiProvider,
   type PlanAnswer,
@@ -215,5 +219,65 @@ describe("real plans from the fixtures", () => {
       })),
     };
     expect(placeUnits(answer, units, stepRange(path.size, units.atoms.length)).problems).toEqual([]);
+  });
+});
+
+describe("every step has behavior (design/08, improvement 1)", () => {
+  const fromPath = (name: string, size: string) => {
+    const path = learningPath.parse(fixture("plans", `${name}.${size}`));
+    const answer: PlanAnswer = {
+      milestones: path.milestones.map((m) => ({
+        title: m.title,
+        summary: m.summary,
+        steps: m.stepIds.map((id) => step(path.steps.find((x) => x.id === id)!.introduces.map((u) => u.unit))),
+      })),
+    };
+    const units = buildUnits(graph(name));
+    return { answer, units, stepOf: placeUnits(answer, units, { min: 1, max: 999 }).stepOf };
+  };
+
+  it("knows which units a check can run", () => {
+    const is = (id: string) => hasBehavior(notesUnits.byId.get(id)!);
+    expect(is("src/notes/note.ts#Note")).toBe(false); // interface
+    expect(is("src/notes/notes.validation.ts#isStringArray")).toBe(false); // private helper
+    expect(is("src/notes/notes.store.ts#NotesStore.update")).toBe(true); // method of an exported class
+    expect(is("src/server.ts")).toBe(true); // entry point
+    expect(behaviorCount(notesUnits)).toBe(16);
+  });
+
+  it("flags the steps M1 couldn't prove: types only, or a private helper alone", () => {
+    const flagged = (name: string) => {
+      const { answer, units, stepOf } = fromPath(name, "standard");
+      return stepsWithoutBehavior(answer, units, stepOf).map((p) => p.slice(0, p.indexOf(";")));
+    };
+    expect(flagged("express-notes")).toEqual([
+      "s04 only introduces types or private code (src/notes/note.ts#Note, src/notes/note.ts#NoteInput)",
+      "s07 only introduces types or private code (src/notes/notes.validation.ts#isStringArray)",
+      "s09 only introduces types or private code (src/notes/notes.routes.ts#parseId)",
+    ]);
+    expect(flagged("express-no-tests")).toEqual([
+      "s03 only introduces types or private code (src/links/link.ts#Link)",
+      "s07 only introduces types or private code (src/links/links.service.ts#CreateLinkInput, src/links/links.service.ts#parseUrl)",
+    ]);
+    expect(flagged("express-shop")).toEqual([]);
+  });
+
+  it("sends such steps back to the AI, and refuses them in a new path", () => {
+    const plan = notesPlan();
+    // Interfaces alone, then the store that uses them.
+    plan.milestones[1]!.steps.splice(0, 1, step(["src/notes/note.ts"]), step(["src/notes/notes.store.ts"]));
+    const range = stepRange("overview", behaviorCount(notesUnits));
+    const result = planSchema(notesUnits, range).safeParse(plan);
+    expect(result.success).toBe(false);
+    expect(result.error!.issues.map((i) => i.message)).toContainEqual(expect.stringMatching(/^s02 only introduces types or private code/));
+    const input = { track: "backend" as const, size: "overview" as const, units: notesUnits, summaries: summaries("express-notes"), hasTests: true };
+    expect(() => toLearningPath(input, plan, { planning: { providerId: "claude-cli", model: "sonnet" } })).toThrow(/only introduces types or private code/);
+  });
+
+  it("tells the planner which units are private and what the rule is", () => {
+    const prompt = planPrompt({ track: "backend", size: "standard", units: notesUnits, summaries: summaries("express-notes"), hasTests: true });
+    expect(prompt).toContain("src/notes/notes.validation.ts#isStringArray (function, ");
+    expect(prompt).toMatch(/isStringArray \(function, \d+ lines, private\)/);
+    expect(prompt).toContain("Every step introduces at least one exported function, class, method or value");
   });
 });

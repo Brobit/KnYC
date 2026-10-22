@@ -109,6 +109,8 @@ Overview ≈ 5 steps, Standard ≈ 15, Deep dive ≈ 40.
 
 - Every file/symbol of the track is introduced exactly once.
 - A step only uses symbols from earlier steps or provided parts (checked against the graph).
+- Every step introduces something a check can run: an exported function, class, method or value,
+  or an entry-point file. Types and private helpers go with the code that uses them (design 08).
 - Every step has a check strategy.
 
 Failures are sent back to the AI with the exact errors (max 3 retries).

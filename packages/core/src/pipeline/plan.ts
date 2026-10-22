@@ -7,9 +7,12 @@ import type { Profile } from "../profiles/index.ts";
 import type { ModelRef, TrackId } from "../schemas/common.ts";
 import { checkStrategy, learningPath, type LearningPath, type PathSize, type UnitChange } from "../schemas/learning-path.ts";
 import type { Summaries } from "./summaries.ts";
-import { describeUnits, type Units } from "./units.ts";
+import { describeUnits, hasBehavior, type Units } from "./units.ts";
 
-/** Target step counts per size (design 02 ⑥), capped by how many units the project has. */
+/**
+ * Target step counts per size (design 02 ⑥), capped by how many units with behavior the project
+ * has: each step needs at least one (see stepsWithoutBehavior).
+ */
 export function stepRange(size: PathSize, unitCount: number): { min: number; max: number } {
   const base = { overview: { min: 3, max: 7 }, standard: { min: 10, max: 20 }, deep: { min: 25, max: 50 } }[size];
   const max = Math.min(base.max, unitCount);
@@ -98,10 +101,36 @@ export function placeUnits(answer: PlanAnswer, units: Units, range: { min: numbe
   return { stepOf, problems };
 }
 
+/** Units with behavior: the most steps a plan can have. */
+export const behaviorCount = (units: Units) => units.atoms.filter(hasBehavior).length;
+
+/**
+ * A new plan's steps each introduce something a check can run (design/08, improvement 1). Kept out
+ * of placeUnits, which also replays paths planned before this rule.
+ */
+export function stepsWithoutBehavior(answer: PlanAnswer, units: Units, stepOf: Map<string, number>): string[] {
+  const count = answer.milestones.reduce((n, m) => n + m.steps.length, 0);
+  const problems: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const mine = [...stepOf].filter(([, at]) => at === i).map(([id]) => units.byId.get(id)!);
+    if (mine.length === 0 || mine.some(hasBehavior)) continue;
+    problems.push(
+      `${stepId(i)} only introduces types or private code (${mine.map((a) => a.id).join(", ")}); every step needs an exported function, class, method or value — move these into the step that first uses them`,
+    );
+  }
+  return problems;
+}
+
+/** Every rule a newly generated plan must follow. */
+function planProblems(answer: PlanAnswer, units: Units, range: { min: number; max: number }) {
+  const { stepOf, problems } = placeUnits(answer, units, range);
+  return { stepOf, problems: [...problems, ...stepsWithoutBehavior(answer, units, stepOf)] };
+}
+
 /** The answer schema: plan shape + every placement rule, so violations are sent back to the AI. */
 export function planSchema(units: Units, range: { min: number; max: number }, maxProblems = 20) {
   return planAnswer.superRefine((answer, ctx) => {
-    const { problems } = placeUnits(answer, units, range);
+    const { problems } = planProblems(answer, units, range);
     for (const message of problems.slice(0, maxProblems)) ctx.addIssue({ code: "custom", path: ["milestones"], message });
     if (problems.length > maxProblems) {
       ctx.addIssue({ code: "custom", path: ["milestones"], message: `…and ${problems.length - maxProblems} more problems of the same kinds` });
@@ -111,7 +140,7 @@ export function planSchema(units: Units, range: { min: number; max: number }, ma
 
 export const PLANNER_SYSTEM = `You are the curriculum designer of KnYC, an app that teaches developers a codebase by having them rebuild it from an empty folder, one step at a time.
 A good path starts from something that runs and grows it feature by feature. Each step is small enough to do in 15-45 minutes, has one clear goal the learner can see working, and only uses code from earlier steps.
-Follow the unit list exactly: every unit is introduced exactly once, never before what it needs.`;
+Follow the unit list exactly: every unit is introduced exactly once, never before what it needs, and every step introduces code that runs.`;
 
 export interface PlanInput {
   track: TrackId;
@@ -125,7 +154,7 @@ export interface PlanInput {
 
 export function planPrompt(input: PlanInput): string {
   const { units, summaries, profile } = input;
-  const range = stepRange(input.size, units.atoms.length);
+  const range = stepRange(input.size, behaviorCount(units));
   const purposes = new Map<string, string>();
   for (const file of summaries.files) {
     for (const symbol of file.keySymbols) purposes.set(`${file.path}#${symbol.name}`, symbol.purpose);
@@ -164,6 +193,7 @@ ${describeUnits(units, purposes)}
 Rules:
 - Every unit above is introduced exactly once. A file path introduces all of that file's units.
 - A step may only introduce a unit if everything it "needs" is introduced in the same step or an earlier one.
+- Every step introduces at least one exported function, class, method or value (units not marked "private" that aren't types), or a whole entry-point file: something its check can run. Types, interfaces, enums and private helpers go in the step that first uses them.
 - Prefer steps that end with something observable (a route answering, a function returning the right value), and goals phrased that way.
 - Group steps into 2-6 milestones that tell the story of the project.`;
 }
@@ -177,8 +207,8 @@ export interface GeneratePlanOptions {
 
 /** Converts a valid answer into a LearningPath document (design 03). */
 export function toLearningPath(input: PlanInput, answer: PlanAnswer, options: GeneratePlanOptions): LearningPath {
-  const range = stepRange(input.size, input.units.atoms.length);
-  const { stepOf, problems } = placeUnits(answer, input.units, range);
+  const range = stepRange(input.size, behaviorCount(input.units));
+  const { stepOf, problems } = planProblems(answer, input.units, range);
   if (problems.length > 0) throw new Error(`invalid plan:\n- ${problems.join("\n- ")}`);
 
   const flat = answer.milestones.flatMap((m) => m.steps);
@@ -241,7 +271,7 @@ export function toLearningPath(input: PlanInput, answer: PlanAnswer, options: Ge
 }
 
 export async function generatePlan(client: AiClient, input: PlanInput, options: GeneratePlanOptions) {
-  const range = stepRange(input.size, input.units.atoms.length);
+  const range = stepRange(input.size, behaviorCount(input.units));
   const result = await client.generate({
     role: "planning",
     system: PLANNER_SYSTEM,

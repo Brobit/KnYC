@@ -57,8 +57,8 @@ export function useTwo() {
 }
 `;
   const atoms = [
-    { id: "src/b.ts#double", file: "src/b.ts", kind: "function" as const, lines: 3, startLine: 6, endLine: 8 },
-    { id: "src/b.ts#useTwo", file: "src/b.ts", kind: "function" as const, lines: 3, startLine: 11, endLine: 13 },
+    { id: "src/b.ts#double", file: "src/b.ts", kind: "function" as const, exported: true, lines: 3, startLine: 6, endLine: 8 },
+    { id: "src/b.ts#useTwo", file: "src/b.ts", kind: "function" as const, exported: true, lines: 3, startLine: 11, endLine: 13 },
   ];
   const ctx = {
     fileExists: (p: string) => p !== "src/c.ts",
