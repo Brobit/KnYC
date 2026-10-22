@@ -13,6 +13,8 @@ use tauri::{Manager, RunEvent};
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        // Install links (onboarding): https pages only, see capabilities/default.json.
+        .plugin(tauri_plugin_opener::init())
         .manage(workspace::WorkspaceState::default())
         .manage(terminal::TerminalState::default())
         .manage(run::RunState::default())
@@ -27,6 +29,7 @@ pub fn run() {
             keychain::keychain_hint,
             keychain::keychain_delete,
             providers::claude_cli_status,
+            providers::toolchains_status,
             ai::ai_claude_call,
             ai::ai_claude_cancel,
             workspace::workspace_pick,

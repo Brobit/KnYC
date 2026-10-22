@@ -33,6 +33,12 @@ export interface ClaudeCliStatus {
   loggedIn: boolean | null;
 }
 
+export interface ToolchainStatus {
+  id: "node" | "npm" | "git" | "docker" | "python" | "go" | "dotnet";
+  /** null when not found. */
+  version: string | null;
+}
+
 export interface SettingsBackend {
   /** Saves the key under `keyRef` and returns its masked hint ("sk-ant-••••••••Q4mA"). */
   saveKey(keyRef: string, secret: string): Promise<string>;
@@ -42,6 +48,8 @@ export interface SettingsBackend {
   claudeCli(): Promise<ClaudeCliStatus>;
   /** One tiny structured call with `model`: resolves to its duration in ms, rejects with an AiError. */
   testClaude(model: string): Promise<number>;
+  /** Installed versions of Node, npm, git and the later stacks (onboarding). */
+  toolchains(): Promise<ToolchainStatus[]>;
 }
 
 export function createTauriSettingsBackend(): SettingsBackend {
@@ -51,6 +59,7 @@ export function createTauriSettingsBackend(): SettingsBackend {
     deleteKey: (keyRef) => invoke("keychain_delete", { keyRef }),
     claudeCli: () => invoke("claude_cli_status"),
     testClaude: (model) => testClaudeCall(new AppClaudeProvider(), model),
+    toolchains: () => invoke("toolchains_status"),
   };
 }
 
@@ -64,7 +73,20 @@ export function maskKey(secret: string): string {
   return `${prefix}${dots}${chars.slice(-4).join("")}`;
 }
 
-export function createFakeSettingsBackend(claude: ClaudeCliStatus = { path: "/usr/local/bin/claude", version: "2.1.0", loggedIn: true }): SettingsBackend {
+const FAKE_TOOLCHAINS: ToolchainStatus[] = [
+  { id: "node", version: "22.23.2" },
+  { id: "npm", version: "10.9.8" },
+  { id: "git", version: null },
+  { id: "docker", version: null },
+  { id: "python", version: "3.12.4" },
+  { id: "go", version: null },
+  { id: "dotnet", version: null },
+];
+
+export function createFakeSettingsBackend(
+  claude: ClaudeCliStatus = { path: "/usr/local/bin/claude", version: "2.1.0", loggedIn: true },
+  toolchains: ToolchainStatus[] = FAKE_TOOLCHAINS,
+): SettingsBackend {
   const keys = new Map<string, string>();
   return {
     async saveKey(keyRef, secret) {
@@ -87,6 +109,9 @@ export function createFakeSettingsBackend(claude: ClaudeCliStatus = { path: "/us
       if (!claude.path) throw new AiError("unavailable", "Claude Code CLI not found");
       if (claude.loggedIn === false) throw new AiError("auth", "Claude Code is not logged in");
       return 900;
+    },
+    async toolchains() {
+      return toolchains;
     },
   };
 }

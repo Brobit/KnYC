@@ -91,9 +91,52 @@ pub async fn claude_cli_status() -> ClaudeCliStatus {
     claude_status()
 }
 
+/// The toolchains onboarding lists: what M3 needs first, then the later stacks.
+pub const TOOLCHAINS: &[&str] = &["node", "npm", "git", "docker", "python", "go", "dotnet"];
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ToolchainStatus {
+    pub id: &'static str,
+    /// None when not found.
+    pub version: Option<String>,
+}
+
+/// Every toolchain's installed version, checked in parallel (each is one short process).
+pub fn check_toolchains() -> Vec<ToolchainStatus> {
+    std::thread::scope(|scope| {
+        let checks: Vec<_> = TOOLCHAINS
+            .iter()
+            .map(|id| scope.spawn(move || knyc_analyzer::scan::installed_version(id)))
+            .collect();
+        TOOLCHAINS
+            .iter()
+            .zip(checks)
+            .map(|(id, check)| ToolchainStatus {
+                id,
+                version: check.join().ok().flatten(),
+            })
+            .collect()
+    })
+}
+
+#[tauri::command]
+pub async fn toolchains_status() -> Vec<ToolchainStatus> {
+    tauri::async_runtime::spawn_blocking(check_toolchains)
+        .await
+        .unwrap_or_default()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn lists_every_toolchain_with_node_found() {
+        let found = check_toolchains();
+        assert_eq!(found.iter().map(|t| t.id).collect::<Vec<_>>(), TOOLCHAINS);
+        // Node is installed wherever KnYC is developed.
+        assert!(found[0].version.is_some(), "{found:?}");
+    }
 
     #[test]
     fn finds_claude_on_path_then_in_local_bin() {
