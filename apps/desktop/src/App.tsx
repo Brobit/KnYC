@@ -9,23 +9,27 @@ import { useSettings } from "@/lib/settings";
 import { MODES, THEMES, ThemeRoot, useTheme } from "@/lib/theme";
 import { DesignSystem } from "@/screens/DesignSystem";
 import { Home } from "@/screens/Home";
+import { Onboarding } from "@/screens/Onboarding";
 import { useAiStatus } from "@/settings/ai-status";
 import { SettingsScreen } from "@/settings/SettingsScreen";
 import { Workspace } from "@/workspace/Workspace";
 import { useWorkspace, WorkspaceProvider } from "@/workspace/workspace-context";
 
-type Screen = "home" | "workspace" | "designSystem" | "settings";
+type Screen = "onboarding" | "home" | "workspace" | "designSystem" | "settings";
 
 const crumbKey: Record<Screen, string> = {
+  onboarding: "onboarding.welcome.title",
   home: "home.title",
   workspace: "workspace.title",
   designSystem: "designSystem.title",
   settings: "settings.title",
 };
 
-// The app opens on Home; other screens are reached from Home, the palette and the settings button.
+// The app opens on onboarding the first time (#58), on Home after that; other screens are reached
+// from Home, the palette and the settings button.
 function App() {
-  const [screen, setScreen] = useState<Screen>("home");
+  const { settings } = useSettings();
+  const [screen, setScreen] = useState<Screen>(() => (settings.onboardedAt ? "home" : "onboarding"));
   const showWorkspace = useCallback(() => setScreen("workspace"), []);
   return (
     <CommandsProvider workspaceVisible={screen === "workspace"} showWorkspace={showWorkspace}>
@@ -76,6 +80,15 @@ function Shell({ screen, setScreen }: { screen: Screen; setScreen: (screen: Scre
       <kbd className="rounded-[4px] border border-border bg-surface px-1 font-sans text-[11px] text-text-muted">{formatShortcut("Mod+K")}</kbd>
     </Button>
   );
+
+  if (screen === "onboarding") {
+    return (
+      <div className="h-full overflow-auto bg-bg">
+        <ThemeRoot />
+        <Onboarding onDone={() => setScreen("home")} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full flex-col bg-bg">

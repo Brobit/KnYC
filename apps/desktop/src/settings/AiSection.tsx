@@ -373,7 +373,7 @@ function ClaudeCliRow({ backend }: { backend: SettingsBackend }) {
   );
 }
 
-function RoleCard({ role }: { role: RoleId }) {
+export function RoleCard({ role }: { role: RoleId }) {
   const { t } = useTranslation();
   const { settings, update } = useSettings();
   // A draft, saved only once complete: an empty model would make settings.json invalid.

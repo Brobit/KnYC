@@ -534,9 +534,15 @@ fn required_toolchains(walked: &Walk, packages: &[Package]) -> Vec<Toolchain> {
     toolchains
 }
 
-fn installed_version(id: &str) -> Option<String> {
+/// The installed version of a toolchain ("22.23.2"), or None when it isn't found. Also used by the
+/// app's onboarding (Node, npm, git…).
+pub fn installed_version(id: &str) -> Option<String> {
     let candidates: &[(&str, &[&str])] = match id {
         "node" => &[("node", &["--version"])],
+        // npm is a .cmd script on Windows: only cmd can start it.
+        "npm" if cfg!(windows) => &[("cmd", &["/D", "/C", "npm", "--version"])],
+        "npm" => &[("npm", &["--version"])],
+        "git" => &[("git", &["--version"])],
         "python" => &[("python3", &["--version"]), ("python", &["--version"])],
         "go" => &[("go", &["version"])],
         "dotnet" => &[("dotnet", &["--version"])],
@@ -544,7 +550,15 @@ fn installed_version(id: &str) -> Option<String> {
         _ => &[],
     };
     candidates.iter().find_map(|(program, args)| {
-        let output = Command::new(program).args(*args).output().ok()?;
+        let mut command = Command::new(program);
+        command.args(*args);
+        // No console window flashing when the desktop app (a GUI program) asks.
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            command.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+        }
+        let output = command.output().ok()?;
         if !output.status.success() {
             return None;
         }
@@ -698,5 +712,15 @@ mod tests {
             installed_version("node").is_some_and(|v| v.chars().next().unwrap().is_ascii_digit())
         );
         assert_eq!(installed_version("not-a-toolchain"), None);
+        // KnYC's own development needs npm (through pnpm's Node) and git.
+        for id in ["npm", "git"] {
+            let version = installed_version(id);
+            assert!(
+                version
+                    .as_deref()
+                    .is_some_and(|v| v.chars().next().unwrap().is_ascii_digit()),
+                "{id}: {version:?}"
+            );
+        }
     }
 }

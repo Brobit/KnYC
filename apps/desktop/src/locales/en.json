@@ -303,5 +303,55 @@
       "backendDescription": "NestJS modules, controllers, services, auth and data access.",
       "frontendDescription": "React components, routing, state and API calls."
     }
+  },
+  "onboarding": {
+    "stepOf": "Step {{current}} of {{total}}",
+    "back": "Back",
+    "later": "Set up later",
+    "continue": "Continue",
+    "start": "Start using KnYC",
+    "later2": "Later",
+    "welcome": {
+      "title": "Welcome to KnYC",
+      "body": "Import a project you want to understand. KnYC turns it into steps, and you rebuild it one step at a time, with real checks and an AI guide that knows the code.",
+      "loopLabel": "How learning with KnYC works",
+      "loopCaption": "Then the next step, until the project is yours",
+      "loop": {
+        "import": "Import",
+        "importHint": "a project folder",
+        "learn": "Learn",
+        "learnHint": "the goal of a step",
+        "code": "Code",
+        "codeHint": "it in the editor",
+        "check": "Check",
+        "checkHint": "real tests pass"
+      }
+    },
+    "ai": {
+      "title": "Connect an AI",
+      "body": "KnYC uses your own AI to plan paths, write lessons and explain failing checks. Nothing goes through a KnYC server.",
+      "apiKey": "API key",
+      "apiKeyDetail": "Claude, OpenAI, Gemini",
+      "cli": "Local CLI",
+      "cliDetail": "Claude Code",
+      "ollamaDetail": "Free, runs locally",
+      "missing": "Claude Code isn’t installed. Install it, sign in once in a terminal, then check again.",
+      "install": "Install Claude Code",
+      "loggedOut": "Claude Code v{{version}} is installed but not logged in. Open a terminal, run claude, then type /login, and check again.",
+      "ready": "Claude Code v{{version}} · logged in",
+      "models": "Which model does what",
+      "modelsHint": "Sensible defaults are set; you can change them any time in Settings."
+    },
+    "toolchains": {
+      "title": "Toolchains",
+      "body": "The projects you import run on your machine. Here is what KnYC found.",
+      "checking": "Checking…",
+      "notFound": "Not found",
+      "install": "Install",
+      "installNamed": "Install {{name}}",
+      "needed": "Needed now",
+      "laterTitle": "Later stacks (not needed yet)",
+      "notBlocking": "Nothing here blocks you: each project is checked again when you import it."
+    }
   }
 }

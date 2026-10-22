@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { modelRef, providerType } from "./common.ts";
+import { isoDate, modelRef, providerType } from "./common.ts";
 
 export const provider = z.object({
   id: z.string().min(1),
@@ -37,6 +37,8 @@ export const settings = z.object({
     })
     .default({ fontSize: 13, tabSize: 2, vimMode: false }),
   runChecksIn: z.enum(["local", "docker"]).default("local"),
+  /** Set when the learner finished or skipped onboarding (design 04 §1): it shows on first launch only. */
+  onboardedAt: isoDate.optional(),
 });
 export type Settings = z.infer<typeof settings>;
 
