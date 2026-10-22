@@ -252,6 +252,17 @@ pub async fn pipeline_pick_source(
     Ok(Some(real.display().to_string()))
 }
 
+/// Shows the folder dialog for where the learner will rebuild the project (import screen). Only
+/// the path comes back: picking it grants the pipeline nothing.
+#[tauri::command]
+pub async fn pipeline_choose_folder(app: AppHandle) -> Result<Option<String>, String> {
+    let Some(picked) = app.dialog().file().blocking_pick_folder() else {
+        return Ok(None);
+    };
+    let path = picked.into_path().map_err(|e| e.to_string())?;
+    Ok(Some(path.display().to_string()))
+}
+
 #[tauri::command]
 pub async fn host_read_file(
     app: AppHandle,

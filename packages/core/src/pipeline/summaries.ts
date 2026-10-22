@@ -74,18 +74,23 @@ function addResult(stats: StageStats, result: { usage: Usage; calls: number }) {
  * order, so related files tend to share a batch). A file over the budget gets its own batch.
  */
 export function batchFiles(files: SourceFile[], maxTokens = 12_000, maxFiles = 8): SourceFile[][] {
-  const batches: SourceFile[][] = [];
-  let current: SourceFile[] = [];
+  return batchBySize(files, (file) => estimateTokens(file.content), maxTokens, maxFiles);
+}
+
+/** The batching rule of `batchFiles`, for any items with a token size (estimates use file sizes). */
+export function batchBySize<T>(items: T[], size: (item: T) => number, maxTokens = 12_000, maxFiles = 8): T[][] {
+  const batches: T[][] = [];
+  let current: T[] = [];
   let tokens = 0;
-  for (const file of files) {
-    const size = estimateTokens(file.content);
-    if (current.length > 0 && (tokens + size > maxTokens || current.length >= maxFiles)) {
+  for (const item of items) {
+    const itemTokens = size(item);
+    if (current.length > 0 && (tokens + itemTokens > maxTokens || current.length >= maxFiles)) {
       batches.push(current);
       current = [];
       tokens = 0;
     }
-    current.push(file);
-    tokens += size;
+    current.push(item);
+    tokens += itemTokens;
   }
   if (current.length > 0) batches.push(current);
   return batches;

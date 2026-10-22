@@ -111,7 +111,8 @@
     "forget": "Remove {{name}} from the list",
     "missing": "This folder no longer exists. Remove it from the list?",
     "yourAi": "Your AI",
-    "notSetUp": "not set up"
+    "notSetUp": "not set up",
+    "import": "Import a project"
   },
   "aiStatus": {
     "label": "AI: {{label}}, {{state}}",
@@ -154,7 +155,8 @@
     "refreshExplorer": "Refresh Explorer",
     "collapseExplorer": "Collapse all folders",
     "renameNamed": "Rename {{name}}",
-    "deleteNamed": "Delete {{name}}…"
+    "deleteNamed": "Delete {{name}}…",
+    "importProject": "Import a project…"
   },
   "lesson": {
     "hint": "Hint {{level}}",
@@ -352,6 +354,63 @@
       "needed": "Needed now",
       "laterTitle": "Later stacks (not needed yet)",
       "notBlocking": "Nothing here blocks you: each project is checked again when you import it."
+    }
+  },
+  "import": {
+    "title": "Import a project",
+    "intro": "Your original folder is never modified. KnYC rebuilds it in a separate workspace.",
+    "source": "Source folder",
+    "sourcePlaceholder": "Pick the project you want to understand",
+    "browse": "Browse",
+    "scanning": "Scanning the project (no AI)…",
+    "quickScan": "Quick scan:",
+    "files_one": "{{count}} file",
+    "files_other": "{{count}} files",
+    "lines": "{{count}} lines",
+    "workspace": "Workspace folder",
+    "workspacePlaceholder": "Chosen after the source",
+    "workspaceHint": "Where you will rebuild the project, step by step.",
+    "change": "Change",
+    "sentTitle": "What will be sent to your AI",
+    "filesSent": "files sent",
+    "filesExcluded": "files excluded",
+    "aiCalls": "AI calls",
+    "time": "time",
+    "planNote": "With Claude Code there is no per-call cost: this uses part of your Claude plan. Estimated for a standard path of about {{steps}} steps.",
+    "excluded": "Excluded",
+    "more_one": "+ {{count}} more",
+    "more_other": "+ {{count}} more",
+    "reasons": {
+      "secret": "secret",
+      "ignored": "ignored",
+      "binary": "binary",
+      "lockfile": "lockfile",
+      "too-large": "too large"
+    },
+    "privacy": "Secrets never leave your machine: secret files are skipped and lines that look like secrets are blanked out.",
+    "alwaysEstimate": "Always show this estimate",
+    "cancel": "Cancel",
+    "start": "Start analysis",
+    "scanFailed": "Could not scan this folder: {{detail}}",
+    "startFailed": "Could not start the analysis: {{detail}}",
+    "desktopOnly": "The analysis runs in the KnYC desktop app."
+  },
+  "analyses": {
+    "title": "Analyses",
+    "done": "Analysis done",
+    "paused": "Paused: Claude plan limit reached",
+    "pausedUntil": "Paused: Claude plan limit, resumes at {{time}}",
+    "failed": "Stopped: {{reason}}",
+    "cancelled": "Cancelled",
+    "cancel": "Cancel",
+    "resume": "Resume",
+    "resumeNow": "Resume now",
+    "remove": "Remove {{name}}",
+    "stages": {
+      "intake": "Copying the project",
+      "scan": "Scanning",
+      "graph": "Building the code graph",
+      "summaries": "Summarizing the code"
     }
   }
 }

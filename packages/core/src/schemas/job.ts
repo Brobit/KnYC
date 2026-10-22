@@ -28,6 +28,8 @@ export const analysisInput = z.object({
   /** Content hash from the import scan; names the cache folder. */
   sourceHash: z.string().min(1),
   name: z.string().min(1),
+  /** Where the learner will rebuild it (design/04 §3; default ~/KnYC/<name>), used once a path is chosen. */
+  workspace: z.string().min(1).optional(),
 });
 export type AnalysisInput = z.infer<typeof analysisInput>;
 

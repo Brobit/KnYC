@@ -5,11 +5,11 @@ import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import {
   AiClient,
-  batchFiles,
   buildChecks,
   buildTimeline,
   buildUnits,
   emptyUsage,
+  estimateAnalysis,
   estimateTokens,
   FileCache,
   generatePlan,
@@ -18,7 +18,6 @@ import {
   profileFor,
   projectFacts,
   scanProject,
-  stepRange,
   summarize,
   type PathSize,
   type TrackId,
@@ -44,9 +43,6 @@ export interface AnalyzeIo {
   log(line: string): void;
   confirm(question: string): Promise<boolean>;
 }
-
-/** Overhead of one Claude Code call (its own instructions), measured in M1. */
-const CALL_OVERHEAD_TOKENS = 6_000;
 
 export async function analyze(options: AnalyzeOptions, io: AnalyzeIo) {
   const source = resolve(options.folder);
@@ -76,12 +72,11 @@ export async function analyze(options: AnalyzeOptions, io: AnalyzeIo) {
   if (units.atoms.length === 0) throw new Error("no source code found to learn from");
 
   // Estimate (design 02 D4).
-  const range = stepRange(options.size, units.atoms.length);
-  const steps = Math.round((range.min + range.max) / 2);
-  const summaryCalls = batchFiles(files).length + 2;
-  const sourceTokens = files.reduce((sum, f) => sum + estimateTokens(f.content), 0);
-  const calls = summaryCalls + 1 + steps;
-  const tokens = sourceTokens + calls * CALL_OVERHEAD_TOKENS + steps * 4_000;
+  const { steps, calls, tokens } = estimateAnalysis(
+    files.map((f) => estimateTokens(f.content)),
+    units.atoms.length,
+    options.size,
+  );
   const secrets = scan.excluded.filter((e) => e.reason === "secret").map((e) => e.path);
   io.log("");
   io.log(`Estimate for "${options.track}" at size "${options.size}" (about ${steps} steps):`);

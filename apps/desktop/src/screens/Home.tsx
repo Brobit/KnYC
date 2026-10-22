@@ -1,10 +1,11 @@
 // Home (design/04 §2, knyc.pen "Screen · Home"), reduced to what M2 needs: open a folder or a recent
 // workspace. Continue cards, toolchains and tips come with learning paths (M3).
-import { ArrowRight, FolderClock, FolderOpen, X } from "lucide-react";
+import { ArrowRight, FolderClock, FolderOpen, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { RecentWorkspace } from "@knyc/core/schemas";
 import { Button } from "@/components/ui/button";
+import { AnalysesList } from "@/jobs/AnalysesList";
 import { useSettings } from "@/lib/settings";
 import { WorkspaceFsError } from "@/lib/workspace-fs";
 import { ROLES } from "@/settings/providers";
@@ -80,7 +81,7 @@ function RecentRow({ entry, now, onOpen, onForget, error }: { entry: RecentWorks
   );
 }
 
-export function Home({ onOpened, now = new Date() }: { onOpened: () => void; now?: Date }) {
+export function Home({ onOpened, onImport, now = new Date() }: { onOpened: () => void; onImport?: () => void; now?: Date }) {
   const { t } = useTranslation();
   const { folder, pickFolder, recent, openRecent, forgetRecent } = useWorkspace();
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -110,7 +111,13 @@ export function Home({ onOpened, now = new Date() }: { onOpened: () => void; now
           <h1 className="text-[28px] font-semibold text-text-primary">{recent.length > 0 ? t("home.welcomeBack") : t("home.welcome")}</h1>
           <p className="text-sm text-text-secondary">{t("home.intro")}</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <Button onClick={() => void pick()}>
+            {onImport && (
+              <Button onClick={onImport}>
+                <Plus />
+                {t("home.import")}
+              </Button>
+            )}
+            <Button variant={onImport ? "outline" : "default"} onClick={() => void pick()}>
               <FolderOpen />
               {t("home.openFolder")}
             </Button>
@@ -123,6 +130,8 @@ export function Home({ onOpened, now = new Date() }: { onOpened: () => void; now
           </div>
           {errors[""] && <p className="text-xs text-danger">{errors[""]}</p>}
         </header>
+
+        <AnalysesList />
 
         <section className="flex flex-col gap-3" aria-labelledby="home-recent">
           <h2 id="home-recent" className="text-[11px] font-semibold tracking-[0.06em] text-text-muted uppercase">

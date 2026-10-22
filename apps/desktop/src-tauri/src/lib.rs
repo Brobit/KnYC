@@ -52,6 +52,7 @@ pub fn run() {
             run::run_stop,
             pipeline::pipeline_data_dir,
             pipeline::pipeline_pick_source,
+            pipeline::pipeline_choose_folder,
             pipeline::host_read_file,
             pipeline::host_write_file,
             pipeline::host_append_file,
