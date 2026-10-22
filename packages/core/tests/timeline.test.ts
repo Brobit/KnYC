@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { cp, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -129,6 +129,29 @@ describe.skipIf(!knycSys || !process.env.KNYC_SLOW_TESTS)("buildTimeline (slow, 
       expect(timeline.finalMatchesOriginal).toBe(true);
     } finally {
       await rm(join(workDir, ".."), { recursive: true, force: true });
+    }
+  });
+
+  it("merges a step that can't build alone into the next one", { timeout: 15 * 60_000 }, async () => {
+    const { graph, path, units } = load("express-notes", "overview");
+    const root = await mkdtemp(join(tmpdir(), "knyc-timeline-"));
+    // The same project with a tsconfig that extends a base: the setup fix leaves it alone (its base
+    // could list types), so config.ts alone can't find `process` again.
+    const sourceRoot = join(root, "source");
+    await cp(goldenRoot("express-notes"), sourceRoot, { recursive: true, filter: (p) => !/[\\/](node_modules|dist)$/.test(p) });
+    await rename(join(sourceRoot, "tsconfig.json"), join(sourceRoot, "tsconfig.base.json"));
+    await writeFile(join(sourceRoot, "tsconfig.json"), '{ "extends": "./tsconfig.base.json" }\n');
+    try {
+      const scan = await scanProject(sourceRoot);
+      const timeline = await buildTimeline(path, graph, scan, units, { sourceRoot, workDir: join(root, "repo") });
+      expect(timeline.setupFixes).toEqual([]);
+      const [first, ...rest] = timeline.steps;
+      expect(first).toMatchObject({ stepId: "s01", ok: false, mergedInto: "s02" });
+      expect(first!.errors).toMatch(/Cannot find name 'process'/);
+      expect(rest.every((s) => s.ok && s.tag === `${path.id}/${s.stepId}`)).toBe(true);
+      expect(timeline.finalMatchesOriginal).toBe(true);
+    } finally {
+      await rm(root, { recursive: true, force: true });
     }
   });
 });
