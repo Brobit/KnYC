@@ -24,6 +24,7 @@
     "dockview-react": "^8.6.1",
     "i18next": "^26.5.3",
     "lucide-react": "^1.60.0",
+    "monaco-editor": "0.57.0",
     "radix-ui": "^1.8.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

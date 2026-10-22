@@ -5,5 +5,11 @@ import { fileURLToPath } from "node:url";
 export default defineConfig({
   plugins: [react()],
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
-  test: { environment: "jsdom", setupFiles: ["./tests/setup.ts"], include: ["tests/**/*.test.tsx"] },
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./tests/setup.ts"],
+    include: ["tests/**/*.test.tsx"],
+    // CSS is stubbed in tests, except the tokens the Monaco theme test reads.
+    css: { include: [/tokens\.css/] },
+  },
 });

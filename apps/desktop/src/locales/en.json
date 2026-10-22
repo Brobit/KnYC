@@ -77,9 +77,20 @@
       "io": "Something went wrong: {{detail}}"
     }
   },
-  "editorPreview": {
-    "readOnly": "Read-only preview",
-    "loading": "Loading…"
+  "editor": {
+    "loading": "Loading…",
+    "openFiles": "Open files",
+    "save": "Save",
+    "dontSave": "Don’t save",
+    "unsaved": "Unsaved changes",
+    "closeNamed": "Close {{name}}",
+    "closeTab": "Close",
+    "unsavedTitle": "Save changes to {{name}}?",
+    "unsavedBody": "Your changes will be lost if you don’t save them.",
+    "conflictChanged": "This file changed on disk while you were editing it.",
+    "conflictDeleted": "This file was deleted on disk while you were editing it.",
+    "reload": "Load the disk version",
+    "keepMine": "Keep my version"
   },
   "designSystem": {
     "title": "Design system",

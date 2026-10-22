@@ -1,5 +1,5 @@
 // The dockable learning workspace (design 04 §7, "Movable panels"). Panels still placeholders
-// until their issues land: Editor #33, Terminal #34, Run #35, Lesson M3.
+// until their issues land: Terminal #34, Run #35, Lesson M3.
 import {
   DockviewReact,
   type DockviewReadyEvent,
@@ -17,7 +17,7 @@ import { useSettings } from "@/lib/settings";
 import { useTheme } from "@/lib/theme";
 import { Explorer } from "@/explorer/Explorer";
 import { Collapser } from "./collapse";
-import { EditorPreview } from "./EditorPreview";
+import { EditorPanel } from "@/editor/EditorPanel";
 import { applyDefaultLayout, PANEL_COMPONENT, restoreLayout, saveLayout, type PanelId, type PanelTitle } from "./layout";
 
 const ICONS: Record<PanelId, LucideIcon> = {
@@ -49,7 +49,7 @@ function Placeholder({ id }: { id: PanelId }) {
 function Panel({ api }: IDockviewPanelProps) {
   const id = api.id as PanelId;
   if (id === "explorer") return <Explorer />;
-  if (id === "editor") return <EditorPreview fallback={<Placeholder id={id} />} />;
+  if (id === "editor") return <EditorPanel empty={<Placeholder id={id} />} />;
   return <Placeholder id={id} />;
 }
 
