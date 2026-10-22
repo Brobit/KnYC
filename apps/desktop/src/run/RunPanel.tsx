@@ -3,10 +3,13 @@
 import { CircleCheck, CircleX, Download, FlaskConical, Hammer, LoaderCircle, Play, RefreshCw, Square, SquareTerminal, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
+import { useRegisterCommands } from "@/commands/commands";
 import { Button } from "@/components/ui/button";
 import { useSettings } from "@/lib/settings";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { useShowPanel } from "@/workspace/panel-context";
 import { useWorkspace } from "@/workspace/workspace-context";
 import { OutputView } from "./OutputView";
 import { runBackend, type PackageCommands, type ProjectCommand, type RunBackend } from "./run-backend";
@@ -51,6 +54,9 @@ const ICONS: Record<ProjectCommand["kind"], LucideIcon> = {
 
 const keyOf = (root: string, command: ProjectCommand) => `${root}\u0000${command.command}`;
 
+/** "Test", "Start the app" for what the scan recognised; the script name otherwise. */
+const commandLabel = (t: TFunction, command: ProjectCommand) => (command.kind === "script" ? command.name : t(`run.kinds.${command.kind}`));
+
 export function formatDuration(ms: number) {
   if (ms < 1000) return `${ms} ms`;
   const seconds = ms / 1000;
@@ -67,6 +73,7 @@ export function RunPanel({ empty, backend = runBackend }: { empty: ReactNode; ba
   const [error, setError] = useState<string | null>(null);
   const [runs, setRuns] = useState<Map<string, RunRecord>>(() => new Map());
   const [selected, setSelected] = useState<string | null>(null);
+  const showPanel = useShowPanel("run");
 
   const load = useCallback(() => {
     backend.commands().then(
@@ -126,6 +133,38 @@ export function RunPanel({ empty, backend = runBackend }: { empty: ReactNode; ba
     const runId = runs.get(key)?.runId;
     if (runId != null) void backend.stop(runId);
   };
+
+  // "Run test", "Stop dev"… for every command found; running one shows its output.
+  const running = [...runs].filter(([, r]) => r.status === "running").map(([key]) => key);
+  useRegisterCommands(
+    () =>
+      folder && packages
+        ? [
+            { id: "run.reload", title: t("run.reload"), group: "run", scope: "workspace", run: load },
+            ...packages.flatMap((p) =>
+              p.commands.flatMap((command) => {
+                const key = keyOf(p.root, command);
+                const label = commandLabel(t, command);
+                const name = packages.length > 1 && p.name ? `${p.name} › ${label}` : label;
+                const startCommand = {
+                  id: `run.start:${key}`,
+                  title: t("run.startNamed", { name }),
+                  group: "run" as const,
+                  scope: "workspace" as const,
+                  run: () => {
+                    showPanel();
+                    if (runs.get(key)?.status !== "running") void start(p.root, command);
+                    else setSelected(key);
+                  },
+                };
+                const stopCommand = { id: `run.stop:${key}`, title: t("run.stopNamed", { name }), group: "run" as const, scope: "workspace" as const, run: () => stop(key) };
+                return running.includes(key) ? [startCommand, stopCommand] : [startCommand];
+              }),
+            ),
+          ]
+        : [],
+    [t, folder, packages, running.join("\u0001")],
+  );
 
   if (!folder) return <>{empty}</>;
 
@@ -209,7 +248,7 @@ function CommandRow({ command, record, selected, onSelect, onStart, onStop }: Co
   const { t } = useTranslation();
   const Icon = ICONS[command.kind];
   const running = record?.status === "running";
-  const label = command.kind === "script" ? command.name : t(`run.kinds.${command.kind}`);
+  const label = commandLabel(t, command);
   const StatusIcon = running ? LoaderCircle : record?.status === "succeeded" ? CircleCheck : record?.status === "failed" ? CircleX : null;
   return (
     <div

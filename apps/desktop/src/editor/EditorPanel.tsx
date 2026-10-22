@@ -1,8 +1,9 @@
 // The Editor panel (issue #33): tabs over one Monaco editor, Ctrl/⌘+S to save, confirmation before
 // closing unsaved work, and a choice when a file with unsaved edits changes on disk.
 import { X } from "lucide-react";
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { useRegisterCommands } from "@/commands/commands";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,19 +46,19 @@ export function EditorPanel({ empty }: { empty: ReactNode }) {
     }
   };
 
-  // Ctrl/⌘+S anywhere in the app saves the active file (inside Monaco its own command does it).
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "s") {
-        event.preventDefault();
-        void save(documents.getSnapshot().active);
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  });
-
   const requestClose = (doc: OpenDocument) => (isDirty(doc) ? setClosing(doc) : documents.close(doc.path));
+
+  // Ctrl/⌘+S and Ctrl/⌘+W work anywhere in the app, Monaco included (the shortcut handler runs first).
+  useRegisterCommands(
+    () =>
+      current
+        ? [
+            { id: "editor.save", title: t("commands.save"), group: "editor", shortcuts: ["Mod+S"], scope: "workspace", run: () => void save(current.path) },
+            { id: "editor.close", title: t("commands.closeTab"), group: "editor", shortcuts: ["Mod+W"], scope: "workspace", run: () => requestClose(current) },
+          ]
+        : [],
+    [t, current?.path],
+  );
 
   if (tabs.length === 0) return <>{empty}</>;
 

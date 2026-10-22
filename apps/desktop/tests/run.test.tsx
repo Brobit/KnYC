@@ -2,6 +2,7 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { defaultSettings } from "@knyc/core/schemas";
+import { CommandRegistry, CommandsProvider } from "@/commands/commands";
 import { createFakeWorkspaceFs } from "@/lib/fake-workspace-fs";
 import { SettingsProvider } from "@/lib/settings";
 import { createFakeRunBackend, type RunBackend } from "@/run/run-backend";
@@ -87,6 +88,35 @@ describe("RunPanel", () => {
       await fs.write("package.json", '{"scripts":{}}');
     });
     await waitFor(() => expect(commands).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe("RunPanel commands", () => {
+  it("offers Run and Stop for each command in the palette", async () => {
+    const registry = new CommandRegistry();
+    const fs = createFakeWorkspaceFs({ "package.json": "{}" });
+    const user = userEvent.setup();
+    render(
+      <SettingsProvider initial={defaultSettings()}>
+        <CommandsProvider registry={registry}>
+          <WorkspaceProvider fs={fs}>
+            <OpenFolder />
+            <RunPanel empty={<p>no folder</p>} backend={createFakeRunBackend(20)} />
+          </WorkspaceProvider>
+        </CommandsProvider>
+      </SettingsProvider>,
+    );
+    await user.click(screen.getByText("pick"));
+    await screen.findByRole("listitem", { name: "Test" });
+    const titles = () => registry.getSnapshot().map((c) => c.title);
+    await waitFor(() => expect(titles()).toEqual(expect.arrayContaining(["Run Install dependencies", "Run Test", "Run Start the app", "Run lint"])));
+    expect(titles()).not.toContain("Stop Start the app");
+
+    act(() => registry.getSnapshot().find((c) => c.title === "Run Start the app")!.run());
+    await waitFor(() => expect(titles()).toContain("Stop Start the app"));
+    act(() => registry.getSnapshot().find((c) => c.title === "Stop Start the app")!.run());
+    await waitFor(() => expect(screen.getByText(/^Stopped after/)).toBeInTheDocument());
+    expect(titles()).not.toContain("Stop Start the app");
   });
 });
 
