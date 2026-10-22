@@ -8,10 +8,13 @@ use crate::providers::locate_claude;
 use knyc_runner::run::{RunSpec, run_program};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use tauri::{AppHandle, Manager, State};
 
 /// Answers larger than this are refused (a full learning-path plan is a few hundred KB).
 const MAX_OUTPUT: usize = 32 * 1024 * 1024;
@@ -25,6 +28,9 @@ pub struct ClaudeCall {
     pub prompt: String,
     pub json_schema: serde_json::Map<String, serde_json::Value>,
     pub timeout_ms: u64,
+    /// Lets `ai_claude_cancel` stop this call (a cancelled analysis).
+    #[serde(default)]
+    pub id: Option<String>,
 }
 
 /// What the run produced, for `interpretClaudeRun`; the problems before that are separate fields.
@@ -41,6 +47,8 @@ pub struct ClaudeOutcome {
     pub timed_out: bool,
     /// The answer went past MAX_OUTPUT.
     pub truncated: bool,
+    /// Stopped by `ai_claude_cancel` or the app quitting.
+    pub cancelled: bool,
 }
 
 /// Same arguments as `claudeArgs` in packages/core/src/ai/claude-output.ts.
@@ -106,6 +114,7 @@ pub fn call_claude(
     lead: &[String],
     env: &BTreeMap<String, String>,
     call: &ClaudeCall,
+    cancel: Option<Arc<AtomicBool>>,
 ) -> Result<ClaudeOutcome, String> {
     let Some(program) = program else {
         return Ok(ClaudeOutcome::default());
@@ -118,6 +127,7 @@ pub fn call_claude(
     spec.stdin = Some(call.prompt.clone());
     spec.env = env.clone();
     spec.max_output = MAX_OUTPUT;
+    spec.cancel = cancel;
     Ok(match run_program(program, &args, &spec) {
         Err(e) => ClaudeOutcome {
             found: true,
@@ -132,18 +142,75 @@ pub fn call_claude(
             stderr: run.stderr,
             code: run.exit_code,
             timed_out: run.timed_out,
+            cancelled: run.cancelled,
         },
     })
 }
 
+/// The calls in flight, so they can be stopped: one by one (`ai_claude_cancel`), or all when the
+/// app quits (no `claude` process outlives KnYC).
+#[derive(Default)]
+pub struct AiState {
+    running: Mutex<HashMap<String, Arc<AtomicBool>>>,
+}
+
+impl AiState {
+    fn start(&self, id: &str) -> Arc<AtomicBool> {
+        let flag = Arc::new(AtomicBool::new(false));
+        if let Ok(mut running) = self.running.lock() {
+            running.insert(id.to_string(), Arc::clone(&flag));
+        }
+        flag
+    }
+
+    fn finish(&self, id: &str) {
+        if let Ok(mut running) = self.running.lock() {
+            running.remove(id);
+        }
+    }
+
+    pub fn cancel(&self, id: &str) -> bool {
+        let running = self.running.lock();
+        let flag = running.as_ref().ok().and_then(|r| r.get(id).cloned());
+        flag.map(|f| f.store(true, Ordering::SeqCst)).is_some()
+    }
+
+    pub fn cancel_all(&self) {
+        if let Ok(running) = self.running.lock() {
+            for flag in running.values() {
+                flag.store(true, Ordering::SeqCst);
+            }
+        }
+    }
+}
+
 /// A call takes seconds to minutes: run off the main thread.
 #[tauri::command]
-pub async fn ai_claude_call(call: ClaudeCall) -> Result<ClaudeOutcome, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        call_claude(locate_claude().as_deref(), &[], &BTreeMap::new(), &call)
+pub async fn ai_claude_call(app: AppHandle, call: ClaudeCall) -> Result<ClaudeOutcome, String> {
+    let id = call
+        .id
+        .clone()
+        .unwrap_or_else(|| format!("call-{}", CALLS.fetch_add(1, Ordering::Relaxed)));
+    let cancel = app.state::<AiState>().start(&id);
+    let outcome = tauri::async_runtime::spawn_blocking(move || {
+        call_claude(
+            locate_claude().as_deref(),
+            &[],
+            &BTreeMap::new(),
+            &call,
+            Some(cancel),
+        )
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string());
+    app.state::<AiState>().finish(&id);
+    outcome?
+}
+
+/// Stops a call started with this `id`; false when it already ended.
+#[tauri::command]
+pub fn ai_claude_cancel(state: State<'_, AiState>, id: String) -> bool {
+    state.cancel(&id)
 }
 
 #[cfg(test)]
@@ -171,10 +238,19 @@ mod tests {
             .unwrap()
             .clone(),
             timeout_ms,
+            id: None,
         }
     }
 
     fn run_fake(mode: &str, timeout_ms: u64) -> ClaudeOutcome {
+        run_fake_with(mode, timeout_ms, None)
+    }
+
+    fn run_fake_with(
+        mode: &str,
+        timeout_ms: u64,
+        cancel: Option<Arc<AtomicBool>>,
+    ) -> ClaudeOutcome {
         let env = BTreeMap::from([
             ("FAKE_CLAUDE_MODE".to_string(), mode.to_string()),
             (
@@ -187,6 +263,7 @@ mod tests {
             &fake_claude(),
             &env,
             &call(timeout_ms),
+            cancel,
         )
         .unwrap()
     }
@@ -224,7 +301,7 @@ mod tests {
     #[test]
     fn reports_each_problem_for_the_shared_reader() {
         assert_eq!(
-            call_claude(None, &[], &BTreeMap::new(), &call(1000)).unwrap(),
+            call_claude(None, &[], &BTreeMap::new(), &call(1000), None).unwrap(),
             ClaudeOutcome::default()
         );
         let missing = call_claude(
@@ -232,12 +309,23 @@ mod tests {
             &[],
             &BTreeMap::new(),
             &call(1000),
+            None,
         )
         .unwrap();
         assert!(
             missing.found && missing.start_error.is_some(),
             "{missing:?}"
         );
+
+        // Cancelled from another thread, as `ai_claude_cancel` and quitting the app do.
+        let cancel = Arc::new(AtomicBool::new(false));
+        let flag = Arc::clone(&cancel);
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(300));
+            flag.store(true, Ordering::SeqCst);
+        });
+        let cancelled = run_fake_with("hang", 60_000, Some(cancel));
+        assert!(cancelled.cancelled && !cancelled.timed_out, "{cancelled:?}");
 
         assert!(run_fake("hang", 500).timed_out);
         let crash = run_fake("crash", 30_000);
