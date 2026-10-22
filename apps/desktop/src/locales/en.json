@@ -99,6 +99,15 @@
     "yourAi": "Your AI",
     "notSetUp": "not set up"
   },
+  "aiStatus": {
+    "label": "AI: {{label}}, {{state}}",
+    "ready": "Ready. Click to change the AI settings.",
+    "notSetUp": "No AI set up",
+    "notSetUpHint": "Pick a provider for planning in Settings.",
+    "cliMissing": "Claude Code was not found. Install it, or pick another provider in Settings.",
+    "cliLoggedOut": "Claude Code is not logged in: run claude, then /login.",
+    "noKey": "No API key saved for this provider. Add one in Settings."
+  },
   "commands": {
     "palette": "Commands",
     "hint": "Type to filter the commands, Enter to run one.",

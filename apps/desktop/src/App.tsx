@@ -9,6 +9,7 @@ import { useSettings } from "@/lib/settings";
 import { MODES, THEMES, ThemeRoot, useTheme } from "@/lib/theme";
 import { DesignSystem } from "@/screens/DesignSystem";
 import { Home } from "@/screens/Home";
+import { useAiStatus } from "@/settings/ai-status";
 import { SettingsScreen } from "@/settings/SettingsScreen";
 import { Workspace } from "@/workspace/Workspace";
 import { useWorkspace, WorkspaceProvider } from "@/workspace/workspace-context";
@@ -41,6 +42,7 @@ function Shell({ screen, setScreen }: { screen: Screen; setScreen: (screen: Scre
   const { pickFolder } = useWorkspace();
   const { setName, setMode } = useTheme();
   const { registry, run } = useCommands();
+  const aiStatus = useAiStatus();
   // Where the settings button goes back to.
   const back = useRef<Screen>("home");
   if (screen !== "settings") back.current = screen;
@@ -81,7 +83,8 @@ function Shell({ screen, setScreen }: { screen: Screen; setScreen: (screen: Scre
       <CommandPalette />
       <AppBar
         crumb={t(crumbKey[screen])}
-        aiStatus={{ label: "Claude Code", ok: true }}
+        aiStatus={aiStatus}
+        onAiStatus={() => setScreen("settings")}
         actions={actions}
         onSettings={() => setScreen(screen === "settings" ? back.current : "settings")}
         onHome={() => setScreen("home")}
