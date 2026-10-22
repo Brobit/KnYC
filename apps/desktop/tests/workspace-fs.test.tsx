@@ -11,7 +11,8 @@ vi.mock("@tauri-apps/api/core", () => ({
   },
 }));
 
-const { workspaceFs, WorkspaceFsError } = await import("@/lib/workspace-fs");
+const { createTauriWorkspaceFs, WorkspaceFsError } = await import("@/lib/workspace-fs");
+const workspaceFs = createTauriWorkspaceFs();
 
 beforeEach(() => {
   calls = [];
