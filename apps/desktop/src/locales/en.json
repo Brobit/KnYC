@@ -14,7 +14,75 @@
     "dark": "Dark"
   },
   "settings": {
-    "title": "Settings"
+    "title": "Settings",
+    "save": "Save",
+    "cancel": "Cancel",
+    "sections": {
+      "ai": "AI providers",
+      "editor": "Editor",
+      "appearance": "Appearance",
+      "language": "Language"
+    },
+    "intro": {
+      "ai": "Keys are stored in your system keychain. Your code only goes to the providers you connect.",
+      "editor": "Applies to the editor, the terminal and command output.",
+      "appearance": "Colors of the whole app, editor and terminal included.",
+      "language": "The language of the interface."
+    },
+    "ai": {
+      "apiKey": "API key",
+      "localModels": "Local models",
+      "localCli": "Local CLI",
+      "connected": "Connected",
+      "detected": "Detected",
+      "addKey": "Add key",
+      "replaceKey": "Replace",
+      "removeKey": "Remove key",
+      "removeKeyNamed": "Remove the {{name}} key",
+      "removeKeyTitle": "Remove the {{name}} key?",
+      "removeKeyBody": "The key is deleted from your system keychain. Roles that use this provider will need another one.",
+      "keyFor": "{{name}} API key",
+      "add": "Add",
+      "edit": "Edit",
+      "removeNamed": "Remove {{name}}",
+      "ollamaUrl": "Ollama server URL",
+      "cliChecking": "Looking for Claude Code…",
+      "cliMissing": "Not found. Install Claude Code, then check again.",
+      "cliLoggedOut": "v{{version}} · not logged in: run claude, then /login",
+      "cliDetected": "v{{version}} · logged in",
+      "checkTerms": "Check terms",
+      "termsHint": "Using your Claude Code subscription from another app: check the provider's terms before use.",
+      "checkAgain": "Check again",
+      "enable": "Enable",
+      "disable": "Disable"
+    },
+    "roles": {
+      "title": "Which model does what",
+      "provider": "Provider",
+      "model": "Model",
+      "summaries": "Summaries",
+      "summariesHint": "Many small calls: a fast, cheap model is enough.",
+      "planning": "Planning",
+      "planningHint": "Builds your path and reference timeline: use your strongest model.",
+      "lessons": "Lessons & hints",
+      "lessonsHint": "Explanations, hints, failure explanations, step chat.",
+      "missingOption": "{{id}} (not set up)",
+      "missing": "This provider is not set up any more. Pick another one.",
+      "modelRequired": "Enter a model name."
+    },
+    "editor": {
+      "fontSize": "Font size",
+      "fontSizeHint": "8 to 32 px.",
+      "tabSize": "Tab size",
+      "tabSizeHint": "Spaces per indent level, 1 to 8."
+    },
+    "language": {
+      "label": "Interface language",
+      "hint": "Only English for now.",
+      "names": {
+        "en": "English"
+      }
+    }
   },
   "lesson": {
     "hint": "Hint {{level}}",
