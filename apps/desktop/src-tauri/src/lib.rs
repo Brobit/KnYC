@@ -17,6 +17,7 @@ pub fn run() {
         .manage(terminal::TerminalState::default())
         .manage(run::RunState::default())
         .manage(pipeline::PipelineState::default())
+        .manage(ai::AiState::default())
         .invoke_handler(tauri::generate_handler![
             settings::settings_read,
             settings::settings_write,
@@ -27,6 +28,7 @@ pub fn run() {
             keychain::keychain_delete,
             providers::claude_cli_status,
             ai::ai_claude_call,
+            ai::ai_claude_cancel,
             workspace::workspace_pick,
             workspace::workspace_open,
             workspace::workspace_close,
@@ -58,10 +60,11 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app, event| {
-            // No shell or command outlives the app.
+            // No shell, command or AI call outlives the app.
             if let RunEvent::Exit = event {
                 app.state::<terminal::TerminalState>().close_all();
                 app.state::<run::RunState>().stop_all();
+                app.state::<ai::AiState>().cancel_all();
             }
         });
 }

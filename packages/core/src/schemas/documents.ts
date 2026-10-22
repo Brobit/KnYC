@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { check } from "./check.ts";
+import { job, jobs } from "./job.ts";
 import { lesson } from "./lesson.ts";
 import { learningPath } from "./learning-path.ts";
 import { progress } from "./progress.ts";
@@ -16,6 +17,8 @@ export const documents = {
   lesson,
   progress,
   workspaces,
+  job,
+  jobs,
 } as const;
 
 export type DocumentKind = keyof typeof documents;
@@ -29,6 +32,8 @@ export const CURRENT_VERSION: Record<DocumentKind, number> = {
   lesson: 1,
   progress: 1,
   workspaces: 1,
+  job: 1,
+  jobs: 1,
 };
 
 /**
@@ -44,6 +49,8 @@ export const migrations: Record<DocumentKind, Record<number, Migration>> = {
   lesson: {},
   progress: {},
   workspaces: {},
+  job: {},
+  jobs: {},
 };
 
 export class DocumentError extends Error {

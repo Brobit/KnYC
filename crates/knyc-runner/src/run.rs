@@ -7,6 +7,8 @@ use std::collections::BTreeMap;
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -22,6 +24,8 @@ pub struct RunSpec {
     pub stdin: Option<String>,
     pub timeout: Duration,
     pub max_output: usize,
+    /// Set from another thread to stop the run (a cancelled job): the process tree is killed.
+    pub cancel: Option<Arc<AtomicBool>>,
 }
 
 impl RunSpec {
@@ -33,6 +37,7 @@ impl RunSpec {
             stdin: None,
             timeout: Duration::from_secs(60),
             max_output: DEFAULT_MAX_OUTPUT,
+            cancel: None,
         }
     }
 }
@@ -48,11 +53,14 @@ pub struct RunResult {
     pub stderr: String,
     /// True when some output was dropped because of `max_output`.
     pub truncated: bool,
+    /// True when stopped through `RunSpec::cancel`.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub cancelled: bool,
 }
 
 impl RunResult {
     pub fn success(&self) -> bool {
-        !self.timed_out && self.exit_code == Some(0)
+        !self.timed_out && !self.cancelled && self.exit_code == Some(0)
     }
 }
 
@@ -150,12 +158,17 @@ fn execute(mut command: Command, spec: &RunSpec, hide_window: bool) -> anyhow::R
     let stderr = capture(child.inner().stderr.take().expect("piped"), spec.max_output);
 
     let mut timed_out = false;
+    let mut cancelled = false;
     let status = loop {
         if let Some(status) = child.try_wait()? {
             break Some(status);
         }
-        if started.elapsed() >= spec.timeout {
-            timed_out = true;
+        cancelled = spec
+            .cancel
+            .as_ref()
+            .is_some_and(|c| c.load(Ordering::SeqCst));
+        timed_out = !cancelled && started.elapsed() >= spec.timeout;
+        if cancelled || timed_out {
             let _ = child.kill();
             let _ = child.wait();
             break None;
@@ -173,6 +186,7 @@ fn execute(mut command: Command, spec: &RunSpec, hide_window: bool) -> anyhow::R
         stdout,
         stderr,
         truncated: out_dropped || err_dropped,
+        cancelled,
     })
 }
 
@@ -306,6 +320,23 @@ mod tests {
         let r = run(&RunSpec::new("definitely-not-a-command-knyc", dir.path())).unwrap();
         assert!(!r.success());
         assert!(!r.stderr.is_empty());
+    }
+
+    #[test]
+    fn cancel_stops_the_run() {
+        let dir = tempfile::tempdir().unwrap();
+        let cancel = Arc::new(AtomicBool::new(false));
+        let mut spec = node("setTimeout(()=>{}, 60000)", dir.path());
+        spec.timeout = Duration::from_secs(60);
+        spec.cancel = Some(Arc::clone(&cancel));
+        let flag = Arc::clone(&cancel);
+        thread::spawn(move || {
+            thread::sleep(Duration::from_millis(300));
+            flag.store(true, Ordering::SeqCst);
+        });
+        let r = run(&spec).unwrap();
+        assert!(r.cancelled && !r.timed_out && !r.success(), "{r:?}");
+        assert!(r.duration_ms < 10_000, "{r:?}");
     }
 
     #[test]
