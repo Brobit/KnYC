@@ -48,7 +48,9 @@ describe("Settings · API keys", () => {
     const { user, backend } = renderSettings();
     const anthropic = row("Anthropic");
     await user.click(await within(anthropic).findByRole("button", { name: "Add key" }));
-    await user.type(within(anthropic).getByLabelText("Anthropic API key"), KEY);
+    // Keys are pasted, not typed (and typing 34 characters is slow under load).
+    await user.click(within(anthropic).getByLabelText("Anthropic API key"));
+    await user.paste(KEY);
     await user.click(within(anthropic).getByRole("button", { name: "Save" }));
 
     expect(await within(anthropic).findByText("sk-ant-••••••••Q4mA")).toBeInTheDocument();
@@ -79,7 +81,9 @@ describe("Settings · API keys", () => {
     const { user } = renderSettings({ backend: failing });
     const google = row("Google Gemini");
     await user.click(await within(google).findByRole("button", { name: "Add key" }));
-    await user.type(within(google).getByLabelText("Google Gemini API key"), "AIza-whatever-key{Enter}");
+    await user.click(within(google).getByLabelText("Google Gemini API key"));
+    await user.paste("AIza-whatever-key");
+    await user.keyboard("{Enter}");
     expect(await within(google).findByText("keychain unavailable: locked")).toBeInTheDocument();
     expect(localStorage.getItem("knyc.settings")).toBeNull();
   });
@@ -96,7 +100,8 @@ describe("Settings · local providers", () => {
     await user.type(url, "localhost");
     expect(within(ollama).getByRole("button", { name: "Save" })).toBeDisabled();
     await user.clear(url);
-    await user.type(url, "http://192.168.1.20:11434{Enter}");
+    await user.paste("http://192.168.1.20:11434");
+    await user.keyboard("{Enter}");
     expect(await within(ollama).findByText("http://192.168.1.20:11434")).toBeInTheDocument();
     await waitFor(async () => expect((await saved()).providers.find((p) => p.id === "ollama")?.baseUrl).toBe("http://192.168.1.20:11434"));
   });

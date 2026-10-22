@@ -83,7 +83,9 @@ describe("workspace documents", () => {
     expect(Object.values(steps).filter((s) => s.status === "locked")).toHaveLength(path.steps.length - 1);
   });
 
-  it("writes every document under .knyc/, readable again by loadDocument", async () => {
+  // Well under a second alone, but it writes many files: next to the core timeline tests, and with
+  // Windows scanning each new temp file, it can take longer than vitest's 5 s default.
+  it("writes every document under .knyc/, readable again by loadDocument", { timeout: 30_000 }, async () => {
     const dir = await mkdtemp(join(tmpdir(), "knyc-ws-"));
     try {
       const written = await writeWorkspace(dir, {
