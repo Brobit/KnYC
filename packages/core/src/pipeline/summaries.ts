@@ -1,7 +1,7 @@
 // Stage ⑤ (design/02-analysis-pipeline.md): bottom-up summaries — files, then modules (folders),
 // then the project. They keep later prompts small enough for any repo size.
 
-import { createHash } from "node:crypto";
+import { sha256Hex } from "../host/host.ts";
 import { z } from "zod";
 import type { AiCache } from "../ai/cache.ts";
 import type { AiClient } from "../ai/client.ts";
@@ -92,9 +92,7 @@ export function batchFiles(files: SourceFile[], maxTokens = 12_000, maxFiles = 8
 }
 
 function fileKey(file: SourceFile, cacheTag: string): string {
-  return createHash("sha256")
-    .update(JSON.stringify({ v: SUMMARIES_VERSION, cacheTag, path: file.path, content: file.content, symbols: file.symbols }))
-    .digest("hex");
+  return sha256Hex(JSON.stringify({ v: SUMMARIES_VERSION, cacheTag, path: file.path, content: file.content, symbols: file.symbols }));
 }
 
 /** The answer schema for one batch: exactly these paths, key symbols taken from each file. */

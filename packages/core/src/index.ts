@@ -1,3 +1,5 @@
+// Browser-safe: no node:* imports, so the desktop app can run the pipeline (design/06 H3).
+// Node-only pieces (the Node host, the Claude CLI provider) are in `@knyc/core/node`.
 export * from "./schemas/common.ts";
 export * from "./schemas/settings.ts";
 export * from "./schemas/project.ts";
@@ -7,10 +9,11 @@ export * from "./schemas/lesson.ts";
 export * from "./schemas/progress.ts";
 export * from "./schemas/workspaces.ts";
 export * from "./schemas/documents.ts";
+export * from "./host/host.ts";
+export * from "./host/memory.ts";
 export * from "./ai/types.ts";
 export * from "./ai/cache.ts";
 export * from "./ai/estimate.ts";
-export * from "./ai/claude-cli.ts";
 export * from "./ai/client.ts";
 export * from "./sys/knyc-sys.ts";
 export * from "./pipeline/redact.ts";

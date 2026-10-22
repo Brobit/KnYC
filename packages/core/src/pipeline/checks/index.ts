@@ -3,10 +3,11 @@
 
 import type { AiClient } from "../../ai/client.ts";
 import { AiError } from "../../ai/types.ts";
+import type { Host } from "../../host/host.ts";
 import type { Check } from "../../schemas/check.ts";
 import type { LearningPath } from "../../schemas/learning-path.ts";
 import type { Graph, Scan } from "../../sys/knyc-sys.ts";
-import { git, stepOfUnits, type Timeline } from "../timeline.ts";
+import { stepOfUnits, type Timeline } from "../timeline.ts";
 import { buildUnits } from "../units.ts";
 import { buildOutDir, checkoutStep, compiledPath } from "../workspace.ts";
 import { mapTests, runSuiteAtStep, suiteCommand, type SuiteRun, type TestMapping } from "./existing.ts";
@@ -32,6 +33,7 @@ export interface ChecksResult {
 }
 
 export interface ChecksOptions {
+  host: Host;
   sourceRoot: string;
   client: AiClient;
   /** Extra AI rounds per step when its checks don't prove the step. Default 2. */
@@ -49,7 +51,9 @@ export async function buildChecks(
 ): Promise<ChecksResult> {
   const at = (options.now ?? (() => new Date()))().toISOString();
   const log = options.onProgress ?? (() => {});
+  const { host } = options;
   const workDir = timeline.workDir;
+  const git = (...args: string[]) => host.git(workDir, args);
   const tagged = timeline.steps.filter((s) => s.tag);
   const setupTag = `${path.id}/s00`;
   const previousTag = (stepId: string) => {
@@ -65,7 +69,7 @@ export async function buildChecks(
     const testFiles = graph.files.filter((f) => f.test).map((f) => f.path);
     const runs: SuiteRun[] = [];
     for (const step of [{ stepId: null, tag: setupTag }, ...tagged.map((s) => ({ stepId: s.stepId, tag: s.tag! }))]) {
-      runs.push(await runSuiteAtStep(workDir, step, scan, testFiles, options.sourceRoot, command));
+      runs.push(await runSuiteAtStep(host, workDir, step, scan, testFiles, options.sourceRoot, command));
       log(`suite at ${step.stepId ?? "s00"}`);
     }
     mapping = mapTests(runs);
@@ -96,14 +100,14 @@ export async function buildChecks(
 
   /** Source, at the step, of the local files that the step's changed files import (capped). */
   const contextFor = async (tag: string, before: string, sources: string[]) => {
-    const changed = (await git(workDir, "diff", "--name-only", before, tag, "--", ...sources)).split("\n").filter(Boolean);
+    const changed = (await git("diff", "--name-only", before, tag, "--", ...sources)).split("\n").filter(Boolean);
     const imported = new Set(
       changed.flatMap((f) => (graphFiles.get(f)?.imports ?? []).map((i) => i.resolved).filter((r): r is string => !!r && sources.includes(r) && !changed.includes(r))),
     );
     const context = new Map<string, string>();
     let budget = 24_000;
     for (const file of imported) {
-      const code = await git(workDir, "show", `${tag}:${file}`);
+      const code = await git("show", `${tag}:${file}`);
       if (code.length > budget) continue;
       budget -= code.length;
       context.set(file, code);
@@ -111,7 +115,7 @@ export async function buildChecks(
     return context;
   };
 
-  const layout = await buildOutDir(workDir);
+  const layout = await buildOutDir(host, workDir);
   const dependencies = Object.keys(scan.packages[0]?.dependencies ?? {});
   const accepted = new Map<string, CandidateCheck[]>();
   const report = new Map<string, StepChecks>(
@@ -127,10 +131,10 @@ export async function buildChecks(
     if (entry.existing > 0) continue;
     const step = path.steps.find((s) => s.id === build.stepId)!;
     const before = previousTag(step.id);
-    const sources = (await git(workDir, "ls-tree", "-r", "--name-only", build.tag!)).split("\n").filter((f) => graph.files.some((g) => g.path === f && !g.test));
+    const sources = (await git("ls-tree", "-r", "--name-only", build.tag!)).split("\n").filter((f) => graph.files.some((g) => g.path === f && !g.test));
     const ctx: StepContext = {
       step,
-      diff: await git(workDir, "diff", before, build.tag!, "--", ...sources),
+      diff: await git("diff", before, build.tag!, "--", ...sources),
       importPaths: new Map(sources.map((src) => [src, `../${compiledPath(src, layout)}`])),
       dependencies,
       exports: exportsAt(path.steps.indexOf(step), sources),
@@ -158,11 +162,11 @@ export async function buildChecks(
       }
       const candidates = answer.checks.map((c, i) => ({ ...c, file: `${CHECKS_DIR}/${step.id}-${attempt + 1}-${i + 1}.test.mjs` }));
 
-      await checkoutStep(workDir, build.tag!, scan);
-      const atStep = await Promise.all(candidates.map((c) => runCandidate(workDir, c)));
-      await checkoutStep(workDir, before, scan);
+      await checkoutStep(host, workDir, build.tag!, scan);
+      const atStep = await Promise.all(candidates.map((c) => runCandidate(host, workDir, c)));
+      await checkoutStep(host, workDir, before, scan);
       const beforeStep = await Promise.all(
-        candidates.map((c, i) => (atStep[i]!.status === "pass" ? runCandidate(workDir, c) : Promise.resolve(null))),
+        candidates.map((c, i) => (atStep[i]!.status === "pass" ? runCandidate(host, workDir, c) : Promise.resolve(null))),
       );
 
       problems = [];
@@ -184,11 +188,11 @@ export async function buildChecks(
   // 3. Generated checks must also pass at the last step (they shouldn't break as the code grows).
   const last = tagged.at(-1)!;
   if (accepted.size > 0) {
-    await checkoutStep(workDir, last.tag!, scan);
+    await checkoutStep(host, workDir, last.tag!, scan);
     for (const [stepId, list] of accepted) {
       const kept: CandidateCheck[] = [];
       for (const check of list) {
-        if ((await runCandidate(workDir, check)).status === "pass") kept.push(check);
+        if ((await runCandidate(host, workDir, check)).status === "pass") kept.push(check);
         else report.get(stepId)!.notes.push(`"${check.label}" breaks at the last step; dropped`);
       }
       if (kept.length > 0) accepted.set(stepId, kept);

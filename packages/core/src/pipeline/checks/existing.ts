@@ -1,8 +1,7 @@
 // Stage ⑧, part 1 (design/02): the project's own tests, mapped to steps with no AI. A test belongs
 // to the first step where it turns green, provided it stays green until the last step.
 
-import { copyFile, mkdir } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { joinPath, type Host } from "../../host/host.ts";
 import { runCommand, type Scan } from "../../sys/knyc-sys.ts";
 import { checkoutStep } from "../workspace.ts";
 
@@ -30,6 +29,7 @@ export const testKey = (file: string, name: string) => `${file} › ${name}`;
 
 /** Checks out a step, builds it, puts the original tests back and runs the suite. */
 export async function runSuiteAtStep(
+  host: Host,
   workDir: string,
   step: { stepId: string | null; tag: string },
   scan: Scan,
@@ -38,16 +38,12 @@ export async function runSuiteAtStep(
   command: string,
   timeoutMs = 5 * 60_000,
 ): Promise<SuiteRun> {
-  const { build } = await checkoutStep(workDir, step.tag, scan, timeoutMs);
+  const { build } = await checkoutStep(host, workDir, step.tag, scan, timeoutMs);
   const results = new Map<string, TestStatus>();
   if (build.status !== "pass") return { ...step, built: false, results };
 
-  for (const file of testFiles) {
-    const target = join(workDir, file);
-    await mkdir(dirname(target), { recursive: true });
-    await copyFile(join(sourceRoot, file), target);
-  }
-  const outcome = await runCommand(workDir, command, { report: REPORT_FILE, timeoutMs });
+  for (const file of testFiles) await host.copyFile(joinPath(sourceRoot, file), joinPath(workDir, file));
+  const outcome = await runCommand(host, workDir, command, { report: REPORT_FILE, timeoutMs });
   for (const test of outcome.tests?.tests ?? []) {
     // "(could not run)" entries stand for a whole file that can't load yet: its tests are red.
     if (!test.name.endsWith("(could not run)")) results.set(testKey(test.file, test.name), test.status);

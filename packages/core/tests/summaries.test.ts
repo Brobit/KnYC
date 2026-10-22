@@ -4,7 +4,6 @@ import {
   AiClient,
   batchFiles,
   fileBatchSchema,
-  findKnycSys,
   graphProject,
   loadSourceFiles,
   MemoryCache,
@@ -19,6 +18,7 @@ import {
   type ProviderResponse,
   type SourceFile,
 } from "../src/index.ts";
+import { findKnycSys, NodeHost } from "../src/node.ts";
 
 /** Answers like a well-behaved model: one summary per "### path" section of the prompt. */
 class EchoProvider implements AiProvider {
@@ -182,13 +182,14 @@ describe("summarize (all levels)", () => {
 });
 
 const knycSys = findKnycSys();
+const host = new NodeHost();
 const golden = (name: string) => fileURLToPath(new URL(`../../../fixtures/golden/${name}`, import.meta.url));
 
 describe.skipIf(!knycSys)("with the real knyc-sys binary", () => {
   it("loads express-shop's source files in layer order, without tests", async () => {
     const root = golden("express-shop");
-    const [scan, graph] = await Promise.all([scanProject(root), graphProject(root)]);
-    const files = await loadSourceFiles(root, scan, graph);
+    const [scan, graph] = await Promise.all([scanProject(host, root), graphProject(host, root)]);
+    const files = await loadSourceFiles(host, root, scan, graph);
 
     expect(files.length).toBe(graph.layers.flat().length);
     expect(files.every((f) => f.path.startsWith("src/"))).toBe(true);
