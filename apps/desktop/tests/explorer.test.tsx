@@ -158,7 +158,8 @@ describe("Explorer", () => {
     await user.click(await screen.findByRole("button", { name: "Delete" }));
     await waitFor(() => expect(paths()).not.toContain("src/main.ts"));
     await expect(fs.read("src/main.ts")).rejects.toMatchObject({ kind: "notFound" });
-    expect(screen.getByLabelText("active file")).toHaveTextContent("");
+    // Its tab closed; the other open file (created above) is active again.
+    expect(screen.getByLabelText("active file")).toHaveTextContent("src/guard.ts");
   });
 
   it("follows changes made outside the app", async () => {
