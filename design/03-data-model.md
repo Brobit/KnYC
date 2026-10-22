@@ -83,6 +83,19 @@ Provider {
 ModelRef { providerId: string, model: string }
 ```
 
+### workspaces.json (TS)
+
+```ts
+Workspaces {
+  schemaVersion: 1
+  recent: {                             // most recent first, at most 20 (Home screen)
+    root: string                        // absolute folder path
+    name: string
+    lastOpenedAt: string                // ISO date
+  }[]
+}
+```
+
 ---
 
 ## Workspace

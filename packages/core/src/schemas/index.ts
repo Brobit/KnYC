@@ -6,4 +6,5 @@ export * from "./learning-path.ts";
 export * from "./check.ts";
 export * from "./lesson.ts";
 export * from "./progress.ts";
+export * from "./workspaces.ts";
 export * from "./documents.ts";

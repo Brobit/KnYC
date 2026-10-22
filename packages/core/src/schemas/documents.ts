@@ -5,6 +5,7 @@ import { learningPath } from "./learning-path.ts";
 import { progress } from "./progress.ts";
 import { project } from "./project.ts";
 import { settings } from "./settings.ts";
+import { workspaces } from "./workspaces.ts";
 
 /** Every JSON file KnYC writes, with its current schema (design/03-data-model.md). */
 export const documents = {
@@ -14,6 +15,7 @@ export const documents = {
   check,
   lesson,
   progress,
+  workspaces,
 } as const;
 
 export type DocumentKind = keyof typeof documents;
@@ -26,6 +28,7 @@ export const CURRENT_VERSION: Record<DocumentKind, number> = {
   check: 1,
   lesson: 1,
   progress: 1,
+  workspaces: 1,
 };
 
 /**
@@ -40,6 +43,7 @@ export const migrations: Record<DocumentKind, Record<number, Migration>> = {
   check: {},
   lesson: {},
   progress: {},
+  workspaces: {},
 };
 
 export class DocumentError extends Error {

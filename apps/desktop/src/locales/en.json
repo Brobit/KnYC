@@ -84,6 +84,21 @@
       }
     }
   },
+  "home": {
+    "title": "Home",
+    "welcome": "Welcome to KnYC",
+    "welcomeBack": "Welcome back",
+    "intro": "Open the folder of a project to explore and edit it.",
+    "openFolder": "Open a folder",
+    "backTo": "Back to {{name}}",
+    "recent": "Recent workspaces",
+    "noRecent": "The folders you open will be listed here.",
+    "open": "Open {{name}}",
+    "forget": "Remove {{name}} from the list",
+    "missing": "This folder no longer exists. Remove it from the list?",
+    "yourAi": "Your AI",
+    "notSetUp": "not set up"
+  },
   "commands": {
     "palette": "Commands",
     "hint": "Type to filter the commands, Enter to run one.",
@@ -103,6 +118,7 @@
     },
     "openFolder": "Open folder…",
     "openSettings": "Open settings",
+    "showHome": "Go to Home",
     "showWorkspace": "Go to workspace",
     "showDesignSystem": "Open design system",
     "theme": "Theme: {{name}}",
