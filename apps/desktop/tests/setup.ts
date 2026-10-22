@@ -19,3 +19,10 @@ window.matchMedia ??= ((query: string) => ({
   removeListener: () => {},
   dispatchEvent: () => false,
 })) as typeof window.matchMedia;
+
+// jsdom has no ResizeObserver (dockview watches its container); tests size layouts explicitly.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};

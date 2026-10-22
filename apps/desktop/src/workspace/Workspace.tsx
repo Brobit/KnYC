@@ -1,0 +1,124 @@
+// The dockable learning workspace (design 04 §7, "Movable panels"). Panels are placeholders until
+// their issues land: Explorer #32, Editor #33, Terminal #34, Run #35, Lesson M3.
+import {
+  DockviewReact,
+  type DockviewReadyEvent,
+  type DockviewTheme,
+  type IDockviewHeaderActionsProps,
+  type IDockviewPanelHeaderProps,
+  type IDockviewPanelProps,
+} from "dockview-react";
+import "dockview-react/dist/styles/dockview.css";
+import { BookOpen, ChevronsDownUp, ChevronsUpDown, Code, FolderTree, Play, ScrollText, Terminal, type LucideIcon } from "lucide-react";
+import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
+import { useSettings } from "@/lib/settings";
+import { useTheme } from "@/lib/theme";
+import { Collapser } from "./collapse";
+import { applyDefaultLayout, PANEL_COMPONENT, restoreLayout, saveLayout, type PanelId, type PanelTitle } from "./layout";
+
+const ICONS: Record<PanelId, LucideIcon> = {
+  explorer: FolderTree,
+  editor: Code,
+  terminal: Terminal,
+  run: Play,
+  output: ScrollText,
+  lesson: BookOpen,
+};
+
+/** Saving waits for the layout to settle, so a drag or resize writes settings.json once. */
+const SAVE_DELAY_MS = 400;
+
+const CollapserContext = createContext<Collapser | null>(null);
+
+function Placeholder({ api }: IDockviewPanelProps) {
+  const { t } = useTranslation();
+  const id = api.id as PanelId;
+  const Icon = ICONS[id];
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-2 bg-surface p-6 text-center">
+      <Icon className="size-5 text-text-muted" aria-hidden />
+      <p className="max-w-[260px] text-xs text-text-muted">{t(`workspace.placeholder.${id}`)}</p>
+    </div>
+  );
+}
+
+/** Tabs carry an icon and no close button: the workspace always holds every panel. */
+function Tab({ api }: IDockviewPanelHeaderProps) {
+  const Icon = ICONS[api.id as PanelId];
+  return (
+    <span className="flex h-full items-center gap-1.5 px-1 text-xs" title={api.title}>
+      {Icon && <Icon className="size-3.5 shrink-0" aria-hidden />}
+      <span className="knyc-tab-title truncate">{api.title}</span>
+    </span>
+  );
+}
+
+function GroupActions({ group, containerApi }: IDockviewHeaderActionsProps) {
+  const { t } = useTranslation();
+  const collapser = useContext(CollapserContext)!;
+  const collapsed = useSyncExternalStore(collapser.subscribe, () => collapser.isCollapsed(group.id));
+  const axis = collapser.axisFor(group, containerApi);
+
+  const label = collapsed ? t("workspace.expand") : t("workspace.collapse");
+  const Icon = collapsed ? ChevronsUpDown : ChevronsDownUp;
+  return (
+    <div className="flex items-center justify-center p-1">
+      <Button variant="ghost" size="icon-xs" aria-label={label} title={label} onClick={() => collapser.toggle(group, containerApi)}>
+        <Icon className={axis === "width" ? "rotate-90" : undefined} />
+      </Button>
+    </div>
+  );
+}
+
+const COMPONENTS = { [PANEL_COMPONENT]: Placeholder };
+
+export interface WorkspaceControls {
+  resetLayout: () => void;
+}
+
+export function Workspace({ onReady }: { onReady?: (controls: WorkspaceControls) => void }) {
+  const { t } = useTranslation();
+  const { settings, update } = useSettings();
+  const { resolvedMode } = useTheme();
+  const [collapser] = useState(() => new Collapser());
+  const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const savedLayout = useRef(settings.layout);
+
+  useEffect(() => () => clearTimeout(saveTimer.current), []);
+
+  const theme: DockviewTheme = {
+    name: "knyc",
+    // dockview-theme-light carries the structural variables; ours overrides every color.
+    className: "dockview-theme-light dockview-theme-knyc",
+    colorScheme: resolvedMode,
+  };
+
+  const ready = ({ api }: DockviewReadyEvent) => {
+    const title: PanelTitle = (id) => t(`workspace.panels.${id}`);
+    restoreLayout(api, savedLayout.current, title, collapser);
+    api.onDidLayoutChange(() => {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => {
+        const layout = saveLayout(api, collapser);
+        update((current) => ({ ...current, layout }));
+      }, SAVE_DELAY_MS);
+    });
+    onReady?.({ resetLayout: () => applyDefaultLayout(api, title, collapser) });
+  };
+
+  return (
+    <CollapserContext.Provider value={collapser}>
+      <DockviewReact
+        className="h-full"
+        theme={theme}
+        components={COMPONENTS}
+        defaultTabComponent={Tab}
+        rightHeaderActionsComponent={GroupActions}
+        disableFloatingGroups
+        onReady={ready}
+      />
+    </CollapserContext.Provider>
+  );
+}

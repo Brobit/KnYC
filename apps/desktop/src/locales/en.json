@@ -25,6 +25,28 @@
   "path": {
     "stepOf": "Step {{current}} of {{total}}"
   },
+  "workspace": {
+    "title": "Workspace",
+    "resetLayout": "Reset layout",
+    "collapse": "Collapse panel",
+    "expand": "Expand panel",
+    "panels": {
+      "explorer": "Explorer",
+      "editor": "Editor",
+      "terminal": "Terminal",
+      "run": "Run",
+      "output": "Output",
+      "lesson": "Lesson"
+    },
+    "placeholder": {
+      "explorer": "The files of the step you are rebuilding appear here.",
+      "editor": "Open a file from the Explorer to edit it.",
+      "terminal": "A terminal in your project folder.",
+      "run": "Run the app and its checks.",
+      "output": "Build and check output.",
+      "lesson": "The lesson for the current step: goal, explanation, checks and hints."
+    }
+  },
   "designSystem": {
     "title": "Design system",
     "intro": "Every component in the current theme. Switch themes from the palette icon to compare with the Pencil boards.",

@@ -1,5 +1,6 @@
 // The app bar shown on every screen except the learning workspace (design/07, knyc.pen "App bar").
 import { ChevronRight, Palette, Settings } from "lucide-react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
@@ -62,10 +63,12 @@ export interface AppBarProps {
   crumb: string;
   /** e.g. "Claude · Sonnet"; hidden when no AI is configured yet. */
   aiStatus?: { label: string; ok: boolean };
+  /** Screen-specific buttons, shown before the theme and settings buttons. */
+  actions?: ReactNode;
   onSettings?: () => void;
 }
 
-export function AppBar({ crumb, aiStatus, onSettings }: AppBarProps) {
+export function AppBar({ crumb, aiStatus, actions, onSettings }: AppBarProps) {
   const { t } = useTranslation();
   return (
     <header className="flex h-11 shrink-0 items-center gap-2.5 border-b border-border bg-surface-2 px-4">
@@ -79,6 +82,7 @@ export function AppBar({ crumb, aiStatus, onSettings }: AppBarProps) {
           {aiStatus.label}
         </span>
       )}
+      {actions}
       <ThemeMenu />
       <Button variant="ghost" size="icon-sm" aria-label={t("settings.title")} onClick={onSettings}>
         <Settings />
