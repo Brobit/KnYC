@@ -61,8 +61,10 @@ export function ThemeMenu() {
 
 export interface AppBarProps {
   crumb: string;
-  /** e.g. "Claude · Sonnet"; hidden when no AI is configured yet. */
-  aiStatus?: { label: string; ok: boolean };
+  /** e.g. "Claude Code · sonnet"; a warning dot and the reason when it can't be used. */
+  aiStatus?: { label: string; ok: boolean; problem?: string };
+  /** Clicking the AI status (to fix it in Settings). */
+  onAiStatus?: () => void;
   /** Screen-specific buttons, shown before the theme and settings buttons. */
   actions?: ReactNode;
   onSettings?: () => void;
@@ -70,7 +72,7 @@ export interface AppBarProps {
   onHome?: () => void;
 }
 
-export function AppBar({ crumb, aiStatus, actions, onSettings, onHome }: AppBarProps) {
+export function AppBar({ crumb, aiStatus, onAiStatus, actions, onSettings, onHome }: AppBarProps) {
   const { t } = useTranslation();
   return (
     <header className="flex h-11 shrink-0 items-center gap-2.5 border-b border-border bg-surface-2 px-4">
@@ -81,10 +83,17 @@ export function AppBar({ crumb, aiStatus, actions, onSettings, onHome }: AppBarP
       <ChevronRight className="size-3.5 text-text-muted" aria-hidden />
       <span className="min-w-0 flex-1 truncate text-[13px] text-text-secondary">{crumb}</span>
       {aiStatus && (
-        <span className="flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1 text-xs text-text-secondary">
+        <button
+          type="button"
+          onClick={onAiStatus}
+          disabled={!onAiStatus}
+          title={aiStatus.problem ?? t("aiStatus.ready")}
+          aria-label={t("aiStatus.label", { label: aiStatus.label, state: aiStatus.problem ?? t("aiStatus.ready") })}
+          className="flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1 text-xs text-text-secondary enabled:hover:text-text-primary"
+        >
           <span className={aiStatus.ok ? "size-[7px] rounded-full bg-success" : "size-[7px] rounded-full bg-warning"} aria-hidden />
           {aiStatus.label}
-        </span>
+        </button>
       )}
       {actions}
       <ThemeMenu />
