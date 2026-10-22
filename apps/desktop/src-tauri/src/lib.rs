@@ -1,3 +1,5 @@
+mod keychain;
+mod providers;
 mod run;
 mod settings;
 mod terminal;
@@ -15,6 +17,10 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             settings::settings_read,
             settings::settings_write,
+            keychain::keychain_set,
+            keychain::keychain_hint,
+            keychain::keychain_delete,
+            providers::claude_cli_status,
             workspace::workspace_pick,
             workspace::workspace_open,
             workspace::workspace_close,
