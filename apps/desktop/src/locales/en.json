@@ -2,15 +2,59 @@
   "app": {
     "name": "KnYC",
     "tagline": "Know your code.",
-    "subtitle": "Rebuild any project step by step, with an AI guide.",
-    "version": "Version {{version}}",
-    "comingSoon": "Importing projects arrives in a later milestone."
+    "version": "Version {{version}}"
   },
   "theme": {
     "label": "Theme",
+    "mode": "Mode",
     "focus": "Focus",
     "sage-camel": "Sage & Camel",
+    "system": "System",
     "light": "Light",
     "dark": "Dark"
+  },
+  "settings": {
+    "title": "Settings"
+  },
+  "lesson": {
+    "hint": "Hint {{level}}",
+    "reveal": "Reveal original",
+    "revealShort": "Reveal",
+    "runChecks": "Run checks"
+  },
+  "path": {
+    "stepOf": "Step {{current}} of {{total}}"
+  },
+  "designSystem": {
+    "title": "Design system",
+    "intro": "Every component in the current theme. Switch themes from the palette icon to compare with the Pencil boards.",
+    "buttons": "Buttons",
+    "chips": "Chips & badges",
+    "tabs": "Tabs",
+    "inputs": "Inputs",
+    "checks": "Check rows",
+    "hints": "Hint ladder",
+    "progress": "Path progress",
+    "tree": "File tree rows",
+    "cards": "Cards & lists",
+    "panel": "Panel header",
+    "sample": {
+      "nextHint": "Next hint",
+      "keyPlaceholder": "sk-ant-…",
+      "setupToggle": "Teach project setup as the first step",
+      "weakCheck": "Weak check",
+      "skipped": "Skipped",
+      "revealed": "Revealed",
+      "terminal": "Terminal",
+      "checks": "Checks",
+      "output": "Output",
+      "explorer": "Explorer",
+      "backend": "Backend",
+      "frontend": "Frontend",
+      "database": "Database",
+      "deployment": "Deployment",
+      "backendDescription": "NestJS modules, controllers, services, auth and data access.",
+      "frontendDescription": "React components, routing, state and API calls."
+    }
   }
 }

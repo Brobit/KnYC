@@ -5,8 +5,8 @@
  */
 
 :root {
-  --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-code: "JetBrains Mono", ui-monospace, "Cascadia Code", Menlo, monospace;
+  --font-ui: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-code: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "Cascadia Code", Menlo, monospace;
 
   --radius-sm: 4px;
   --radius-md: 6px;

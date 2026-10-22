@@ -39,3 +39,13 @@ export const settings = z.object({
   runChecksIn: z.enum(["local", "docker"]).default("local"),
 });
 export type Settings = z.infer<typeof settings>;
+
+/** Settings for a first launch: the Claude Code CLI, fast model for summaries, strong one elsewhere. */
+export function defaultSettings(): Settings {
+  const cli = (model: string) => ({ providerId: "claude-cli", model });
+  return settings.parse({
+    schemaVersion: 1,
+    providers: [{ id: "claude-cli", type: "claude-cli", label: "Claude Code" }],
+    roles: { summaries: cli("haiku"), planning: cli("sonnet"), lessons: cli("sonnet") },
+  });
+}

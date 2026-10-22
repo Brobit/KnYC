@@ -1,8 +1,32 @@
 @import "tailwindcss";
 @import "@knyc/tokens/tokens.css";
 
+/* `dark:` follows the app's mode attribute (set by the theme provider), not only the OS setting. */
+@custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
+
 /* Expose the design tokens as Tailwind utilities: bg-surface, text-text-secondary, border-border… */
 @theme inline {
+  /* Names shadcn/ui components expect, mapped onto our tokens so they follow every theme. */
+  --color-background: var(--bg);
+  --color-foreground: var(--text-primary);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--on-accent);
+  --color-secondary: var(--surface-2);
+  --color-secondary-foreground: var(--text-primary);
+  --color-muted: var(--surface-2);
+  --color-muted-foreground: var(--text-muted);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--text-primary);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text-primary);
+  --color-destructive: var(--danger);
+  --color-input: var(--border-strong);
+  --color-ring: var(--accent);
+  --color-track-frontend: var(--track-frontend);
+  --color-track-backend: var(--track-backend);
+  --color-track-database: var(--track-database);
+  --color-track-deployment: var(--track-deployment);
+
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
