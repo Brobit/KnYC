@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { defaultSettings } from "@knyc/core/schemas";
+import { CommandsProvider } from "@/commands/commands";
 import { DocumentStore, isDirty } from "@/editor/documents";
 import { buildMonacoTheme } from "@/editor/monaco-theme";
 import { createFakeWorkspaceFs } from "@/lib/fake-workspace-fs";
@@ -130,14 +131,17 @@ async function renderPanel() {
     const { pickFolder, folder } = useWorkspace();
     return folder ? null : <button onClick={() => void pickFolder()}>pick</button>;
   }
+  // Ctrl+S goes through the app's shortcut handler.
   render(
     <SettingsProvider initial={defaultSettings()}>
-      <WorkspaceProvider fs={fs}>
-        <PickOnMount />
-        <OpenButton path="src/app.ts" />
-        <OpenButton path="src/b.ts" />
-        <EditorPanel empty={<p>no file</p>} />
-      </WorkspaceProvider>
+      <CommandsProvider>
+        <WorkspaceProvider fs={fs}>
+          <PickOnMount />
+          <OpenButton path="src/app.ts" />
+          <OpenButton path="src/b.ts" />
+          <EditorPanel empty={<p>no file</p>} />
+        </WorkspaceProvider>
+      </CommandsProvider>
     </SettingsProvider>,
   );
   const user = userEvent.setup();

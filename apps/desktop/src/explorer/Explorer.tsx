@@ -13,10 +13,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useRegisterCommands } from "@/commands/commands";
 import { Button } from "@/components/ui/button";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { WorkspaceFsError } from "@/lib/workspace-fs";
 import { cn } from "@/lib/utils";
+import { useShowPanel } from "@/workspace/panel-context";
 import { useWorkspace } from "@/workspace/workspace-context";
 import { fileIcon } from "./file-icons";
 import {
@@ -51,6 +53,7 @@ export function Explorer() {
   const [toDelete, setToDelete] = useState<TreeNode | null>(null);
   const [error, setError] = useState<string | null>(null);
   const treeRef = useRef<HTMLDivElement>(null);
+  const showPanel = useShowPanel("explorer");
   const childrenRef = useRef(children);
   childrenRef.current = children;
 
@@ -207,6 +210,37 @@ export function Explorer() {
     }
   };
 
+  const selectedRow = rows.find((r) => r.path === selected) ?? null;
+  // In the Explorer itself, F2 and Delete do the same for the selected row.
+  useRegisterCommands(
+    () => {
+      if (!folder) return [];
+      const command = (id: string, title: string, run: () => void) => ({
+        id: `explorer.${id}`,
+        title,
+        group: "file" as const,
+        scope: "workspace" as const,
+        run: () => {
+          showPanel();
+          run();
+        },
+      });
+      return [
+        command("newFile", t("explorer.newFile"), () => startCreate("file", selectedRow)),
+        command("newFolder", t("explorer.newFolder"), () => startCreate("dir", selectedRow)),
+        command("refresh", t("commands.refreshExplorer"), () => void load([...childrenRef.current.keys()])),
+        command("collapseAll", t("commands.collapseExplorer"), () => setExpanded(new Set())),
+        ...(selectedRow
+          ? [
+              command("rename", t("commands.renameNamed", { name: selectedRow.name }), () => setDraft({ mode: "rename", path: selectedRow.path })),
+              command("delete", t("commands.deleteNamed", { name: selectedRow.name }), () => setToDelete(selectedRow)),
+            ]
+          : []),
+      ];
+    },
+    [t, folder, selectedRow?.path],
+  );
+
   if (!folder) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 bg-surface p-6 text-center">
@@ -220,7 +254,6 @@ export function Explorer() {
     );
   }
 
-  const selectedNode = rows.find((r) => r.path === selected) ?? null;
   const rootLoaded = children.has("");
   const createRow = (dir: string, depth: number) =>
     draft && draft.mode !== "rename" && draft.dir === dir ? (
@@ -241,8 +274,8 @@ export function Explorer() {
         <span className="min-w-0 flex-1 truncate text-[11px] font-semibold tracking-[0.06em] text-text-secondary uppercase" title={folder.root}>
           {folder.name}
         </span>
-        <ToolbarButton label={t("explorer.newFile")} onClick={() => startCreate("file", selectedNode)} icon={<FilePlus />} />
-        <ToolbarButton label={t("explorer.newFolder")} onClick={() => startCreate("dir", selectedNode)} icon={<FolderPlus />} />
+        <ToolbarButton label={t("explorer.newFile")} onClick={() => startCreate("file", selectedRow)} icon={<FilePlus />} />
+        <ToolbarButton label={t("explorer.newFolder")} onClick={() => startCreate("dir", selectedRow)} icon={<FolderPlus />} />
         <ToolbarButton label={t("explorer.refresh")} onClick={() => void load([...children.keys()])} icon={<RefreshCw />} />
         <ToolbarButton label={t("explorer.collapseAll")} onClick={() => setExpanded(new Set())} icon={<ChevronsDownUp />} />
       </div>

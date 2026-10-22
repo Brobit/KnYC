@@ -4,10 +4,12 @@ import type { DockviewPanelApi } from "dockview-react";
 import { Plus, SquareTerminal, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { useRegisterCommands } from "@/commands/commands";
 import { Button } from "@/components/ui/button";
 import { useSettings } from "@/lib/settings";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { useShowPanel } from "@/workspace/panel-context";
 import { useWorkspace } from "@/workspace/workspace-context";
 import { terminalBackend, type TerminalBackend } from "./terminal-backend";
 import { TerminalView } from "./TerminalView";
@@ -35,6 +37,7 @@ export function TerminalPanel({ empty, backend = terminalBackend, panelApi }: Te
   const [tabs, setTabs] = useState<TerminalTab[]>([]);
   const [active, setActive] = useState<number | null>(null);
   const [focusRequest, setFocusRequest] = useState(0);
+  const showPanel = useShowPanel("terminal");
 
   // dockview moves focus to its own container when a tab is shown; take it back afterwards.
   useEffect(() => {
@@ -64,6 +67,29 @@ export function TerminalPanel({ empty, backend = terminalBackend, panelApi }: Te
     setTabs(rest);
     if (key === active) setActive((rest[index] ?? rest[index - 1])?.key ?? null);
   };
+
+  useRegisterCommands(
+    () =>
+      folder
+        ? [
+            {
+              id: "terminal.new",
+              title: t("terminal.new"),
+              group: "terminal",
+              shortcuts: ["Mod+Shift+T"],
+              scope: "workspace",
+              run: () => {
+                showPanel();
+                add();
+              },
+            },
+            ...(active !== null
+              ? [{ id: "terminal.close", title: t("commands.closeTerminal"), group: "terminal" as const, scope: "workspace" as const, run: () => close(active) }]
+              : []),
+          ]
+        : [],
+    [t, folder, active],
+  );
 
   if (!folder) return <>{empty}</>;
 

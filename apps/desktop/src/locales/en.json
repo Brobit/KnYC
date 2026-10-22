@@ -84,6 +84,39 @@
       }
     }
   },
+  "commands": {
+    "palette": "Commands",
+    "hint": "Type to filter the commands, Enter to run one.",
+    "placeholder": "Type a command…",
+    "goToFile": "Go to file…",
+    "filesHint": "Type to filter the files of the open folder, Enter to open one.",
+    "filesPlaceholder": "Type a file name…",
+    "loadingFiles": "Reading the folder…",
+    "none": "Nothing found.",
+    "groups": {
+      "file": "Files",
+      "editor": "Editor",
+      "terminal": "Terminal",
+      "run": "Run",
+      "view": "View",
+      "app": "KnYC"
+    },
+    "openFolder": "Open folder…",
+    "openSettings": "Open settings",
+    "showWorkspace": "Go to workspace",
+    "showDesignSystem": "Open design system",
+    "theme": "Theme: {{name}}",
+    "mode": "Mode: {{mode}}",
+    "showPanel": "Show {{panel}}",
+    "togglePanel": "Toggle {{panel}}",
+    "save": "Save file",
+    "closeTab": "Close file",
+    "closeTerminal": "Close terminal",
+    "refreshExplorer": "Refresh Explorer",
+    "collapseExplorer": "Collapse all folders",
+    "renameNamed": "Rename {{name}}",
+    "deleteNamed": "Delete {{name}}…"
+  },
   "lesson": {
     "hint": "Hint {{level}}",
     "reveal": "Reveal original",
