@@ -130,6 +130,24 @@ export interface AnalysisResult {
   summaries: Summaries;
 }
 
+/** What the finished stages saved so far (the live analysis view shows them as they come). */
+export async function loadAnalysisSoFar(host: Host, cacheDir: string): Promise<Partial<AnalysisResult>> {
+  const paths = analysisPaths(cacheDir);
+  const read = async <T>(path: string, parse: (raw: unknown) => T) => {
+    try {
+      return parse(await readJson(host, path));
+    } catch {
+      return undefined;
+    }
+  };
+  const [scan, graph, summaries] = await Promise.all([
+    read(paths.scan, (raw) => scanSchema.parse(raw) as Scan),
+    read(paths.graph, (raw) => graphSchema.parse(raw) as Graph),
+    read(paths.summaries, (raw) => raw as Summaries),
+  ]);
+  return { scan, graph, summaries };
+}
+
 /** The results of a finished analysis (the project overview reads them). */
 export async function loadAnalysis(host: Host, cacheDir: string): Promise<AnalysisResult> {
   const paths = analysisPaths(cacheDir);

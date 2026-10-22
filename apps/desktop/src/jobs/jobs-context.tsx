@@ -1,11 +1,12 @@
 // The app's JobManager, created once at the root so analyses don't depend on the screen (#57).
 // In the desktop app it uses the Rust pipeline host and Claude Code; a plain browser (`pnpm dev`)
-// has no pipeline, so jobs are unavailable there.
+// gets a simulated analysis instead (demo-jobs.ts).
 import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import type { AnalysisInput, Job } from "@knyc/core";
+import type { AnalysisInput, AnalysisResult, Job } from "@knyc/core";
 import { AppClaudeProvider } from "@/lib/claude-provider";
 import { TauriHost, pipelineDataDir } from "@/lib/pipeline-host";
 import { isTauri, useSettings } from "@/lib/settings";
+import { createDemoJobManager } from "./demo-jobs";
 import { JobManager } from "./job-manager";
 
 interface JobsContext {
@@ -16,6 +17,8 @@ interface JobsContext {
   resume: (id: string) => void;
   cancel: (id: string) => Promise<void>;
   remove: (id: string) => Promise<void>;
+  /** What a job's finished stages saved so far. */
+  results: (job: Job) => Promise<Partial<AnalysisResult>>;
 }
 
 const Context = createContext<JobsContext | null>(null);
@@ -27,7 +30,8 @@ export function JobsProvider({ children, manager: given }: { children: ReactNode
 
   const [manager] = useState<JobManager | null>(() => {
     if (given !== undefined) return given;
-    if (!isTauri()) return null;
+    // A plain browser has no pipeline: `pnpm dev` shows a simulated analysis of a sample project.
+    if (!isTauri()) return import.meta.env.DEV ? createDemoJobManager() : null;
     return new JobManager({
       host: new TauriHost(),
       dataDir: pipelineDataDir,
@@ -51,6 +55,7 @@ export function JobsProvider({ children, manager: given }: { children: ReactNode
     resume: (id) => manager?.resume(id),
     cancel: (id) => manager?.cancel(id) ?? Promise.resolve(),
     remove: (id) => manager?.remove(id) ?? Promise.resolve(),
+    results: (job) => manager?.results(job) ?? Promise.resolve({}),
   };
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

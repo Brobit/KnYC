@@ -1,6 +1,7 @@
 import { Search } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { Job } from "@knyc/core";
 import { CommandPalette } from "@/commands/CommandPalette";
 import { CommandsProvider, formatShortcut, useCommands, useRegisterCommands } from "@/commands/commands";
 import { AppBar } from "@/components/knyc/app-bar";
@@ -8,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { useSettings } from "@/lib/settings";
 import { MODES, THEMES, ThemeRoot, useTheme } from "@/lib/theme";
 import { DesignSystem } from "@/screens/DesignSystem";
+import { AnalysisScreen } from "@/analysis/AnalysisScreen";
+import { OverviewScreen } from "@/analysis/OverviewScreen";
 import { ImportScreen } from "@/import/ImportScreen";
 import { Home } from "@/screens/Home";
 import { Onboarding } from "@/screens/Onboarding";
@@ -16,12 +19,14 @@ import { SettingsScreen } from "@/settings/SettingsScreen";
 import { Workspace } from "@/workspace/Workspace";
 import { useWorkspace, WorkspaceProvider } from "@/workspace/workspace-context";
 
-type Screen = "onboarding" | "home" | "import" | "workspace" | "designSystem" | "settings";
+type Screen = "onboarding" | "home" | "import" | "analysis" | "overview" | "workspace" | "designSystem" | "settings";
 
 const crumbKey: Record<Screen, string> = {
   onboarding: "onboarding.welcome.title",
   home: "home.title",
   import: "import.title",
+  analysis: "analysis.crumb",
+  overview: "overview.crumb",
   workspace: "workspace.title",
   designSystem: "designSystem.title",
   settings: "settings.title",
@@ -52,6 +57,12 @@ function Shell({ screen, setScreen }: { screen: Screen; setScreen: (screen: Scre
   // Where the settings button goes back to.
   const back = useRef<Screen>("home");
   if (screen !== "settings") back.current = screen;
+  // The analysis the analysis / overview screens show.
+  const [jobId, setJobId] = useState<string | null>(null);
+  const openAnalysis = (job: Job) => {
+    setJobId(job.id);
+    setScreen(job.status === "done" ? "overview" : "analysis");
+  };
 
   useEffect(() => {
     if (i18n.language !== settings.uiLanguage) void i18n.changeLanguage(settings.uiLanguage);
@@ -112,12 +123,29 @@ function Shell({ screen, setScreen }: { screen: Screen; setScreen: (screen: Scre
       </main>
       {screen === "home" && (
         <main className="min-h-0 flex-1 overflow-auto">
-          <Home onOpened={() => setScreen("workspace")} onImport={() => setScreen("import")} />
+          <Home onOpened={() => setScreen("workspace")} onImport={() => setScreen("import")} onOpenAnalysis={openAnalysis} />
         </main>
       )}
       {screen === "import" && (
         <main className="min-h-0 flex-1 overflow-auto">
-          <ImportScreen onCancel={() => setScreen("home")} onStarted={() => setScreen("home")} />
+          <ImportScreen onCancel={() => setScreen("home")} onStarted={openAnalysis} />
+        </main>
+      )}
+      {screen === "analysis" && jobId && (
+        <main className="min-h-0 flex-1 overflow-auto">
+          <AnalysisScreen
+            jobId={jobId}
+            onHome={() => setScreen("home")}
+            onOverview={(job) => {
+              setJobId(job.id);
+              setScreen("overview");
+            }}
+          />
+        </main>
+      )}
+      {screen === "overview" && jobId && (
+        <main className="min-h-0 flex-1 overflow-auto">
+          <OverviewScreen jobId={jobId} onHome={() => setScreen("home")} />
         </main>
       )}
       {screen === "designSystem" && (

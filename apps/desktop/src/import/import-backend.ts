@@ -85,15 +85,25 @@ export function createFakeImportBackend(): ImportBackend {
         exports: ["x"],
         symbols: [{ name: "x", kind: "function", exported: true, startLine: 1, endLine: 5 }],
       });
+      const imports: [string, string][] = [
+        ["src/server.ts", "src/app.ts"],
+        ["src/app.ts", "src/notes/notes.routes.ts"],
+        ["src/app.ts", "src/errors.ts"],
+        ["src/notes/notes.routes.ts", "src/notes/notes.store.ts"],
+        ["src/notes/notes.routes.ts", "src/notes/notes.validation.ts"],
+        ["src/notes/notes.store.ts", "src/notes/note.ts"],
+        ["src/notes/notes.validation.ts", "src/errors.ts"],
+        ["src/server.ts", "src/config.ts"],
+      ];
       const graph = {
         files: SAMPLE_FILES.map((f) => node(f.path)),
-        edges: [],
+        edges: imports.map(([from, to]) => ({ from, to, typeOnly: false })),
         symbolEdges: [],
         cycles: [],
         layers: [SAMPLE_FILES.slice(0, 3).map((f) => f.path), SAMPLE_FILES.slice(3, 6).map((f) => f.path), SAMPLE_FILES.slice(6).map((f) => f.path)],
-        external: [],
+        external: {},
         unresolved: [],
-      } as unknown as Graph;
+      } as Graph;
       return { scan, graph };
     },
     defaultWorkspace: async (name) => `/home/you/KnYC/${name}`,

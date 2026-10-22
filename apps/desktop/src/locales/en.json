@@ -412,5 +412,101 @@
       "graph": "Building the code graph",
       "summaries": "Summarizing the code"
     }
+  },
+  "analysis": {
+    "crumb": "Analysis",
+    "title": "Analyzing {{name}}",
+    "titleDone": "{{name}} is analyzed",
+    "left_one": "About {{count}} minute left. You can leave this screen: the analysis goes on in the background.",
+    "left_other": "About {{count}} minutes left. You can leave this screen: the analysis goes on in the background.",
+    "background": "You can leave this screen: the analysis goes on in the background.",
+    "paused": "Paused: your Claude plan reached its usage limit. It goes on by itself when the limit resets.",
+    "pausedUntil": "Paused: your Claude plan reached its usage limit. It goes on by itself at {{time}}.",
+    "failedSub": "Stopped: {{reason}}",
+    "cancelledSub": "Cancelled. Resume to go on where it stopped.",
+    "doneSub": "Done. See what KnYC found and choose what to rebuild.",
+    "progress": "Analysis progress",
+    "stages": "Stages",
+    "found": "Found so far",
+    "foundEmpty": "Results appear here as each stage finishes.",
+    "summary": "What this project does",
+    "failed": "This stage failed.",
+    "pausedStage": "Waiting for the usage limit to reset",
+    "afterPath": "After you choose a path",
+    "stage": {
+      "intake": "Intake",
+      "scan": "Static scan",
+      "graph": "Code graph",
+      "summaries": "Summaries",
+      "plan": "Curriculum plan",
+      "timeline": "Reference timeline",
+      "checks": "Checks"
+    },
+    "kind": {
+      "local": "Local",
+      "ai": "AI",
+      "runAi": "Run + AI"
+    },
+    "running": {
+      "intake": "Copying the project into a private sandbox…",
+      "scan": "Scanning…",
+      "graph": "Reading the code…",
+      "summaries": "Summarizing files: {{done}}/{{total}}"
+    },
+    "starting": {
+      "intake": "Copying the project into a private sandbox…",
+      "scan": "Finding languages, frameworks and commands…",
+      "graph": "Reading imports, exports and symbols…",
+      "summaries": "Starting…"
+    },
+    "todo": {
+      "intake": "Copy the project, without secrets",
+      "scan": "Languages, frameworks, commands",
+      "graph": "Imports, exports, symbols, layers",
+      "summaries": "What each file and folder does"
+    },
+    "done": {
+      "intake": "Copied to a private sandbox",
+      "intakeExcluded_one": "Copied to a private sandbox · {{count}} path left out",
+      "intakeExcluded_other": "Copied to a private sandbox · {{count}} paths left out",
+      "scan": "Scanned",
+      "graph": "{{files}} files · {{symbols}} symbols",
+      "summaries_one": "{{count}} file summarized",
+      "summaries_other": "{{count}} files summarized",
+      "generic": "Done"
+    },
+    "cancel": "Cancel analysis",
+    "resume": "Resume",
+    "resumeNow": "Resume now",
+    "aiCalls_one": "{{count}} AI call so far",
+    "aiCalls_other": "{{count}} AI calls so far",
+    "openOverview": "See the overview",
+    "gone": "This analysis no longer exists.",
+    "home": "Back to Home"
+  },
+  "overview": {
+    "crumb": "Project overview",
+    "loading": "Loading the results…",
+    "stack": "Stack",
+    "architecture": "Architecture",
+    "byFile": "one box per file",
+    "byFolder": "one box per folder",
+    "mapLabel_one": "Architecture map with {{count}} box",
+    "mapLabel_other": "Architecture map with {{count}} boxes",
+    "tracksTitle": "Tracks",
+    "tracks": {
+      "backend": "Backend",
+      "full": "Full project"
+    },
+    "backendDescription_one": "{{count}} module: {{modules}}",
+    "backendDescription_other": "{{count}} modules: {{modules}}",
+    "fullDescription": "Everything, in a natural build order.",
+    "lines": "{{count}} lines",
+    "files_one": "{{count}} file",
+    "files_other": "{{count}} files",
+    "hours": "~{{count}} h standard",
+    "apiOnly": "No frontend found: this project is an API only.",
+    "choosePath": "Choose a path",
+    "choosePathSoon": "Choosing the path (size, setup step) comes in the next update."
   }
 }
