@@ -64,12 +64,22 @@ WebKitGTK tested).
 
 ## M3 — Learning loop, first alpha (L) → `v0.1.0-alpha`
 
-- Import screen with exclusions + cost estimate; live analysis view (pipeline from M1).
-- Project overview, choose path (track, size, setup toggle).
+- Onboarding (the full 3 cards, design 04 §1).
+- Import screen with exclusions + an estimate of AI calls and time; live analysis view (pipeline
+  from M1, running inside the app).
+- Project overview, choose path (track, size, setup toggle); step 1 opens before the whole path is
+  prepared.
 - Lesson panel: goal, lazy lesson, checks + run, "explain this failure", hint ladder, reveal diff,
   step chat.
 - Progress, snapshots (`snapshots.git`), skip with warning, step complete.
 - Scope: **TS/JS backend (Express) track**, plus **Full project** for simple Node projects.
+  **Claude Code CLI only** (API-key providers later).
+
+Issues (milestone "M3 — Learning loop"), in dependency order: #55 pipeline host in the app ·
+#56 Claude Code calls from the app · #57 analysis jobs (background, resumable) · #58 onboarding ·
+#59 import screen · #60 live analysis + project overview · #61 choose path + progressive
+preparation · #62 lesson panel + checks · #63 hint ladder + reveal diff · #64 explain this failure +
+step chat · #65 progress, snapshots, skip, path map · #66 alpha check + v0.1.0-alpha.
 
 **Done when**: a learner can rebuild a golden repo from start to finish in the app.
 
@@ -131,3 +141,15 @@ WebKitGTK tested).
   3. `express-no-tests` — small, no tests at all (exercises generated checks).
 
   Real open-source repos can be added later as extra fixtures.
+- **H3 — M3 scope** (2026-10-22):
+  - **AI**: the Claude Code CLI only in the alpha; API-key providers (AI SDK, design 01) come later.
+  - **Where the pipeline runs**: `packages/core` stays TypeScript and runs inside the app; every
+    process (git, `claude`, knyc-sys steps, builds) goes through Tauri commands in Rust behind a
+    host interface, so the CLI (Node) and the app share the same pipeline code. No Node sidecar.
+  - **Waiting**: the learner starts step 1 as soon as its checks are ready; later steps are
+    prepared in the background (design 02, "Cost, time, privacy").
+  - **Onboarding**: the full 3 cards from the alpha on.
+  - **Estimate**: with the CLI there is no per-token cost, so the import screen shows the number of
+    AI calls and the time, and that it uses part of the Claude plan. A plan limit pauses the
+    analysis, which resumes later from the last finished stage.
+  - **Lesson extras** all in the alpha: reveal diff, explain this failure, step chat, snapshots + skip.
