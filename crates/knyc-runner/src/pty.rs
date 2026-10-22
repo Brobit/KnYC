@@ -145,6 +145,7 @@ impl PtySession {
             mut on_output,
             on_exit,
         } = callbacks;
+        let reader_live = Arc::clone(&live);
         thread::spawn(move || {
             let mut reader = reader;
             let mut decoder = Utf8Stream::default();
@@ -164,7 +165,12 @@ impl PtySession {
             if !rest.is_empty() {
                 on_output(rest);
             }
-            on_exit(code_rx.recv_timeout(Duration::from_secs(5)).ok().flatten());
+            let code = code_rx.recv_timeout(Duration::from_secs(5)).ok().flatten();
+            // Closed before reporting the exit, so a reported exit always means writes fail.
+            if let Ok(mut live) = reader_live.lock() {
+                live.take();
+            }
+            on_exit(code);
         });
 
         Ok(Self { live, killer })
