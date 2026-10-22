@@ -9,7 +9,6 @@ import {
   buildChecks,
   buildTimeline,
   buildUnits,
-  ClaudeCliProvider,
   emptyUsage,
   estimateTokens,
   FileCache,
@@ -24,6 +23,7 @@ import {
   type PathSize,
   type TrackId,
 } from "@knyc/core";
+import { ClaudeCliProvider, NodeHost } from "@knyc/core/node";
 import { renderReport, type StageStat } from "./report.ts";
 import { initialProgress, projectDocument, writeWorkspace } from "./workspace.ts";
 
@@ -63,10 +63,12 @@ export async function analyze(options: AnalyzeOptions, io: AnalyzeIo) {
     return result;
   };
 
+  const host = new NodeHost();
+
   // ①–③ Local, no AI.
-  const [scan, graph] = await stage("Scan and code graph", () => Promise.all([scanProject(source), graphProject(source)]));
+  const [scan, graph] = await stage("Scan and code graph", () => Promise.all([scanProject(host, source), graphProject(host, source)]));
   const units = buildUnits(graph);
-  const files = await loadSourceFiles(source, scan, graph);
+  const files = await loadSourceFiles(host, source, scan, graph);
   const facts = projectFacts(scan.root.split(/[\\/]/).pop()!, scan, graph);
   io.log(
     `  ${facts.languages.join(", ") || "no known language"} · ${facts.frameworks.join(", ") || "no framework detected"} · ${files.length} source files · ${units.atoms.length} units`,
@@ -99,7 +101,7 @@ export async function analyze(options: AnalyzeOptions, io: AnalyzeIo) {
   const client = new AiClient({
     providers: [new ClaudeCliProvider()],
     roles: { summaries: role(options.models.summaries), planning: role(options.models.planning), lessons: role(options.models.checks) },
-    cache: new FileCache(join(cacheDir, "ai")),
+    cache: new FileCache(host, join(cacheDir, "ai")),
   });
   const aiCalls = () => client.totals.calls;
 
@@ -108,7 +110,7 @@ export async function analyze(options: AnalyzeOptions, io: AnalyzeIo) {
     "Summaries",
     () =>
       summarize(client, files, facts, {
-        cache: new FileCache(join(cacheDir, "summaries")),
+        cache: new FileCache(host, join(cacheDir, "summaries")),
         cacheTag: `claude-cli:${options.models.summaries}`,
         onProgress: (done, total) => io.log(`  files ${done}/${total}`),
       }),
@@ -133,6 +135,7 @@ export async function analyze(options: AnalyzeOptions, io: AnalyzeIo) {
   await rm(workDir, { recursive: true, force: true });
   const timeline = await stage("Reference timeline", () =>
     buildTimeline(path, graph, scan, units, {
+      host,
       sourceRoot: source,
       workDir,
       onStep: (s) => io.log(`  ${s.stepId} ${s.ok ? "builds" : `doesn't build alone → merged into ${s.mergedInto}`}`),
@@ -142,7 +145,7 @@ export async function analyze(options: AnalyzeOptions, io: AnalyzeIo) {
   // ⑧ Checks.
   const checks = await stage(
     "Checks",
-    () => buildChecks(path, timeline, graph, scan, { sourceRoot: source, client, onProgress: (m) => io.log(`  ${m}`) }),
+    () => buildChecks(path, timeline, graph, scan, { host, sourceRoot: source, client, onProgress: (m) => io.log(`  ${m}`) }),
     aiCalls,
   );
 

@@ -2,10 +2,7 @@
 // original project keeping only the units introduced up to step k. Every R_k must build; each one
 // is a commit tagged `<pathId>/sNN` in a git repository (design 03: reference.git).
 
-import { execFile } from "node:child_process";
-import { readFile, rm, writeFile, mkdir, appendFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { promisify } from "node:util";
+import { joinPath, type Host } from "../host/host.ts";
 import type { LearningPath } from "../schemas/learning-path.ts";
 import { intakeProject, runCommand, type Graph, type Scan } from "../sys/knyc-sys.ts";
 import { placeUnits, type PlanAnswer } from "./plan.ts";
@@ -13,7 +10,6 @@ import { withNodeTypes } from "./setup.ts";
 import { sliceSource, type SliceContext } from "./slice.ts";
 import type { Units } from "./units.ts";
 
-const exec = promisify(execFile);
 
 /** Unit id → index of the step that introduces it, for a stored LearningPath. */
 export function stepOfUnits(path: LearningPath, units: Units): Map<string, number> {
@@ -96,6 +92,7 @@ export interface Timeline {
 }
 
 export interface TimelineOptions {
+  host: Host;
   /** Original project (read only). */
   sourceRoot: string;
   /** Where the timeline repository is created; must not exist or be empty. */
@@ -105,35 +102,26 @@ export interface TimelineOptions {
   onStep?: (build: StepBuild) => void;
 }
 
-export async function git(cwd: string, ...args: string[]): Promise<string> {
-  const { stdout } = await exec("git", args, { cwd, maxBuffer: 64 * 1024 * 1024 });
-  return stdout.trim();
-}
-
-async function writeFiles(workDir: string, files: Map<string, string | null>) {
+async function writeFiles(host: Host, workDir: string, files: Map<string, string | null>) {
   for (const [path, content] of files) {
-    const target = join(workDir, path);
-    if (content === null) {
-      await rm(target, { force: true });
-    } else {
-      await mkdir(dirname(target), { recursive: true });
-      await writeFile(target, content);
-    }
+    const target = joinPath(workDir, path);
+    if (content === null) await host.remove(target);
+    else await host.writeFile(target, content);
   }
 }
 
 const tail = (text: string, lines = 30) => text.trim().split("\n").slice(-lines).join("\n");
 
 /** Applies the setup fixes (setup.ts) to the working copy; returns what changed. */
-async function fixSetup(workDir: string): Promise<string[]> {
+async function fixSetup(host: Host, workDir: string): Promise<string[]> {
   const fixes: string[] = [];
-  const tsconfigPath = join(workDir, "tsconfig.json");
-  const tsconfig = await readFile(tsconfigPath, "utf8").catch(() => null);
-  const pkg = await readFile(join(workDir, "package.json"), "utf8").then(JSON.parse, () => null);
+  const tsconfigPath = joinPath(workDir, "tsconfig.json");
+  const tsconfig = await host.readFile(tsconfigPath).catch(() => null);
+  const pkg = await host.readFile(joinPath(workDir, "package.json")).then(JSON.parse, () => null);
   if (tsconfig !== null && pkg) {
     const fixed = withNodeTypes(tsconfig, pkg);
     if (fixed !== null) {
-      await writeFile(tsconfigPath, fixed);
+      await host.writeFile(tsconfigPath, fixed);
       fixes.push('tsconfig.json: added "types": ["node"]');
     }
   }
@@ -141,45 +129,47 @@ async function fixSetup(workDir: string): Promise<string[]> {
 }
 
 export async function buildTimeline(path: LearningPath, graph: Graph, scan: Scan, units: Units, options: TimelineOptions): Promise<Timeline> {
+  const { host } = options;
   const stepOf = stepOfUnits(path, units);
   const commands = scan.commands[0];
   if (!commands?.build) throw new Error("the project has no build command; the timeline can't be checked");
 
   // A private copy of the project (no secrets, no node_modules), with its dependencies installed.
-  await intakeProject(options.sourceRoot, options.workDir);
+  await intakeProject(host, options.sourceRoot, options.workDir);
   if (commands.install) {
-    const install = await runCommand(options.workDir, commands.install, { timeoutMs: options.installTimeoutMs ?? 10 * 60_000 });
+    const install = await runCommand(host, options.workDir, commands.install, { timeoutMs: options.installTimeoutMs ?? 10 * 60_000 });
     if (install.status !== "pass") throw new Error(`installing dependencies failed:\n${tail(install.run?.stderr ?? install.error ?? "")}`);
   }
 
-  await git(options.workDir, "init", "-q");
-  await git(options.workDir, "config", "user.name", "KnYC");
-  await git(options.workDir, "config", "user.email", "knyc@localhost");
-  await git(options.workDir, "config", "core.autocrlf", "false");
-  await appendFile(join(options.workDir, ".git", "info", "exclude"), "node_modules/\ndist/\nbuild/\ncoverage/\n.knyc-*\n");
+  const git = (...args: string[]) => host.git(options.workDir, args);
+  await git("init", "-q");
+  await git("config", "user.name", "KnYC");
+  await git("config", "user.email", "knyc@localhost");
+  await git("config", "core.autocrlf", "false");
+  await host.appendFile(joinPath(options.workDir, ".git", "info", "exclude"), "node_modules/\ndist/\nbuild/\ncoverage/\n.knyc-*\n");
 
-  const setupFixes = await fixSetup(options.workDir);
+  const setupFixes = await fixSetup(host, options.workDir);
 
   // Tests are checks (stage ⑧), never part of R_k.
-  for (const file of graph.files.filter((f) => f.test)) await rm(join(options.workDir, file.path), { force: true });
+  for (const file of graph.files.filter((f) => f.test)) await host.remove(joinPath(options.workDir, file.path));
 
-  const read = (p: string) => readFile(join(options.sourceRoot, p), "utf8");
+  const read = (p: string) => host.readFile(joinPath(options.sourceRoot, p));
   const commit = async (message: string, tag: string) => {
-    await git(options.workDir, "add", "-A");
-    await git(options.workDir, "commit", "-q", "--allow-empty", "-m", message);
-    await git(options.workDir, "tag", "-f", tag);
-    return git(options.workDir, "rev-parse", "HEAD");
+    await git("add", "-A");
+    await git("commit", "-q", "--allow-empty", "-m", message);
+    await git("tag", "-f", tag);
+    return git("rev-parse", "HEAD");
   };
 
   // R_0: the setup only (package.json, tsconfig…), no source code yet.
-  await writeFiles(options.workDir, await filesAtStep(-1, graph, units, stepOf, read));
+  await writeFiles(host, options.workDir, await filesAtStep(-1, graph, units, stepOf, read));
   await commit(`${path.id}: setup`, `${path.id}/s00`);
 
   const steps: StepBuild[] = [];
   for (const [k, step] of path.steps.entries()) {
     const started = Date.now();
-    await writeFiles(options.workDir, await filesAtStep(k, graph, units, stepOf, read));
-    const build = await runCommand(options.workDir, commands.build, { timeoutMs: options.buildTimeoutMs ?? 5 * 60_000 });
+    await writeFiles(host, options.workDir, await filesAtStep(k, graph, units, stepOf, read));
+    const build = await runCommand(host, options.workDir, commands.build, { timeoutMs: options.buildTimeoutMs ?? 5 * 60_000 });
     const ok = build.status === "pass";
     const result: StepBuild = { stepId: step.id, ok, durationMs: Date.now() - started };
     const isLast = k === path.steps.length - 1;
@@ -197,7 +187,7 @@ export async function buildTimeline(path: LearningPath, graph: Graph, scan: Scan
 
   let finalMatchesOriginal = true;
   for (const file of graph.files.filter((f) => !f.test && units.byFile.has(f.path))) {
-    const built = await readFile(join(options.workDir, file.path), "utf8").catch(() => null);
+    const built = await host.readFile(joinPath(options.workDir, file.path)).catch(() => null);
     if (built !== (await read(file.path))) finalMatchesOriginal = false;
   }
 

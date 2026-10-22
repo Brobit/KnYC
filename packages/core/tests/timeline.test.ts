@@ -8,7 +8,6 @@ import {
   buildTimeline,
   buildUnits,
   filesAtStep,
-  findKnycSys,
   graphSchema,
   learningPath,
   scanProject,
@@ -16,6 +15,7 @@ import {
   stepOfUnits,
   type GraphFile,
 } from "../src/index.ts";
+import { findKnycSys, NodeHost } from "../src/node.ts";
 
 const fixture = (kind: string, name: string) =>
   JSON.parse(readFileSync(new URL(`./fixtures/${kind}/${name}.json`, import.meta.url), "utf8"));
@@ -113,14 +113,15 @@ describe("filesAtStep on the real express-notes plan", () => {
 });
 
 const knycSys = findKnycSys();
+const host = new NodeHost();
 // Full builds install dependencies and run tsc once per step: opt in with KNYC_SLOW_TESTS=1.
 describe.skipIf(!knycSys || !process.env.KNYC_SLOW_TESTS)("buildTimeline (slow, real builds)", () => {
   it("builds every step of express-notes overview on its own", { timeout: 15 * 60_000 }, async () => {
     const { graph, path, units } = load("express-notes", "overview");
     const workDir = join(await mkdtemp(join(tmpdir(), "knyc-timeline-")), "repo");
     try {
-      const scan = await scanProject(goldenRoot("express-notes"));
-      const timeline = await buildTimeline(path, graph, scan, units, { sourceRoot: goldenRoot("express-notes"), workDir });
+      const scan = await scanProject(host, goldenRoot("express-notes"));
+      const timeline = await buildTimeline(path, graph, scan, units, { host, sourceRoot: goldenRoot("express-notes"), workDir });
       // s01 is config.ts alone, which reads `process`. Since TypeScript 6, Node's types only came
       // through Express's types, so s01 failed and merged into s02 (design/08). The setup now
       // names them in tsconfig.json.
@@ -142,8 +143,8 @@ describe.skipIf(!knycSys || !process.env.KNYC_SLOW_TESTS)("buildTimeline (slow, 
     await rename(join(sourceRoot, "tsconfig.json"), join(sourceRoot, "tsconfig.base.json"));
     await writeFile(join(sourceRoot, "tsconfig.json"), '{ "extends": "./tsconfig.base.json" }\n');
     try {
-      const scan = await scanProject(sourceRoot);
-      const timeline = await buildTimeline(path, graph, scan, units, { sourceRoot, workDir: join(root, "repo") });
+      const scan = await scanProject(host, sourceRoot);
+      const timeline = await buildTimeline(path, graph, scan, units, { host, sourceRoot, workDir: join(root, "repo") });
       expect(timeline.setupFixes).toEqual([]);
       const [first, ...rest] = timeline.steps;
       expect(first).toMatchObject({ stepId: "s01", ok: false, mergedInto: "s02" });

@@ -2,10 +2,9 @@
 // cover. They use Node's built-in test runner on the compiled code, so they need no extra
 // dependency. Each one must fail before its step, pass at its step, and pass at the last step.
 
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
 import { z } from "zod";
 import type { AiClient } from "../../ai/client.ts";
+import { joinPath, type Host } from "../../host/host.ts";
 import type { Step } from "../../schemas/learning-path.ts";
 import { runCommand, type CheckOutcome } from "../../sys/knyc-sys.ts";
 
@@ -89,11 +88,10 @@ export interface CandidateCheck {
 }
 
 /** Writes a check into the working copy and runs it. */
-export async function runCandidate(workDir: string, check: CandidateCheck, timeoutMs = 60_000): Promise<CheckOutcome> {
-  await mkdir(join(workDir, CHECKS_DIR), { recursive: true });
-  await writeFile(join(workDir, check.file), check.code);
+export async function runCandidate(host: Host, workDir: string, check: CandidateCheck, timeoutMs = 60_000): Promise<CheckOutcome> {
+  await host.writeFile(joinPath(workDir, check.file), check.code);
   // PORT=0: a server started by the project's own entry point gets a free port, never a busy one.
-  return runCommand(workDir, `node --test ${check.file}`, { timeoutMs, env: { PORT: "0" } });
+  return runCommand(host, workDir, `node --test ${check.file}`, { timeoutMs, env: { PORT: "0" } });
 }
 
 const ERROR_LINE = /error|assert|expected|actual|received|not ok|cannot|does not|undefined|is not a function|ECONN|timed out/i;

@@ -1,6 +1,4 @@
-import { createHash } from "node:crypto";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { joinPath, sha256Hex, type Host } from "../host/host.ts";
 import type { Usage } from "./types.ts";
 
 export interface CachedAnswer {
@@ -17,7 +15,7 @@ export interface AiCache {
 
 /** Same provider, model, instructions, input and schema → same answer, no new call. */
 export function cacheKey(parts: { provider: string; model: string; system: string; prompt: string; jsonSchema: unknown }): string {
-  return createHash("sha256").update(JSON.stringify(parts)).digest("hex");
+  return sha256Hex(JSON.stringify(parts));
 }
 
 export class MemoryCache implements AiCache {
@@ -32,25 +30,24 @@ export class MemoryCache implements AiCache {
 
 /** One JSON file per answer, in `dir` (e.g. `<app data>/cache/<sourceHash>/ai`). */
 export class FileCache implements AiCache {
+  private readonly host: Host;
   private readonly dir: string;
 
-  constructor(dir: string) {
+  constructor(host: Host, dir: string) {
+    this.host = host;
     this.dir = dir;
   }
 
   async get(key: string): Promise<CachedAnswer | undefined> {
     try {
-      return JSON.parse(await readFile(join(this.dir, `${key}.json`), "utf8")) as CachedAnswer;
+      return JSON.parse(await this.host.readFile(joinPath(this.dir, `${key}.json`))) as CachedAnswer;
     } catch {
       return undefined;
     }
   }
 
   async set(key: string, value: CachedAnswer): Promise<void> {
-    await mkdir(this.dir, { recursive: true });
-    // Write then rename, so a crash never leaves a half-written entry behind.
-    const tmp = join(this.dir, `${key}.${process.pid}.tmp`);
-    await writeFile(tmp, JSON.stringify(value));
-    await rename(tmp, join(this.dir, `${key}.json`));
+    // The host writes atomically: a crash never leaves a half-written entry behind.
+    await this.host.writeFile(joinPath(this.dir, `${key}.json`), JSON.stringify(value));
   }
 }

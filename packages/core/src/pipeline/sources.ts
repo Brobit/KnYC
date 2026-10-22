@@ -1,5 +1,4 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { joinPath, type Host } from "../host/host.ts";
 import type { Graph, Scan } from "../sys/knyc-sys.ts";
 import { redact, secretLinesByFile } from "./redact.ts";
 import type { ProjectFacts, SourceFile } from "./summaries.ts";
@@ -8,7 +7,7 @@ import type { ProjectFacts, SourceFile } from "./summaries.ts";
  * The files to summarize: non-test source files of the graph, in layer order (leaves first),
  * with possible secrets redacted.
  */
-export async function loadSourceFiles(root: string, scan: Scan, graph: Graph): Promise<SourceFile[]> {
+export async function loadSourceFiles(host: Host, root: string, scan: Scan, graph: Graph): Promise<SourceFile[]> {
   const secrets = secretLinesByFile(scan.secretLines);
   const notForAi = new Set(scan.files.filter((f) => f.notForAi).map((f) => f.path));
   const byPath = new Map(graph.files.map((f) => [f.path, f]));
@@ -18,7 +17,7 @@ export async function loadSourceFiles(root: string, scan: Scan, graph: Graph): P
     for (const path of paths) {
       const node = byPath.get(path);
       if (!node || node.test || notForAi.has(path)) continue;
-      const content = await readFile(join(root, path), "utf8");
+      const content = await host.readFile(joinPath(root, path));
       files.push({
         path,
         content: redact(content, secrets.get(path) ?? []),

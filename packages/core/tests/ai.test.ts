@@ -7,16 +7,14 @@ import { z } from "zod";
 import {
   AiClient,
   AiError,
-  ClaudeCliProvider,
-  claudeArgs,
   estimate,
-  extractJson,
   FileCache,
   MemoryCache,
   type AiProvider,
   type ProviderRequest,
   type ProviderResponse,
 } from "../src/index.ts";
+import { ClaudeCliProvider, claudeArgs, extractJson, NodeHost } from "../src/node.ts";
 
 const fakeClaude = [process.execPath, fileURLToPath(new URL("./fixtures/fake-claude.mjs", import.meta.url))];
 const request: ProviderRequest = {
@@ -198,7 +196,7 @@ describe("FileCache", () => {
   });
 
   it("stores one JSON file per answer and reads it back", async () => {
-    const cache = new FileCache(join(dir, "ai"));
+    const cache = new FileCache(new NodeHost(), join(dir, "ai"));
     expect(await cache.get("k")).toBeUndefined();
     const value = { json: { a: 1 }, usage: { inputTokens: 1, outputTokens: 1, cacheReadTokens: 0, cacheWriteTokens: 0 }, costUsd: null, at: "2026-10-21T00:00:00.000Z" };
     await cache.set("k", value);

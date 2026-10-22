@@ -1,12 +1,10 @@
-import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import type { Host, SysRequest } from "../host/host.ts";
 import { formatIssues } from "../schemas/documents.ts";
 
-// Shapes of the JSON printed by the Rust `knyc-sys` binary (crates/knyc-sys). Only the fields
-// the pipeline reads are listed; extra fields are allowed so Rust can grow without breaking TS.
+// Shapes of the JSON the knyc-sys steps return (crates/knyc-sys, or the same crates called by the
+// desktop app). Only the fields the pipeline reads are listed; extra fields are allowed so Rust can
+// grow without breaking TS.
 
 const secretLine = z.object({ path: z.string(), line: z.number().int(), kind: z.string() });
 
@@ -80,40 +78,18 @@ export class KnycSysError extends Error {
   }
 }
 
-/**
- * The knyc-sys binary: $KNYC_SYS, else the workspace build (release, then debug).
- * Packaged apps will ship it next to the CLI later.
- */
-export function findKnycSys(env: NodeJS.ProcessEnv = process.env): string | undefined {
-  if (env.KNYC_SYS) return env.KNYC_SYS;
-  const exe = process.platform === "win32" ? "knyc-sys.exe" : "knyc-sys";
-  const repo = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
-  return ["release", "debug"].map((profile) => join(repo, "target", profile, exe)).find((p) => existsSync(p));
-}
-
-/** Runs `knyc-sys <args>` and validates its JSON output with `schema`. */
-export async function knycSys<S extends z.ZodType>(args: string[], schema: S, binary = findKnycSys()): Promise<z.infer<S>> {
-  if (!binary) throw new KnycSysError("knyc-sys not found: build it with `cargo build -p knyc-sys` or set KNYC_SYS");
-  const { stdout, stderr, code } = await new Promise<{ stdout: string; stderr: string; code: number | null }>((resolve, reject) => {
-    const child = spawn(binary, args, { stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.setEncoding("utf8").on("data", (d: string) => (stdout += d));
-    child.stderr.setEncoding("utf8").on("data", (d: string) => (stderr += d));
-    child.on("error", (e) => reject(new KnycSysError(`could not start knyc-sys: ${e.message}`)));
-    child.on("close", (code) => resolve({ stdout, stderr, code }));
-  });
-  if (code !== 0) throw new KnycSysError(`knyc-sys ${args[0]} failed: ${stderr.trim() || `exit code ${code}`}`);
-
-  const parsed = schema.safeParse(JSON.parse(stdout));
+/** Runs a knyc-sys step through the host and validates its result with `schema`. */
+async function knycSys<S extends z.ZodType>(host: Host, request: SysRequest, schema: S): Promise<z.infer<S>> {
+  const parsed = schema.safeParse(await host.sys(request));
   if (!parsed.success) {
-    throw new KnycSysError(`unexpected knyc-sys ${args[0]} output:\n- ${formatIssues(parsed.error).join("\n- ")}`);
+    throw new KnycSysError(`unexpected knyc-sys ${request.op} output:\n- ${formatIssues(parsed.error).join("\n- ")}`);
   }
   return parsed.data;
 }
 
-export const scanProject = (folder: string, binary?: string) => knycSys(["scan", folder], scanSchema, binary);
-export const graphProject = (folder: string, binary?: string) => knycSys(["graph", folder], graphSchema, binary);
+/** Static scan; `toolchains: false` skips running `node --version`… (faster, for tests). */
+export const scanProject = (host: Host, folder: string, { toolchains = true } = {}) => knycSys(host, { op: "scan", folder, toolchains }, scanSchema);
+export const graphProject = (host: Host, folder: string) => knycSys(host, { op: "graph", folder }, graphSchema);
 
 export const intakeSchema = z.looseObject({
   source: z.string(),
@@ -159,22 +135,17 @@ export const checkOutcomeSchema = z.object({
 });
 export type CheckOutcome = z.infer<typeof checkOutcomeSchema>;
 
-export const intakeProject = (source: string, sandbox: string, binary?: string) =>
-  knycSys(["intake", source, sandbox], intakeSchema, binary);
+export const intakeProject = (host: Host, source: string, sandbox: string) => knycSys(host, { op: "intake", source, sandbox }, intakeSchema);
 
 export interface RunOptions {
   timeoutMs?: number;
   env?: Record<string, string>;
   /** Jest/Vitest JSON report the command writes, relative to cwd. */
   report?: string;
-  binary?: string;
 }
 
-/** Runs a shell command line through `knyc-sys run` (timeout + process-tree kill). */
-export function runCommand(cwd: string, command: string, options: RunOptions = {}) {
-  const args = ["run", "--cwd", cwd, "--timeout-ms", String(options.timeoutMs ?? 120_000)];
-  for (const [k, v] of Object.entries(options.env ?? {})) args.push("--env", `${k}=${v}`);
-  if (options.report) args.push("--report", options.report);
-  args.push("--", ...command.split(" ").filter(Boolean));
-  return knycSys(args, checkOutcomeSchema, options.binary);
+/** Runs a shell command line through the knyc-sys run step (timeout + process-tree kill). */
+export function runCommand(host: Host, cwd: string, command: string, options: RunOptions = {}) {
+  const request: SysRequest = { op: "run", cwd, command, timeoutMs: options.timeoutMs ?? 120_000, env: options.env ?? {}, report: options.report };
+  return knycSys(host, request, checkOutcomeSchema);
 }
