@@ -24,6 +24,7 @@ export * from "./pipeline/sources.ts";
 export * from "./pipeline/units.ts";
 export * from "./profiles/index.ts";
 export * from "./pipeline/plan.ts";
+export * from "./pipeline/import-estimate.ts";
 export * from "./pipeline/setup.ts";
 export * from "./pipeline/slice.ts";
 export * from "./pipeline/timeline.ts";

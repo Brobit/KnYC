@@ -60,3 +60,8 @@ export function useJobs(): JobsContext {
   if (!context) throw new Error("useJobs must be used inside <JobsProvider>");
   return context;
 }
+
+/** For screens that also render without jobs (tests of Home): null outside <JobsProvider>. */
+export function useOptionalJobs(): JobsContext | null {
+  return useContext(Context);
+}

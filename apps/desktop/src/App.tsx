@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useSettings } from "@/lib/settings";
 import { MODES, THEMES, ThemeRoot, useTheme } from "@/lib/theme";
 import { DesignSystem } from "@/screens/DesignSystem";
+import { ImportScreen } from "@/import/ImportScreen";
 import { Home } from "@/screens/Home";
 import { Onboarding } from "@/screens/Onboarding";
 import { useAiStatus } from "@/settings/ai-status";
@@ -15,11 +16,12 @@ import { SettingsScreen } from "@/settings/SettingsScreen";
 import { Workspace } from "@/workspace/Workspace";
 import { useWorkspace, WorkspaceProvider } from "@/workspace/workspace-context";
 
-type Screen = "onboarding" | "home" | "workspace" | "designSystem" | "settings";
+type Screen = "onboarding" | "home" | "import" | "workspace" | "designSystem" | "settings";
 
 const crumbKey: Record<Screen, string> = {
   onboarding: "onboarding.welcome.title",
   home: "home.title",
+  import: "import.title",
   workspace: "workspace.title",
   designSystem: "designSystem.title",
   settings: "settings.title",
@@ -59,6 +61,7 @@ function Shell({ screen, setScreen }: { screen: Screen; setScreen: (screen: Scre
     () => [
       { id: "file.openFolder", title: t("commands.openFolder"), group: "file", shortcuts: ["Mod+O"], run: () => void pickFolder().then((picked) => picked && setScreen("workspace")) },
       { id: "app.home", title: t("commands.showHome"), group: "app", run: () => setScreen("home") },
+      { id: "app.import", title: t("commands.importProject"), group: "app", run: () => setScreen("import") },
       { id: "app.settings", title: t("commands.openSettings"), group: "app", shortcuts: ["Mod+,"], run: () => setScreen("settings") },
       { id: "app.workspace", title: t("commands.showWorkspace"), group: "app", run: () => setScreen("workspace") },
       { id: "app.designSystem", title: t("commands.showDesignSystem"), group: "app", run: () => setScreen("designSystem") },
@@ -109,7 +112,12 @@ function Shell({ screen, setScreen }: { screen: Screen; setScreen: (screen: Scre
       </main>
       {screen === "home" && (
         <main className="min-h-0 flex-1 overflow-auto">
-          <Home onOpened={() => setScreen("workspace")} />
+          <Home onOpened={() => setScreen("workspace")} onImport={() => setScreen("import")} />
+        </main>
+      )}
+      {screen === "import" && (
+        <main className="min-h-0 flex-1 overflow-auto">
+          <ImportScreen onCancel={() => setScreen("home")} onStarted={() => setScreen("home")} />
         </main>
       )}
       {screen === "designSystem" && (
