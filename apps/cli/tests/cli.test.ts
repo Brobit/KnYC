@@ -114,7 +114,7 @@ describe("renderReport", () => {
     const markdown = renderReport({
       projectName: "express-no-tests",
       path,
-      timeline: { pathId: path.id, workDir: "/tmp/x", finalMatchesOriginal: true, steps: path.steps.map((s) => ({ stepId: s.id, ok: s.id !== "s01", durationMs: 1, ...(s.id === "s01" ? { mergedInto: "s02" } : { tag: `${path.id}/${s.id}` }) })) },
+      timeline: { pathId: path.id, workDir: "/tmp/x", finalMatchesOriginal: true, setupFixes: ['tsconfig.json: added "types": ["node"]'], steps: path.steps.map((s) => ({ stepId: s.id, ok: s.id !== "s01", durationMs: 1, ...(s.id === "s01" ? { mergedInto: "s02" } : { tag: `${path.id}/${s.id}` }) })) },
       checks: checksRun.checks,
       stepChecks: checksRun.report,
       stages: [
@@ -127,6 +127,7 @@ describe("renderReport", () => {
     });
     expect(markdown).toContain("**13/15 steps (87%) with a check proven red → green**");
     expect(markdown).toContain("14/15 steps build on their own");
+    expect(markdown).toContain('Setup adjusted so early steps build alone: tsconfig.json: added "types": ["node"]');
     expect(markdown).toContain("🔗 **s01**");
     expect(markdown).toContain("| **Total** | **400 s** | **19** |");
   });

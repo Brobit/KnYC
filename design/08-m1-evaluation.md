@@ -92,7 +92,7 @@ doesn't block M2, the editor shell).
 | # | Improvement | Why | When |
 |---|---|---|---|
 | 1 | **Planner rule: every step introduces at least one exported unit with runtime behavior**; types and private helpers travel with the code that uses them | Fixes 5 of the 7 unproven steps; better steps for learners | **Done** before M3: `stepsWithoutBehavior` in `packages/core/src/pipeline/plan.ts` sends such steps back to the planner |
-| 2 | Setup fix for implicit global types (e.g. add `"types": ["node"]` to the provided tsconfig when `@types/node` is installed) | Keeps step 1 instead of merging it | M3 |
+| 2 | Setup fix for implicit global types (e.g. add `"types": ["node"]` to the provided tsconfig when `@types/node` is installed) | Keeps step 1 instead of merging it | **Done**: `withNodeTypes` in `packages/core/src/pipeline/setup.ts`, applied to R₀ by the timeline |
 | 3 | **Speed**: run steps in parallel (one worktree per step), group checks of several steps per AI call, faster model where good enough | 22 min for express-shop; most of it is sequential checks | M3 / M6 |
 | 4 | Show progressive results: start step 1 while later steps are prepared | Waiting 10–20 min before learning is too long | M3 |
 | 5 | Summaries with sonnet, or a second pass, for small inaccuracies (PUT vs PATCH, "full-stack") | Lessons will reuse summaries | M3 |

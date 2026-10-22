@@ -9,6 +9,7 @@ import { promisify } from "node:util";
 import type { LearningPath } from "../schemas/learning-path.ts";
 import { intakeProject, runCommand, type Graph, type Scan } from "../sys/knyc-sys.ts";
 import { placeUnits, type PlanAnswer } from "./plan.ts";
+import { withNodeTypes } from "./setup.ts";
 import { sliceSource, type SliceContext } from "./slice.ts";
 import type { Units } from "./units.ts";
 
@@ -90,6 +91,8 @@ export interface Timeline {
   steps: StepBuild[];
   /** The last step reproduces every original source file exactly. */
   finalMatchesOriginal: boolean;
+  /** Changes made to the setup so early steps build alone ("tsconfig.json: types node"). */
+  setupFixes: string[];
 }
 
 export interface TimelineOptions {
@@ -121,6 +124,22 @@ async function writeFiles(workDir: string, files: Map<string, string | null>) {
 
 const tail = (text: string, lines = 30) => text.trim().split("\n").slice(-lines).join("\n");
 
+/** Applies the setup fixes (setup.ts) to the working copy; returns what changed. */
+async function fixSetup(workDir: string): Promise<string[]> {
+  const fixes: string[] = [];
+  const tsconfigPath = join(workDir, "tsconfig.json");
+  const tsconfig = await readFile(tsconfigPath, "utf8").catch(() => null);
+  const pkg = await readFile(join(workDir, "package.json"), "utf8").then(JSON.parse, () => null);
+  if (tsconfig !== null && pkg) {
+    const fixed = withNodeTypes(tsconfig, pkg);
+    if (fixed !== null) {
+      await writeFile(tsconfigPath, fixed);
+      fixes.push('tsconfig.json: added "types": ["node"]');
+    }
+  }
+  return fixes;
+}
+
 export async function buildTimeline(path: LearningPath, graph: Graph, scan: Scan, units: Units, options: TimelineOptions): Promise<Timeline> {
   const stepOf = stepOfUnits(path, units);
   const commands = scan.commands[0];
@@ -138,6 +157,8 @@ export async function buildTimeline(path: LearningPath, graph: Graph, scan: Scan
   await git(options.workDir, "config", "user.email", "knyc@localhost");
   await git(options.workDir, "config", "core.autocrlf", "false");
   await appendFile(join(options.workDir, ".git", "info", "exclude"), "node_modules/\ndist/\nbuild/\ncoverage/\n.knyc-*\n");
+
+  const setupFixes = await fixSetup(options.workDir);
 
   // Tests are checks (stage ⑧), never part of R_k.
   for (const file of graph.files.filter((f) => f.test)) await rm(join(options.workDir, file.path), { force: true });
@@ -180,5 +201,5 @@ export async function buildTimeline(path: LearningPath, graph: Graph, scan: Scan
     if (built !== (await read(file.path))) finalMatchesOriginal = false;
   }
 
-  return { pathId: path.id, workDir: options.workDir, steps, finalMatchesOriginal };
+  return { pathId: path.id, workDir: options.workDir, steps, finalMatchesOriginal, setupFixes };
 }

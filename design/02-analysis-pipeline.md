@@ -123,6 +123,10 @@ For each step build `Rk` by **removing** not-yet-introduced code from the origin
 - Partial files (removing functions, routes, JSX branches, imports): AI-assisted, guided by the
   tree-sitter ranges, then verified.
 
+The provided setup (R₀) may get small fixes so early steps build alone, never in source files:
+today `"types": ["node"]` in tsconfig.json when the project installs `@types/node` (since TypeScript 6,
+Node's types otherwise only arrive through another package's types).
+
 Each `Rk` must build in the sandbox. If one can't be fixed in 3 tries, **merge step k with k+1** and
 continue. The plan adapts instead of failing.
 
