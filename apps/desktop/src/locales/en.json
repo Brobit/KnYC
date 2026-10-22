@@ -41,7 +41,7 @@
     "placeholder": {
       "explorer": "The files of the step you are rebuilding appear here.",
       "editor": "Open a file from the Explorer to edit it.",
-      "terminal": "A terminal in your project folder.",
+      "terminal": "Open a folder to start a terminal in it.",
       "run": "Run the app and its checks.",
       "output": "Build and check output.",
       "lesson": "The lesson for the current step: goal, explanation, checks and hints."
@@ -91,6 +91,15 @@
     "conflictDeleted": "This file was deleted on disk while you were editing it.",
     "reload": "Load the disk version",
     "keepMine": "Keep my version"
+  },
+  "terminal": {
+    "tabs": "Terminals",
+    "name": "Terminal {{number}}",
+    "nameExited": "Terminal {{number}} (exited)",
+    "new": "New terminal",
+    "close": "Close terminal {{number}}",
+    "exited": "Process exited with code {{code}}.",
+    "failed": "The terminal could not start: {{detail}}"
   },
   "designSystem": {
     "title": "Design system",

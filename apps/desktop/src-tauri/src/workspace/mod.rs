@@ -13,7 +13,9 @@ use std::collections::BTreeSet;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::Duration;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
+
+use crate::terminal::TerminalState;
 use tauri_plugin_dialog::DialogExt;
 
 pub const CHANGED_EVENT: &str = "workspace://changed";
@@ -31,6 +33,12 @@ struct Open {
 pub struct WorkspaceState(Mutex<Option<Open>>);
 
 impl WorkspaceState {
+    /// The opened folder, if any (terminals start there).
+    pub fn root(&self) -> Option<PathBuf> {
+        let open = self.0.lock().ok()?;
+        open.as_ref().map(|o| o.scope.root().to_path_buf())
+    }
+
     fn scope(&self) -> FsResult<Scope> {
         let open = self.0.lock().map_err(|e| FsError::Io(e.to_string()))?;
         open.as_ref()
@@ -93,6 +101,8 @@ fn open_folder(app: &AppHandle, state: &WorkspaceState, path: PathBuf) -> FsResu
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default(),
     };
+    // Shells belong to the folder they started in.
+    app.state::<TerminalState>().close_all();
     let app = app.clone();
     let watcher = watch(&scope, move |payload| {
         let _ = app.emit(CHANGED_EVENT, payload);
@@ -129,7 +139,8 @@ pub fn workspace_open(
 }
 
 #[tauri::command]
-pub fn workspace_close(state: State<'_, WorkspaceState>) -> FsResult<()> {
+pub fn workspace_close(app: AppHandle, state: State<'_, WorkspaceState>) -> FsResult<()> {
+    app.state::<TerminalState>().close_all();
     *state.0.lock().map_err(|e| FsError::Io(e.to_string()))? = None;
     Ok(())
 }

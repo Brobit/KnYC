@@ -1,5 +1,5 @@
 // The dockable learning workspace (design 04 §7, "Movable panels"). Panels still placeholders
-// until their issues land: Terminal #34, Run #35, Lesson M3.
+// until their issues land: Run #35, Lesson M3.
 import {
   DockviewReact,
   type DockviewReadyEvent,
@@ -18,6 +18,7 @@ import { useTheme } from "@/lib/theme";
 import { Explorer } from "@/explorer/Explorer";
 import { Collapser } from "./collapse";
 import { EditorPanel } from "@/editor/EditorPanel";
+import { TerminalPanel } from "@/terminal/TerminalPanel";
 import { applyDefaultLayout, PANEL_COMPONENT, restoreLayout, saveLayout, type PanelId, type PanelTitle } from "./layout";
 
 const ICONS: Record<PanelId, LucideIcon> = {
@@ -50,6 +51,7 @@ function Panel({ api }: IDockviewPanelProps) {
   const id = api.id as PanelId;
   if (id === "explorer") return <Explorer />;
   if (id === "editor") return <EditorPanel empty={<Placeholder id={id} />} />;
+  if (id === "terminal") return <TerminalPanel empty={<Placeholder id={id} />} panelApi={api} />;
   return <Placeholder id={id} />;
 }
 
@@ -126,6 +128,8 @@ export function Workspace({ onReady }: { onReady?: (controls: WorkspaceControls)
         defaultTabComponent={Tab}
         rightHeaderActionsComponent={GroupActions}
         disableFloatingGroups
+        // Hidden tabs stay mounted: the editor keeps its state and terminals keep running.
+        defaultRenderer="always"
         onReady={ready}
       />
     </CollapserContext.Provider>

@@ -1,11 +1,15 @@
 mod settings;
+mod terminal;
 mod workspace;
+
+use tauri::{Manager, RunEvent};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(workspace::WorkspaceState::default())
+        .manage(terminal::TerminalState::default())
         .invoke_handler(tauri::generate_handler![
             settings::settings_read,
             settings::settings_write,
@@ -19,8 +23,18 @@ pub fn run() {
             workspace::workspace_create_file,
             workspace::workspace_create_dir,
             workspace::workspace_rename,
-            workspace::workspace_delete
+            workspace::workspace_delete,
+            terminal::terminal_open,
+            terminal::terminal_write,
+            terminal::terminal_resize,
+            terminal::terminal_close
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            // No shell outlives the app.
+            if let RunEvent::Exit = event {
+                app.state::<terminal::TerminalState>().close_all();
+            }
+        });
 }

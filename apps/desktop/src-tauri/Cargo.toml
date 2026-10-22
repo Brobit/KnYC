@@ -26,6 +26,7 @@ notify-debouncer-full = "0.7.0"
 ignore = "0.4.33"
 dunce = "1.0.5"
 knyc-analyzer = { version = "0.0.1", path = "../../../crates/knyc-analyzer" }
+knyc-runner = { version = "0.0.1", path = "../../../crates/knyc-runner" }
 
 [dev-dependencies]
 tempfile = "3.27.0"
