@@ -61,12 +61,17 @@ fn run_claude(program: &Path, args: &str) -> Option<String> {
     (!result.timed_out).then_some(result.stdout)
 }
 
-pub fn claude_status() -> ClaudeCliStatus {
+/// The Claude Code executable of this machine (PATH, then ~/.local/bin).
+pub fn locate_claude() -> Option<PathBuf> {
     let home = std::env::var_os("HOME")
         .or_else(|| std::env::var_os("USERPROFILE"))
         .map(PathBuf::from);
     let path_var = std::env::var("PATH").ok();
-    let Some(program) = find_claude(path_var.as_deref(), home.as_deref()) else {
+    find_claude(path_var.as_deref(), home.as_deref())
+}
+
+pub fn claude_status() -> ClaudeCliStatus {
+    let Some(program) = locate_claude() else {
         return ClaudeCliStatus {
             path: None,
             version: None,

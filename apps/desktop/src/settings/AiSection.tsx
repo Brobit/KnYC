@@ -1,5 +1,5 @@
 // Settings → AI providers (knyc.pen "Screen · Settings"): who KnYC may ask, and which model does what.
-import { Cpu, KeyRound, Plug, Plus, RefreshCw, SquareTerminal, Trash2, TriangleAlert } from "lucide-react";
+import { Cpu, FlaskConical, KeyRound, Plug, Plus, RefreshCw, SquareTerminal, Trash2, TriangleAlert } from "lucide-react";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { Settings } from "@knyc/core/schemas";
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { aiErrorMessage } from "@/lib/ai-errors";
 import { useSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 import { API_PROVIDERS, keyRefFor, MODEL_SUGGESTIONS, OLLAMA_DEFAULT_URL, ROLES, withoutProvider, withProvider, type RoleId } from "./providers";
@@ -289,7 +290,20 @@ function ClaudeCliRow({ backend }: { backend: SettingsBackend }) {
   const { settings, update } = useSettings();
   const [status, setStatus] = useState<ClaudeCliStatus | null>(null);
   const [check, setCheck] = useState(0);
+  const [test, setTest] = useState<{ state: "running" } | { state: "ok"; ms: number; model: string } | { state: "failed"; message: string } | null>(null);
   const enabled = settings.providers.some((p) => p.id === "claude-cli");
+  // The test uses the summaries model when Claude Code answers that role (the cheapest calls).
+  const testModel = settings.roles.summaries.providerId === "claude-cli" ? settings.roles.summaries.model : "haiku";
+
+  const runTest = async () => {
+    setTest({ state: "running" });
+    try {
+      const ms = await backend.testClaude(testModel);
+      setTest({ state: "ok", ms, model: testModel });
+    } catch (error) {
+      setTest({ state: "failed", message: aiErrorMessage(t, error) });
+    }
+  };
 
   useEffect(() => {
     let live = true;
@@ -339,13 +353,23 @@ function ClaudeCliRow({ backend }: { backend: SettingsBackend }) {
           <Button variant="ghost" size="icon-sm" aria-label={t("settings.ai.checkAgain")} title={t("settings.ai.checkAgain")} onClick={() => setCheck((n) => n + 1)}>
             <RefreshCw />
           </Button>
+          <Button variant="ghost" onClick={() => void runTest()} disabled={!status?.path || test?.state === "running"} title={t("settings.ai.testHint")}>
+            <FlaskConical />
+            {test?.state === "running" ? t("settings.ai.testing") : t("settings.ai.test")}
+          </Button>
           <Button variant="ghost" onClick={toggle} aria-pressed={enabled}>
             <Plug />
             {enabled ? t("settings.ai.disable") : t("settings.ai.enable")}
           </Button>
         </>
       }
-    />
+    >
+      {test && test.state !== "running" && (
+        <p role="status" className={cn("pl-11 text-[12px]", test.state === "ok" ? "text-success" : "text-danger")}>
+          {test.state === "ok" ? t("settings.ai.testOk", { model: test.model, seconds: (test.ms / 1000).toFixed(1) }) : test.message}
+        </p>
+      )}
+    </ProviderRow>
   );
 }
 

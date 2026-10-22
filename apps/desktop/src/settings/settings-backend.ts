@@ -2,7 +2,28 @@
 // (src-tauri/src/keychain.rs) and the Claude Code CLI status (src-tauri/src/providers.rs).
 // A plain browser (`pnpm dev`) gets an in-memory stand-in.
 import { invoke } from "@tauri-apps/api/core";
+import { z } from "zod";
+import { AiClient, AiError, type AiProvider } from "@knyc/core";
+import { AppClaudeProvider } from "@/lib/claude-provider";
 import { isTauri } from "@/lib/settings";
+
+const testAnswer = z.object({ ok: z.literal(true) });
+
+/** A real schema-validated call through the same AiClient the pipeline uses. */
+export async function testClaudeCall(provider: AiProvider, model: string): Promise<number> {
+  const role = { providerId: provider.id, model };
+  const client = new AiClient({ providers: [provider], roles: { summaries: role, planning: role, lessons: role } });
+  const started = Date.now();
+  await client.generate({
+    role: "summaries",
+    system: "You check that KnYC can reach you. Answer with the JSON asked for, nothing else.",
+    prompt: 'Reply with {"ok": true}.',
+    schema: testAnswer,
+    retries: 0,
+    timeoutMs: 90_000,
+  });
+  return Date.now() - started;
+}
 
 export interface ClaudeCliStatus {
   /** null when Claude Code is not installed. */
@@ -19,6 +40,8 @@ export interface SettingsBackend {
   keyHint(keyRef: string): Promise<string | null>;
   deleteKey(keyRef: string): Promise<void>;
   claudeCli(): Promise<ClaudeCliStatus>;
+  /** One tiny structured call with `model`: resolves to its duration in ms, rejects with an AiError. */
+  testClaude(model: string): Promise<number>;
 }
 
 export function createTauriSettingsBackend(): SettingsBackend {
@@ -27,6 +50,7 @@ export function createTauriSettingsBackend(): SettingsBackend {
     keyHint: (keyRef) => invoke("keychain_hint", { keyRef }),
     deleteKey: (keyRef) => invoke("keychain_delete", { keyRef }),
     claudeCli: () => invoke("claude_cli_status"),
+    testClaude: (model) => testClaudeCall(new AppClaudeProvider(), model),
   };
 }
 
@@ -58,6 +82,11 @@ export function createFakeSettingsBackend(claude: ClaudeCliStatus = { path: "/us
     },
     async claudeCli() {
       return claude;
+    },
+    async testClaude() {
+      if (!claude.path) throw new AiError("unavailable", "Claude Code CLI not found");
+      if (claude.loggedIn === false) throw new AiError("auth", "Claude Code is not logged in");
+      return 900;
     },
   };
 }

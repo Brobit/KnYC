@@ -97,7 +97,22 @@ fn capture(
 
 /// Runs the command. An error means it couldn't start; a failing command is a normal result.
 pub fn run(spec: &RunSpec) -> anyhow::Result<RunResult> {
-    let mut command = shell(&spec.command);
+    execute(shell(&spec.command), spec, false)
+}
+
+/// Runs `program` with `args` as they are, without a shell: for arguments a shell would mangle
+/// (JSON schemas, prompts with quotes). `spec.command` is ignored. No console window on Windows.
+pub fn run_program(
+    program: &std::path::Path,
+    args: &[String],
+    spec: &RunSpec,
+) -> anyhow::Result<RunResult> {
+    let mut command = Command::new(program);
+    command.args(args);
+    execute(command, spec, true)
+}
+
+fn execute(mut command: Command, spec: &RunSpec, hide_window: bool) -> anyhow::Result<RunResult> {
     command
         .current_dir(&spec.cwd)
         .envs(&spec.env)
@@ -114,7 +129,15 @@ pub fn run(spec: &RunSpec) -> anyhow::Result<RunResult> {
         .stderr(Stdio::piped());
 
     let started = Instant::now();
-    let mut child = command.group_spawn()?;
+    let mut group = command.group();
+    // command-group sets the creation flags itself, so they go through its builder.
+    #[cfg(windows)]
+    if hide_window {
+        group.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+    #[cfg(not(windows))]
+    let _ = hide_window;
+    let mut child = group.spawn()?;
     if let Some(input) = &spec.stdin
         && let Some(mut stdin) = child.inner().stdin.take()
     {
@@ -283,5 +306,27 @@ mod tests {
         let r = run(&RunSpec::new("definitely-not-a-command-knyc", dir.path())).unwrap();
         assert!(!r.success());
         assert!(!r.stderr.is_empty());
+    }
+
+    #[test]
+    fn run_program_passes_arguments_untouched() {
+        let dir = tempfile::tempdir().unwrap();
+        // Everything a shell would mangle: JSON, quotes, spaces, an empty argument (`--tools ""`).
+        let tricky = [
+            r#"{"type":"object","properties":{"a":{"type":"string"}}}"#,
+            "",
+            r#"it's "quoted" & <piped> | %PATH% $HOME"#,
+        ];
+        let mut args = vec![
+            "-e".to_string(),
+            "console.log(JSON.stringify(process.argv.slice(1)))".to_string(),
+        ];
+        args.extend(tricky.iter().map(|a| a.to_string()));
+        let mut spec = RunSpec::new("", dir.path());
+        spec.stdin = Some("ignored".into());
+        let r = run_program(std::path::Path::new("node"), &args, &spec).unwrap();
+        assert!(r.success(), "{r:?}");
+        let seen: Vec<String> = serde_json::from_str(r.stdout.trim()).unwrap();
+        assert_eq!(seen, tricky);
     }
 }
