@@ -6,16 +6,19 @@ import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import { AiError, KnycSysError, pathSize, trackId, type PathSize, type TrackId } from "@knyc/core";
 import { analyze } from "./analyze.ts";
+import { evaluate, renderEvaluation } from "./eval.ts";
 
 export const USAGE = `knyc: rebuild any project step by step
 
 Usage:
   knyc analyze <folder> [options]
+  knyc eval <folder>... --out <folder> [options]   measure the analysis on several projects
 
 Options:
   --track <track>       frontend | backend | database | deployment | full (default: backend)
   --size <size>         overview | standard | deep (default: standard)
   --workspace <folder>  where .knyc/ is written (default: the project folder)
+  --out <folder>        eval only: where workspaces and results are written
   --summaries <model>   model for summaries (default: haiku)
   --planning <model>    model for the learning path (default: sonnet)
   --checks <model>      model for generated checks (default: sonnet)
@@ -26,8 +29,11 @@ The AI runs through your Claude Code CLI (it must be installed and logged in).
 The analysis cache lives in $KNYC_HOME or ~/.knyc.`;
 
 export interface ParsedArgs {
-  command: "analyze" | "help";
+  command: "analyze" | "eval" | "help";
   folder?: string;
+  /** eval: the projects to measure. */
+  folders?: string[];
+  out?: string;
   track: TrackId;
   size: PathSize;
   workspace?: string;
@@ -43,6 +49,7 @@ export function parse(argv: string[]): ParsedArgs {
       track: { type: "string", default: "backend" },
       size: { type: "string", default: "standard" },
       workspace: { type: "string" },
+      out: { type: "string" },
       summaries: { type: "string", default: "haiku" },
       planning: { type: "string", default: "sonnet" },
       checks: { type: "string", default: "sonnet" },
@@ -52,16 +59,18 @@ export function parse(argv: string[]): ParsedArgs {
   });
   const [command, folder, ...rest] = positionals;
   if (values.help || !command || command === "help") return { command: "help", track: "backend", size: "standard", models: { summaries: "", planning: "", checks: "" }, yes: false };
-  if (command !== "analyze") throw new UsageError(`unknown command "${command}"`);
-  if (!folder) throw new UsageError("missing the project folder: knyc analyze <folder>");
-  if (rest.length > 0) throw new UsageError(`unexpected argument "${rest[0]}"`);
+  if (command !== "analyze" && command !== "eval") throw new UsageError(`unknown command "${command}"`);
+  if (!folder) throw new UsageError(`missing the project folder: knyc ${command} <folder>`);
+  if (command === "analyze" && rest.length > 0) throw new UsageError(`unexpected argument "${rest[0]}"`);
+  if (command === "eval" && !values.out) throw new UsageError("knyc eval needs --out <folder>");
   const track = trackId.safeParse(values.track);
   if (!track.success) throw new UsageError(`--track must be one of ${trackId.options.join(", ")}`);
   const size = pathSize.safeParse(values.size);
   if (!size.success) throw new UsageError(`--size must be one of ${pathSize.options.join(", ")}`);
   return {
-    command: "analyze",
+    command,
     folder,
+    ...(command === "eval" ? { folders: [folder, ...rest], out: values.out } : {}),
     track: track.data,
     size: size.data,
     workspace: values.workspace,
@@ -94,6 +103,15 @@ async function main() {
   const args = parse(process.argv.slice(2));
   if (args.command === "help") {
     console.log(USAGE);
+    return;
+  }
+  if (args.command === "eval") {
+    const results = await evaluate(args.folders!, { track: args.track, size: args.size, models: args.models, yes: true, out: args.out! }, {
+      log: (line) => console.log(line),
+      confirm: async () => true,
+    });
+    console.log(`
+${renderEvaluation(results)}`);
     return;
   }
   const rl = createInterface({ input: process.stdin, output: process.stdout });

@@ -171,5 +171,17 @@ export async function analyze(options: AnalyzeOptions, io: AnalyzeIo) {
   io.log("");
   io.log(`Done: ${checks.path.steps.length} steps, ${strong}/${checks.report.length} with a proven check, ${client.totals.calls} AI calls.`);
   io.log(`Wrote ${written.length} files in ${join(workspace, ".knyc")} (report: .knyc/report.md).`);
-  return { path: checks.path, report: checks.report, written, cacheDir, workDir };
+  return {
+    path: checks.path,
+    report: checks.report,
+    checks: checks.checks,
+    checkFiles: checks.files,
+    timeline,
+    stages,
+    totals: client.totals,
+    units: units.atoms.length,
+    written,
+    cacheDir,
+    workDir,
+  };
 }

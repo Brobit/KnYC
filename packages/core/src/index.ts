@@ -24,3 +24,4 @@ export * from "./pipeline/workspace.ts";
 export * from "./pipeline/checks/existing.ts";
 export * from "./pipeline/checks/generated.ts";
 export { buildChecks, type ChecksOptions, type ChecksResult, type StepChecks } from "./pipeline/checks/index.ts";
+export * from "./pipeline/checks/audit.ts";

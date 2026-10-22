@@ -1,0 +1,167 @@
+[
+  {
+    "project": "express-notes",
+    "size": "standard",
+    "steps": 13,
+    "milestones": 4,
+    "units": 21,
+    "proven": 9,
+    "trivialOnly": 0,
+    "weak": 3,
+    "merged": 1,
+    "timelineBuilds": 12,
+    "finalMatchesOriginal": true,
+    "checks": {
+      "repo": 12,
+      "generated": 12,
+      "trivial": 0
+    },
+    "aiCalls": 8,
+    "checkRetries": 0,
+    "stages": [
+      {
+        "name": "Scan and code graph",
+        "seconds": 0.216,
+        "calls": 0
+      },
+      {
+        "name": "Summaries",
+        "seconds": 0.022,
+        "calls": 0
+      },
+      {
+        "name": "Learning path",
+        "seconds": 0.024,
+        "calls": 0
+      },
+      {
+        "name": "Reference timeline",
+        "seconds": 45.011,
+        "calls": 0
+      },
+      {
+        "name": "Checks",
+        "seconds": 294.738,
+        "calls": 8
+      }
+    ],
+    "seconds": 340.011,
+    "usage": {
+      "inputTokens": 20,
+      "outputTokens": 9987,
+      "cacheReadTokens": 61910,
+      "cacheWriteTokens": 25681
+    },
+    "costUsd": 0.21501599999999996
+  },
+  {
+    "project": "express-no-tests",
+    "size": "standard",
+    "steps": 13,
+    "milestones": 4,
+    "units": 31,
+    "proven": 10,
+    "trivialOnly": 0,
+    "weak": 2,
+    "merged": 1,
+    "timelineBuilds": 12,
+    "finalMatchesOriginal": true,
+    "checks": {
+      "repo": 0,
+      "generated": 23,
+      "trivial": 0
+    },
+    "aiCalls": 18,
+    "checkRetries": 0,
+    "stages": [
+      {
+        "name": "Scan and code graph",
+        "seconds": 0.256,
+        "calls": 0
+      },
+      {
+        "name": "Summaries",
+        "seconds": 213.142,
+        "calls": 5
+      },
+      {
+        "name": "Learning path",
+        "seconds": 62.541,
+        "calls": 1
+      },
+      {
+        "name": "Reference timeline",
+        "seconds": 60.077,
+        "calls": 0
+      },
+      {
+        "name": "Checks",
+        "seconds": 375.573,
+        "calls": 12
+      }
+    ],
+    "seconds": 711.5889999999999,
+    "usage": {
+      "inputTokens": 124,
+      "outputTokens": 35740,
+      "cacheReadTokens": 132785,
+      "cacheWriteTokens": 78854
+    },
+    "costUsd": 0.5844211000000001
+  },
+  {
+    "project": "express-shop",
+    "size": "standard",
+    "steps": 20,
+    "milestones": 5,
+    "units": 107,
+    "proven": 20,
+    "trivialOnly": 0,
+    "weak": 0,
+    "merged": 0,
+    "timelineBuilds": 20,
+    "finalMatchesOriginal": true,
+    "checks": {
+      "repo": 16,
+      "generated": 46,
+      "trivial": 0
+    },
+    "aiCalls": 28,
+    "checkRetries": 0,
+    "stages": [
+      {
+        "name": "Scan and code graph",
+        "seconds": 0.425,
+        "calls": 0
+      },
+      {
+        "name": "Summaries",
+        "seconds": 236.136,
+        "calls": 8
+      },
+      {
+        "name": "Learning path",
+        "seconds": 86.743,
+        "calls": 1
+      },
+      {
+        "name": "Reference timeline",
+        "seconds": 98.641,
+        "calls": 0
+      },
+      {
+        "name": "Checks",
+        "seconds": 913.14,
+        "calls": 19
+      }
+    ],
+    "seconds": 1335.085,
+    "usage": {
+      "inputTokens": 136,
+      "outputTokens": 67427,
+      "cacheReadTokens": 171763,
+      "cacheWriteTokens": 163968
+    },
+    "costUsd": 1.1614635
+  }
+]
