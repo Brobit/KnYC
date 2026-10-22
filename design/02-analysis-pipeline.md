@@ -158,11 +158,16 @@ mocked) + **`R0`** of the chosen track. Tracks the learner already finished use 
 ## Cost, time, privacy
 
 - Before ⑤, show an **estimate** (files to send, approximate tokens/cost for API-key users) and ask
-  for confirmation.
+  for confirmation. With the Claude Code CLI there is no per-token cost: the estimate is the number
+  of AI calls and the time, and a note that it uses part of the user's plan.
 - Cheap model for summaries, strong model for planning and timeline; configurable.
 - Everything is cached; re-analysis only reprocesses changed files.
 - Progress UI shows each stage live; the user can start step 1 as soon as `R1` and its checks are ready
-  while later steps are still being prepared.
+  while later steps are still being prepared. Order after the path is chosen: ⑥ plan → ⑦ the whole
+  timeline (fast, no AI when it builds) → ⑧ checks of step 1 → the learner starts → ⑧ for the
+  following steps in order, in the background. A step whose checks aren't ready shows "preparing…".
+- Stages save their results as they finish (cache by content hash). If the AI provider hits a
+  usage limit, the analysis pauses and resumes later from the last finished stage or step.
 
 ## Failure modes
 
@@ -185,3 +190,7 @@ mocked) + **`R0`** of the chosen track. Tracks the learner already finished use 
 - **D3 — Lessons**: generated lazily when the learner reaches the step, using their actual code.
 - **D4 — Cost estimate**: always shown before the AI stages, with confirmation. Can be turned off in
   settings.
+- **D5 — Progressive preparation** (2026-10-22, for M3): step 1 opens as soon as its checks are
+  proven; later steps' checks are prepared in the background, in order.
+- **D6 — Pause on usage limits** (2026-10-22, for M3): a provider limit pauses the analysis instead
+  of failing it; it resumes from the last finished stage or step.
