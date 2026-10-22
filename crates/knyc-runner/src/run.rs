@@ -57,7 +57,7 @@ impl RunResult {
 }
 
 #[cfg(windows)]
-fn shell(command: &str) -> Command {
+pub(crate) fn shell(command: &str) -> Command {
     use std::os::windows::process::CommandExt;
     let mut c = Command::new("cmd");
     // Passed as-is: Rust's default argument quoting isn't what cmd.exe expects. With /S, cmd
@@ -67,7 +67,7 @@ fn shell(command: &str) -> Command {
 }
 
 #[cfg(not(windows))]
-fn shell(command: &str) -> Command {
+pub(crate) fn shell(command: &str) -> Command {
     let mut c = Command::new("sh");
     c.args(["-c", command]);
     c
