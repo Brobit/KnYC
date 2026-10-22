@@ -1,13 +1,20 @@
 // The folder being worked on and the files open in the editor, shared by every workspace panel.
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { withoutRecentWorkspace, withRecentWorkspace, type RecentWorkspace, type Workspaces } from "@knyc/core/schemas";
 import { DocumentStore } from "@/editor/documents";
+import { recentStore as defaultRecents, type RecentStore } from "@/lib/recent-workspaces";
 import { workspaceFs as defaultFs, type WorkspaceFs, type WorkspaceInfo } from "@/lib/workspace-fs";
 
 interface WorkspaceContext {
   fs: WorkspaceFs;
   folder: WorkspaceInfo | null;
-  /** Shows the open-folder dialog; keeps the current folder when cancelled. */
-  pickFolder: () => Promise<void>;
+  /** Shows the open-folder dialog; keeps the current folder when cancelled. Resolves to whether a folder was opened. */
+  pickFolder: () => Promise<boolean>;
+  /** Folders opened lately, most recent first. */
+  recent: RecentWorkspace[];
+  /** Reopens a recent folder; rejects (WorkspaceFsError) when it is gone. */
+  openRecent: (root: string) => Promise<void>;
+  forgetRecent: (root: string) => void;
   documents: DocumentStore;
   /** The file in the editor's active tab. */
   activeFile: string | null;
@@ -19,17 +26,55 @@ interface WorkspaceContext {
 
 const Context = createContext<WorkspaceContext | null>(null);
 
-export function WorkspaceProvider({ children, fs = defaultFs }: { children: ReactNode; fs?: WorkspaceFs }) {
+interface WorkspaceProviderProps {
+  children: ReactNode;
+  fs?: WorkspaceFs;
+  recents?: RecentStore;
+}
+
+export function WorkspaceProvider({ children, fs = defaultFs, recents = defaultRecents }: WorkspaceProviderProps) {
   const [folder, setFolder] = useState<WorkspaceInfo | null>(null);
+  const [recent, setRecent] = useState<RecentWorkspace[]>([]);
   const [documents] = useState(() => new DocumentStore(fs));
   const activeFile = useSyncExternalStore(documents.subscribe, () => documents.getSnapshot().active);
 
+  useEffect(() => {
+    void recents.load().then((doc) => setRecent(doc.recent));
+  }, [recents]);
+
+  /** Changes to workspaces.json run one after the other, each from the saved file, so none is lost. */
+  const queue = useRef<Promise<void>>(Promise.resolve());
+  const changeRecent = useCallback(
+    (change: (doc: Workspaces) => Workspaces) => {
+      queue.current = queue.current
+        .then(async () => {
+          const next = change(await recents.load());
+          setRecent(next.recent);
+          await recents.save(next);
+        })
+        .catch((error) => console.error("could not save recent workspaces", error));
+    },
+    [recents],
+  );
+
+  const opened = useCallback(
+    (info: WorkspaceInfo) => {
+      documents.reset();
+      setFolder(info);
+      changeRecent((doc) => withRecentWorkspace(doc, { root: info.root, name: info.name, lastOpenedAt: new Date().toISOString() }));
+    },
+    [documents, changeRecent],
+  );
+
   const pickFolder = useCallback(async () => {
     const picked = await fs.pick();
-    if (!picked) return;
-    documents.reset();
-    setFolder(picked);
-  }, [fs, documents]);
+    if (!picked) return false;
+    opened(picked);
+    return true;
+  }, [fs, opened]);
+
+  const openRecent = useCallback(async (root: string) => opened(await fs.open(root)), [fs, opened]);
+  const forgetRecent = useCallback((root: string) => changeRecent((doc) => withoutRecentWorkspace(doc, root)), [changeRecent]);
 
   // Open files follow the disk (terminal, git, another editor).
   useEffect(() => {
@@ -43,13 +88,16 @@ export function WorkspaceProvider({ children, fs = defaultFs }: { children: Reac
       fs,
       folder,
       pickFolder,
+      recent,
+      openRecent,
+      forgetRecent,
       documents,
       activeFile,
       openFile: (path) => void documents.open(path),
       onMoved: (from, to) => documents.moved(from, to),
       onDeleted: (path) => documents.deleted(path),
     }),
-    [fs, folder, pickFolder, documents, activeFile],
+    [fs, folder, pickFolder, recent, openRecent, forgetRecent, documents, activeFile],
   );
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

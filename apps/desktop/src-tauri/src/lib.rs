@@ -17,6 +17,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             settings::settings_read,
             settings::settings_write,
+            settings::workspaces_read,
+            settings::workspaces_write,
             keychain::keychain_set,
             keychain::keychain_hint,
             keychain::keychain_delete,

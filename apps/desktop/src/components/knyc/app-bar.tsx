@@ -66,14 +66,18 @@ export interface AppBarProps {
   /** Screen-specific buttons, shown before the theme and settings buttons. */
   actions?: ReactNode;
   onSettings?: () => void;
+  /** The logo and name lead Home. */
+  onHome?: () => void;
 }
 
-export function AppBar({ crumb, aiStatus, actions, onSettings }: AppBarProps) {
+export function AppBar({ crumb, aiStatus, actions, onSettings, onHome }: AppBarProps) {
   const { t } = useTranslation();
   return (
     <header className="flex h-11 shrink-0 items-center gap-2.5 border-b border-border bg-surface-2 px-4">
-      <Logo />
-      <span className="text-[13px] font-semibold text-text-primary">{t("app.name")}</span>
+      <button type="button" onClick={onHome} disabled={!onHome} aria-label={t("home.title")} className="-mx-1 flex items-center gap-2.5 rounded-md px-1 py-0.5 enabled:hover:bg-surface">
+        <Logo />
+        <span className="text-[13px] font-semibold text-text-primary">{t("app.name")}</span>
+      </button>
       <ChevronRight className="size-3.5 text-text-muted" aria-hidden />
       <span className="min-w-0 flex-1 truncate text-[13px] text-text-secondary">{crumb}</span>
       {aiStatus && (

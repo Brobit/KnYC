@@ -1,15 +1,13 @@
-//! settings.json in the app's config folder (design/03-data-model.md). Rust only stores the text;
-//! the frontend validates it with the `settings` schema from @knyc/core.
+//! settings.json and workspaces.json in the app's config folder (design/03-data-model.md). Rust only
+//! stores the text; the frontend validates it with the schemas from @knyc/core.
 
 use std::fs;
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Manager};
 
-const FILE: &str = "settings.json";
-
-fn settings_path(app: &AppHandle) -> Result<PathBuf, String> {
+fn config_file(app: &AppHandle, name: &str) -> Result<PathBuf, String> {
     let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
-    Ok(dir.join(FILE))
+    Ok(dir.join(name))
 }
 
 /// Reads the file, or None on first launch.
@@ -24,7 +22,7 @@ pub fn read(path: &Path) -> Result<Option<String>, String> {
 /// Writes next to the target then renames, so a crash never leaves half a file.
 pub fn write(path: &Path, json: &str) -> Result<(), String> {
     serde_json::from_str::<serde_json::Value>(json)
-        .map_err(|e| format!("settings are not valid JSON: {e}"))?;
+        .map_err(|e| format!("{} is not valid JSON: {e}", path.display()))?;
     if let Some(dir) = path.parent() {
         fs::create_dir_all(dir).map_err(|e| e.to_string())?;
     }
@@ -35,12 +33,23 @@ pub fn write(path: &Path, json: &str) -> Result<(), String> {
 
 #[tauri::command]
 pub fn settings_read(app: AppHandle) -> Result<Option<String>, String> {
-    read(&settings_path(&app)?)
+    read(&config_file(&app, "settings.json")?)
 }
 
 #[tauri::command]
 pub fn settings_write(app: AppHandle, json: String) -> Result<(), String> {
-    write(&settings_path(&app)?, &json)
+    write(&config_file(&app, "settings.json")?, &json)
+}
+
+/// Recent workspaces (Home screen), or None before the first folder is opened.
+#[tauri::command]
+pub fn workspaces_read(app: AppHandle) -> Result<Option<String>, String> {
+    read(&config_file(&app, "workspaces.json")?)
+}
+
+#[tauri::command]
+pub fn workspaces_write(app: AppHandle, json: String) -> Result<(), String> {
+    write(&config_file(&app, "workspaces.json")?, &json)
 }
 
 #[cfg(test)]
