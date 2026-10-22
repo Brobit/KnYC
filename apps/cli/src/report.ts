@@ -33,6 +33,7 @@ export function renderReport(r: ReportInput): string {
     "",
     `**${r.path.steps.length} steps** in ${r.path.milestones.length} milestones · **${strong}/${r.stepChecks.length} steps (${pct}%) with a check proven red → green** · ${r.checks.filter((c) => c.validation).length} proven checks`,
     `Reference timeline: ${builds}/${r.timeline.steps.length} steps build on their own · last step = original code: ${r.timeline.finalMatchesOriginal ? "yes" : "**no**"}`,
+    ...(r.timeline.setupFixes.length > 0 ? [`Setup adjusted so early steps build alone: ${r.timeline.setupFixes.join("; ")}`] : []),
     "",
   ];
 

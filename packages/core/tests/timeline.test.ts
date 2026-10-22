@@ -115,18 +115,17 @@ describe("filesAtStep on the real express-notes plan", () => {
 const knycSys = findKnycSys();
 // Full builds install dependencies and run tsc once per step: opt in with KNYC_SLOW_TESTS=1.
 describe.skipIf(!knycSys || !process.env.KNYC_SLOW_TESTS)("buildTimeline (slow, real builds)", () => {
-  it("builds express-notes overview, merging the step that can't build alone", { timeout: 15 * 60_000 }, async () => {
+  it("builds every step of express-notes overview on its own", { timeout: 15 * 60_000 }, async () => {
     const { graph, path, units } = load("express-notes", "overview");
     const workDir = join(await mkdtemp(join(tmpdir(), "knyc-timeline-")), "repo");
     try {
       const scan = await scanProject(goldenRoot("express-notes"));
       const timeline = await buildTimeline(path, graph, scan, units, { sourceRoot: goldenRoot("express-notes"), workDir });
-      // s01 is config.ts alone: since TypeScript 6, Node's types only arrive through Express's
-      // types, so `process` is unknown until a step imports Express. It merges into s02.
-      const [first, ...rest] = timeline.steps;
-      expect(first).toMatchObject({ stepId: "s01", ok: false, mergedInto: "s02" });
-      expect(first!.errors).toMatch(/Cannot find name 'process'/);
-      expect(rest.every((s) => s.ok && s.tag === `${path.id}/${s.stepId}`)).toBe(true);
+      // s01 is config.ts alone, which reads `process`. Since TypeScript 6, Node's types only came
+      // through Express's types, so s01 failed and merged into s02 (design/08). The setup now
+      // names them in tsconfig.json.
+      expect(timeline.setupFixes).toEqual(['tsconfig.json: added "types": ["node"]']);
+      expect(timeline.steps.every((s) => s.ok && s.tag === `${path.id}/${s.stepId}`)).toBe(true);
       expect(timeline.finalMatchesOriginal).toBe(true);
     } finally {
       await rm(join(workDir, ".."), { recursive: true, force: true });
