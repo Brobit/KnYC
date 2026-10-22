@@ -2309,6 +2309,7 @@ dependencies = [
 name = "knyc"
 version = "0.0.1"
 dependencies = [
+ "anyhow",
  "dunce",
  "ignore",
  "keyring",
