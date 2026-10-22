@@ -54,7 +54,11 @@
       "termsHint": "Using your Claude Code subscription from another app: check the provider's terms before use.",
       "checkAgain": "Check again",
       "enable": "Enable",
-      "disable": "Disable"
+      "disable": "Disable",
+      "test": "Test",
+      "testing": "Testing…",
+      "testHint": "Ask Claude Code for a tiny structured answer, as the analysis will",
+      "testOk": "Claude Code answered with {{model}} in {{seconds}} s."
     },
     "roles": {
       "title": "Which model does what",
@@ -82,6 +86,16 @@
       "names": {
         "en": "English"
       }
+    }
+  },
+  "ai": {
+    "errors": {
+      "auth": "Claude Code is not logged in. Run claude in a terminal, then /login, and try again.",
+      "limit": "Your Claude plan has reached its usage limit. The analysis will wait; try again when the limit resets.",
+      "unavailable": "Claude Code isn’t installed or couldn’t start. Install it, then check again.",
+      "timeout": "Claude Code took too long to answer. Try again; if it keeps happening, check your connection.",
+      "invalid-output": "Claude Code’s answer didn’t have the expected shape.",
+      "provider": "Claude Code reported an error: {{detail}}"
     }
   },
   "home": {

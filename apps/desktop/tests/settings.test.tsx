@@ -123,6 +123,25 @@ describe("Settings · local providers", () => {
     await user.click(within(claude).getByRole("button", { name: "Enable" }));
     await waitFor(async () => expect((await saved()).providers.map((p) => p.id)).toEqual(["claude-cli"]));
   });
+
+  it("tests Claude Code with the summaries model", async () => {
+    const backend = createFakeSettingsBackend();
+    const models: string[] = [];
+    const testClaude = backend.testClaude;
+    backend.testClaude = (model) => (models.push(model), testClaude(model));
+    const { user } = renderSettings({ backend });
+    const claude = row("Claude Code");
+    await user.click(await within(claude).findByRole("button", { name: "Test" }));
+    expect(await within(claude).findByRole("status")).toHaveTextContent("Claude Code answered with haiku in 0.9 s.");
+    expect(models).toEqual([defaultSettings().roles.summaries.model]);
+  });
+
+  it("explains why the test failed", async () => {
+    const { user } = renderSettings({ backend: createFakeSettingsBackend({ path: "/usr/local/bin/claude", version: "2.1.0", loggedIn: false }) });
+    const claude = row("Claude Code");
+    await user.click(await within(claude).findByRole("button", { name: "Test" }));
+    expect(await within(claude).findByRole("status")).toHaveTextContent("Claude Code is not logged in. Run claude in a terminal, then /login");
+  });
 });
 
 describe("Settings · model roles", () => {

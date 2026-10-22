@@ -1,3 +1,4 @@
+mod ai;
 mod keychain;
 mod pipeline;
 mod providers;
@@ -25,6 +26,7 @@ pub fn run() {
             keychain::keychain_hint,
             keychain::keychain_delete,
             providers::claude_cli_status,
+            ai::ai_claude_call,
             workspace::workspace_pick,
             workspace::workspace_open,
             workspace::workspace_close,

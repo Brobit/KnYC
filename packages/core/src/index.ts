@@ -15,6 +15,7 @@ export * from "./ai/types.ts";
 export * from "./ai/cache.ts";
 export * from "./ai/estimate.ts";
 export * from "./ai/client.ts";
+export * from "./ai/claude-output.ts";
 export * from "./sys/knyc-sys.ts";
 export * from "./pipeline/redact.ts";
 export * from "./pipeline/summaries.ts";
