@@ -30,6 +30,9 @@ Sizes are relative (S / M / L / XL), not dates.
 
 ## M1 — Core spike: does the idea work? (L) — go / no-go
 
+**Result: GO** (2026-10-22): 39/46 steps (85 %) proven red → green with behavior checks on the
+golden repos. Details and the improvements carried forward: [design 08](08-m1-evaluation.md).
+
 Headless `knyc` CLI, no UI. **One stack: TypeScript + Node backend (Express) with Vitest/Jest.**
 
 - Rust: intake, static scan, tree-sitter graph for TS/JS (`knyc-analyzer`); process runner

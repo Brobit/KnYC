@@ -2,7 +2,7 @@
 
 > Import any codebase. Rebuild it step by step, with an AI guide. Understand it end to end.
 
-Status: **design complete** — see [`design/`](design/). Next: coding, starting with M0 (design 06).
+Status: **M0 and M1 done** — the core pipeline is proven ([design 08](design/08-m1-evaluation.md)). Next: M2, the editor shell (design 06).
 
 Design docs:
 1. [Tech stack & architecture](design/01-architecture.md) — agreed
@@ -12,6 +12,7 @@ Design docs:
 5. [Landing page](design/05-landing-page.md) — agreed
 6. [Roadmap](design/06-roadmap.md) — agreed
 7. [Design system](design/07-design-system.md) — draft for review (visuals in [`design/knyc.pen`](design/knyc.pen))
+8. [M1 evaluation](design/08-m1-evaluation.md) — **GO**: 85 % of steps proven red → green
 
 ---
 

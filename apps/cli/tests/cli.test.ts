@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { AiError, buildUnits, emptyUsage, graphSchema, learningPath, loadDocument, type Check, type Scan, type StepChecks } from "@knyc/core";
+import { renderEvaluation } from "../src/eval.ts";
 import { explain, parse, UsageError } from "../src/main.ts";
 import { renderReport } from "../src/report.ts";
 import { initialProgress, projectDocument, writeWorkspace } from "../src/workspace.ts";
@@ -126,5 +127,25 @@ describe("renderReport", () => {
     expect(markdown).toContain("14/15 steps build on their own");
     expect(markdown).toContain("🔗 **s01**");
     expect(markdown).toContain("| **Total** | **400 s** | **19** |");
+  });
+});
+
+describe("eval", () => {
+  it("parses several projects and requires --out", () => {
+    expect(parse(["eval", "a", "b", "--out", "res"])).toMatchObject({ command: "eval", folders: ["a", "b"], out: "res" });
+    expect(() => parse(["eval", "a"])).toThrow("knyc eval needs --out <folder>");
+  });
+
+  it("totals the projects and decides against the threshold, keeping failed ones visible", () => {
+    const base = { size: "standard" as const, units: 10, milestones: 3, weak: 1, merged: 1, timelineBuilds: 9, finalMatchesOriginal: true, aiCalls: 10, checkRetries: 1, stages: [], seconds: 600, checks: { repo: 2, generated: 10, trivial: 1 } };
+    const markdown = renderEvaluation([
+      { ...base, project: "a", steps: 10, proven: 8, trivialOnly: 0 },
+      { ...base, project: "b", steps: 10, proven: 9, trivialOnly: 0 },
+      { project: "c", size: "standard", error: "Claude Code usage limit reached" },
+    ]);
+    expect(markdown).toContain("| **Total** | **20** | **17 (85%)**");
+    expect(markdown).toContain("**error:** Claude Code usage limit reached");
+    expect(markdown).toContain("**GO**: 85% of steps");
+    expect(renderEvaluation([{ ...base, project: "a", steps: 10, proven: 7, trivialOnly: 1 }])).toContain("**NO-GO**");
   });
 });
