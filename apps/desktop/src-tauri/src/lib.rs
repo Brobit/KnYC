@@ -1,4 +1,5 @@
 mod keychain;
+mod pipeline;
 mod providers;
 mod run;
 mod settings;
@@ -14,6 +15,7 @@ pub fn run() {
         .manage(workspace::WorkspaceState::default())
         .manage(terminal::TerminalState::default())
         .manage(run::RunState::default())
+        .manage(pipeline::PipelineState::default())
         .invoke_handler(tauri::generate_handler![
             settings::settings_read,
             settings::settings_write,
@@ -40,7 +42,16 @@ pub fn run() {
             terminal::terminal_close,
             run::run_commands,
             run::run_start,
-            run::run_stop
+            run::run_stop,
+            pipeline::pipeline_data_dir,
+            pipeline::pipeline_pick_source,
+            pipeline::host_read_file,
+            pipeline::host_write_file,
+            pipeline::host_append_file,
+            pipeline::host_copy_file,
+            pipeline::host_remove,
+            pipeline::host_git,
+            pipeline::host_sys
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

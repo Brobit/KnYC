@@ -186,7 +186,8 @@ export async function buildChecks(
   }
 
   // 3. Generated checks must also pass at the last step (they shouldn't break as the code grows).
-  const last = tagged.at(-1)!;
+  // No .at(): the desktop webview targets ES2020 (older macOS WebKit).
+  const last = tagged[tagged.length - 1];
   if (accepted.size > 0) {
     await checkoutStep(host, workDir, last.tag!, scan);
     for (const [stepId, list] of accepted) {
