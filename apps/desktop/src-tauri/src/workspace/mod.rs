@@ -140,6 +140,11 @@ pub fn workspace_tree(state: State<'_, WorkspaceState>) -> FsResult<Vec<TreeEntr
 }
 
 #[tauri::command]
+pub fn workspace_list(state: State<'_, WorkspaceState>, path: String) -> FsResult<Vec<TreeEntry>> {
+    state.scope()?.list(&path)
+}
+
+#[tauri::command]
 pub fn workspace_read(state: State<'_, WorkspaceState>, path: String) -> FsResult<String> {
     state.scope()?.read_text(&path)
 }

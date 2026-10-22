@@ -1,5 +1,5 @@
-// The dockable learning workspace (design 04 §7, "Movable panels"). Panels are placeholders until
-// their issues land: Explorer #32, Editor #33, Terminal #34, Run #35, Lesson M3.
+// The dockable learning workspace (design 04 §7, "Movable panels"). Panels still placeholders
+// until their issues land: Editor #33, Terminal #34, Run #35, Lesson M3.
 import {
   DockviewReact,
   type DockviewReadyEvent,
@@ -15,7 +15,9 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useSettings } from "@/lib/settings";
 import { useTheme } from "@/lib/theme";
+import { Explorer } from "@/explorer/Explorer";
 import { Collapser } from "./collapse";
+import { EditorPreview } from "./EditorPreview";
 import { applyDefaultLayout, PANEL_COMPONENT, restoreLayout, saveLayout, type PanelId, type PanelTitle } from "./layout";
 
 const ICONS: Record<PanelId, LucideIcon> = {
@@ -32,9 +34,8 @@ const SAVE_DELAY_MS = 400;
 
 const CollapserContext = createContext<Collapser | null>(null);
 
-function Placeholder({ api }: IDockviewPanelProps) {
+function Placeholder({ id }: { id: PanelId }) {
   const { t } = useTranslation();
-  const id = api.id as PanelId;
   const Icon = ICONS[id];
   return (
     <div className="flex h-full flex-col items-center justify-center gap-2 bg-surface p-6 text-center">
@@ -42,6 +43,14 @@ function Placeholder({ api }: IDockviewPanelProps) {
       <p className="max-w-[260px] text-xs text-text-muted">{t(`workspace.placeholder.${id}`)}</p>
     </div>
   );
+}
+
+/** Routes each panel id to its content; the rest stay placeholders until their issues land. */
+function Panel({ api }: IDockviewPanelProps) {
+  const id = api.id as PanelId;
+  if (id === "explorer") return <Explorer />;
+  if (id === "editor") return <EditorPreview fallback={<Placeholder id={id} />} />;
+  return <Placeholder id={id} />;
 }
 
 /** Tabs carry an icon and no close button: the workspace always holds every panel. */
@@ -72,7 +81,7 @@ function GroupActions({ group, containerApi }: IDockviewHeaderActionsProps) {
   );
 }
 
-const COMPONENTS = { [PANEL_COMPONENT]: Placeholder };
+const COMPONENTS = { [PANEL_COMPONENT]: Panel };
 
 export interface WorkspaceControls {
   resetLayout: () => void;

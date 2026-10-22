@@ -47,6 +47,40 @@
       "lesson": "The lesson for the current step: goal, explanation, checks and hints."
     }
   },
+  "explorer": {
+    "noFolder": "Open the folder of the project you want to rebuild.",
+    "openFolder": "Open folder",
+    "empty": "This folder is empty.",
+    "newFile": "New file",
+    "newFolder": "New folder",
+    "rename": "Rename",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "refresh": "Refresh",
+    "collapseAll": "Collapse all",
+    "deleteTitle": "Delete {{name}}?",
+    "deleteFileBody": "{{path}} will be deleted from disk. This cannot be undone.",
+    "deleteFolderBody": "{{path}} and everything in it will be deleted from disk. This cannot be undone.",
+    "nameProblems": {
+      "empty": "Enter a name.",
+      "separator": "A name cannot contain / or \\.",
+      "dots": "This name is reserved.",
+      "taken": "Something with this name already exists here."
+    },
+    "errors": {
+      "noWorkspace": "No folder is open.",
+      "outsideWorkspace": "{{path}} is outside the project folder.",
+      "notFound": "{{path}} no longer exists.",
+      "alreadyExists": "{{path}} already exists.",
+      "notText": "{{path}} is not a text file.",
+      "tooLarge": "{{path}} is too large to open.",
+      "io": "Something went wrong: {{detail}}"
+    }
+  },
+  "editorPreview": {
+    "readOnly": "Read-only preview",
+    "loading": "Loading…"
+  },
   "designSystem": {
     "title": "Design system",
     "intro": "Every component in the current theme. Switch themes from the palette icon to compare with the Pencil boards.",

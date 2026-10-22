@@ -124,10 +124,25 @@ impl Scope {
     /// Every file and folder, with the same ignore rules as knyc-analyzer: .gitignore files
     /// and [`IGNORED_DIRS`]. Symlinks are listed but not followed.
     pub fn tree(&self) -> FsResult<Vec<TreeEntry>> {
-        let walker = WalkBuilder::new(&self.root)
+        self.walk(&self.root, None)
+    }
+
+    /// The direct children of one folder ("" for the root), with the same rules as [`tree`](Self::tree).
+    /// The Explorer loads folders this way, one level at a time, as they are expanded.
+    pub fn list(&self, rel: &str) -> FsResult<Vec<TreeEntry>> {
+        let dir = self.resolve(rel)?;
+        if !dir.is_dir() {
+            return Err(FsError::NotFound(rel.to_string()));
+        }
+        self.walk(&dir, Some(1))
+    }
+
+    fn walk(&self, from: &Path, max_depth: Option<usize>) -> FsResult<Vec<TreeEntry>> {
+        let walker = WalkBuilder::new(from)
             .hidden(false)
             .require_git(false)
             .follow_links(false)
+            .max_depth(max_depth)
             .sort_by_file_name(|a, b| a.cmp(b))
             .filter_entry(|entry| {
                 let is_dir = entry.file_type().is_some_and(|t| t.is_dir());
@@ -395,6 +410,40 @@ mod tests {
                 ("src/app.ts".into(), EntryKind::File),
             ]
         );
+    }
+
+    #[test]
+    fn lists_one_folder_at_a_time() {
+        let (_dir, scope) = workspace();
+        let root = scope.root();
+        fs::create_dir_all(root.join("src/auth")).unwrap();
+        fs::write(root.join("src/auth/guard.ts"), "").unwrap();
+        fs::create_dir_all(root.join("src/node_modules")).unwrap();
+        fs::write(root.join("src/.gitignore"), "*.log\n").unwrap();
+        fs::write(root.join("src/debug.log"), "").unwrap();
+
+        let names = |rel: &str| -> Vec<(String, EntryKind)> {
+            scope
+                .list(rel)
+                .unwrap()
+                .into_iter()
+                .map(|e| (e.path, e.kind))
+                .collect()
+        };
+        assert_eq!(names(""), vec![("src".into(), EntryKind::Dir)]);
+        assert_eq!(
+            names("src"),
+            vec![
+                ("src/.gitignore".into(), EntryKind::File),
+                ("src/app.ts".into(), EntryKind::File),
+                ("src/auth".into(), EntryKind::Dir),
+            ]
+        );
+        assert_eq!(
+            scope.list("src/app.ts"),
+            Err(FsError::NotFound("src/app.ts".into()))
+        );
+        assert_eq!(scope.list(".."), Err(outside("..")));
     }
 
     #[test]

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeRoot } from "@/lib/theme";
 import { DesignSystem } from "@/screens/DesignSystem";
 import { Workspace, type WorkspaceControls } from "@/workspace/Workspace";
+import { WorkspaceProvider } from "@/workspace/workspace-context";
 
 type Screen = "workspace" | "designSystem";
 
@@ -35,17 +36,19 @@ function App() {
   );
 
   return (
-    <div className="flex h-full flex-col bg-bg">
-      <ThemeRoot />
-      <AppBar
-        crumb={screen === "workspace" ? t("workspace.title") : t("designSystem.title")}
-        aiStatus={{ label: "Claude Code", ok: true }}
-        actions={actions}
-      />
-      <main className="min-h-0 flex-1 overflow-auto">
-        {screen === "workspace" ? <Workspace onReady={setWorkspace} /> : <DesignSystem />}
-      </main>
-    </div>
+    <WorkspaceProvider>
+      <div className="flex h-full flex-col bg-bg">
+        <ThemeRoot />
+        <AppBar
+          crumb={screen === "workspace" ? t("workspace.title") : t("designSystem.title")}
+          aiStatus={{ label: "Claude Code", ok: true }}
+          actions={actions}
+        />
+        <main className="min-h-0 flex-1 overflow-auto">
+          {screen === "workspace" ? <Workspace onReady={setWorkspace} /> : <DesignSystem />}
+        </main>
+      </div>
+    </WorkspaceProvider>
   );
 }
 

@@ -13,6 +13,7 @@ pub fn run() {
             workspace::workspace_open,
             workspace::workspace_close,
             workspace::workspace_tree,
+            workspace::workspace_list,
             workspace::workspace_read,
             workspace::workspace_write,
             workspace::workspace_create_file,
