@@ -3,6 +3,7 @@
 // While the job still prepares later steps (design/02 D5), their checks are copied into `.knyc/`
 // as they become ready.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import {
   appendRuns,
   knycPaths,
@@ -18,6 +19,7 @@ import {
   storedTestFiles,
   syncPreparedSteps,
   withCheckAttempt,
+  withChat,
   withHint,
   withHintUsed,
   withReveal,
@@ -37,7 +39,7 @@ import {
 } from "@knyc/core";
 import { useOptionalJobs } from "@/jobs/jobs-context";
 import { useWorkspace } from "@/workspace/workspace-context";
-import { checkRunFor, workspaceFiles, type RunCheckCommand } from "./learn-backend";
+import { checkRunFor, readForAiFor, workspaceFiles, type ReadForAi, type RunCheckCommand } from "./learn-backend";
 
 /** What Reveal original shows: the original's change for the step, and the learner's files. */
 export interface Reveal {
@@ -76,17 +78,29 @@ interface LearningContext {
   takeHint: (level: HintLevel) => Promise<void>;
   /** Counts the reveal and returns the original's changes for the step, with the learner's version. */
   reveal: () => Promise<Reveal>;
+  /** Explain this failure / the step chat: what is being answered ("chat" or a check id). */
+  help: HelpState;
+  /** Explains why a check fails; the answer goes in the step chat. */
+  explain: (checkId: string) => Promise<void>;
+  ask: (question: string) => Promise<void>;
   /** Creates the workspace of the job's path, on R₀, and opens it. */
   startLearning: (job: Job) => Promise<void>;
 }
 
 const Context = createContext<LearningContext | null>(null);
 
-export function LearningProvider({ children, runCheck }: { children: ReactNode; runCheck?: RunCheckCommand }) {
+export interface HelpState {
+  busy: string | null;
+  error: string | null;
+}
+
+export function LearningProvider({ children, runCheck, readForAi: givenReadForAi }: { children: ReactNode; runCheck?: RunCheckCommand; readForAi?: ReadForAi }) {
+  const { t } = useTranslation();
   const { fs, folder, createFolder } = useWorkspace();
   const jobs = useOptionalJobs();
   const files = useMemo(() => workspaceFiles(fs), [fs]);
   const run = useMemo(() => runCheck ?? checkRunFor(fs), [runCheck, fs]);
+  const readForAi = useMemo(() => givenReadForAi ?? readForAiFor(fs), [givenReadForAi, fs]);
   const [learning, setLearning] = useState<Learning | null>(null);
   const [checks, setChecks] = useState<Check[]>([]);
   const [results, setResults] = useState<Map<string, CheckRun>>(new Map());
@@ -239,28 +253,89 @@ export function LearningProvider({ children, runCheck }: { children: ReactNode; 
     [files],
   );
 
+  const saveLesson = useCallback(
+    async (updated: Lesson) => {
+      if (!learning || !stepId) return;
+      await files.write(knycPaths(learning.path.id).lesson(stepId), `${JSON.stringify(updated, null, 2)}\n`);
+      setLesson({ status: "ready", lesson: updated });
+    },
+    [learning, stepId, files],
+  );
+
+  /** The step's files and some text, as they may go to the AI (secret guard, #64). */
+  const forAi = useCallback(
+    async (texts: string[]) => {
+      if (!jobs || !job || !stepId) throw new Error("the analysis this workspace comes from isn't open");
+      const changes = await jobs.stepChanges(job, stepId);
+      return readForAi(
+        changes.map((c) => c.path),
+        texts,
+      );
+    },
+    [jobs, job, stepId, readForAi],
+  );
+
+  const failureOf = (run: CheckRun) => (run.failures[0]?.message ? `${run.failures[0].message}\n\n${run.output}` : run.output);
+
   const [hint, setHint] = useState<{ writing: HintLevel | null; error: string | null }>({ writing: null, error: null });
   const takeHint = useCallback(
     async (level: HintLevel) => {
       if (!learning || !stepId || !jobs || !job || lesson.status !== "ready" || hint.writing) return;
       setHint({ writing: level, error: null });
       try {
-        const changes = await jobs.stepChanges(job, stepId);
-        const failures = checks
-          .map((c) => ({ check: c, run: results.get(c.id) }))
-          .filter(({ run }) => run && run.status !== "pass")
-          .map(({ check, run }) => `${check.label}: ${(run!.failures[0]?.message ?? run!.output).slice(0, 600)}`);
-        const text = await jobs.hint(job, stepId, { level, earlier: lesson.lesson.hints, learnerFiles: await learnerFiles(changes.map((c) => c.path)), failures });
-        const updated = withHint(lesson.lesson, level, text, new Date());
-        await files.write(knycPaths(learning.path.id).lesson(stepId), `${JSON.stringify(updated, null, 2)}\n`);
-        setLesson({ status: "ready", lesson: updated });
+        const failing = checks.map((c) => ({ check: c, run: results.get(c.id) })).filter(({ run }) => run && run.status !== "pass");
+        const { files: learnerFiles, texts } = await forAi(failing.map(({ check, run }) => `${check.label}: ${(run!.failures[0]?.message ?? run!.output).slice(0, 600)}`));
+        const text = await jobs.hint(job, stepId, { level, earlier: lesson.lesson.hints, learnerFiles, failures: texts });
+        await saveLesson(withHint(lesson.lesson, level, text, new Date()));
         await saveProgress((progress) => withHintUsed(progress, learning.path.id, stepId, level));
         setHint({ writing: null, error: null });
       } catch (error) {
         setHint({ writing: null, error: error instanceof Error ? error.message : String(error) });
       }
     },
-    [learning, stepId, jobs, job, lesson, hint.writing, checks, results, learnerFiles, files, saveProgress],
+    [learning, stepId, jobs, job, lesson, hint.writing, checks, results, forAi, saveLesson, saveProgress],
+  );
+
+  // Explain this failure and the step chat (#64): one at a time, kept in the step's chat.
+  const [help, setHelp] = useState<HelpState>({ busy: null, error: null });
+  const helpWith = useCallback(
+    async (busy: string, question: string, answer: () => Promise<string>) => {
+      if (lesson.status !== "ready" || help.busy) return;
+      setHelp({ busy, error: null });
+      try {
+        await saveLesson(withChat(lesson.lesson, question, await answer(), new Date()));
+        setHelp({ busy: null, error: null });
+      } catch (error) {
+        setHelp({ busy: null, error: error instanceof Error ? error.message : String(error) });
+      }
+    },
+    [lesson, help.busy, saveLesson],
+  );
+
+  const explain = useCallback(
+    async (checkId: string) => {
+      const check = checks.find((c) => c.id === checkId);
+      const run = results.get(checkId);
+      if (!jobs || !job || !stepId || !check || !run || run.status === "pass") return;
+      await helpWith(checkId, t("lesson.explainQuestion", { check: check.label }), async () => {
+        const { files: learnerFiles, texts } = await forAi([failureOf(run)]);
+        return jobs.explain(job, stepId, { check: check.label, failure: texts[0]!, learnerFiles });
+      });
+    },
+    [checks, results, jobs, job, stepId, helpWith, forAi, t],
+  );
+
+  const ask = useCallback(
+    async (question: string) => {
+      if (!jobs || !job || !stepId || lesson.status !== "ready" || !question.trim()) return;
+      const history = lesson.lesson.chat;
+      const explanation = lesson.lesson.explanation;
+      await helpWith("chat", question.trim(), async () => {
+        const { files: learnerFiles, texts } = await forAi([question.trim()]);
+        return jobs.chat(job, stepId, { lesson: explanation, learnerFiles, history, question: texts[0]! });
+      });
+    },
+    [jobs, job, stepId, lesson, helpWith, forAi],
   );
 
   const reveal = useCallback(async (): Promise<Reveal> => {
@@ -302,6 +377,9 @@ export function LearningProvider({ children, runCheck }: { children: ReactNode; 
     hint,
     retryLesson: () => setLessonAttempt((n) => n + 1),
     takeHint,
+    help,
+    explain,
+    ask,
     reveal,
     startLearning,
   };

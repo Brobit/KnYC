@@ -6,6 +6,7 @@ mod scope;
 
 pub use scope::{FsError, FsResult, Scope, TreeEntry};
 
+use knyc_analyzer::secrets::{is_secret_file, redact_secrets};
 use knyc_runner::check::{CheckOutcome, run_check};
 use knyc_runner::run::RunSpec;
 use notify_debouncer_full::notify::RecursiveMode;
@@ -192,6 +193,54 @@ pub fn workspace_exists(state: State<'_, WorkspaceState>, path: String) -> FsRes
     Ok(state.scope()?.resolve(&path)?.exists())
 }
 
+#[derive(Debug, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct FileForAi {
+    pub path: String,
+    /// None when the file is missing, a secret by name, binary or too large.
+    pub content: Option<String>,
+}
+
+#[derive(Debug, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ForAi {
+    pub files: Vec<FileForAi>,
+    pub texts: Vec<String>,
+}
+
+/// The learner's files and other text (check output) as they may go to the AI (#63, #64): the
+/// analysis's secret guard, in Rust like the scan — secret files never leave, secret-looking
+/// lines are replaced.
+fn for_ai(scope: &Scope, paths: Vec<String>, texts: Vec<String>) -> FsResult<ForAi> {
+    let mut files = Vec::with_capacity(paths.len());
+    for path in paths {
+        let name = path.rsplit('/').next().unwrap_or(&path);
+        let content = if is_secret_file(name) {
+            None
+        } else {
+            match scope.read_text(&path) {
+                Ok(text) => Some(redact_secrets(&text)),
+                Err(FsError::NotFound(_) | FsError::NotText(_) | FsError::TooLarge(_)) => None,
+                Err(e) => return Err(e),
+            }
+        };
+        files.push(FileForAi { path, content });
+    }
+    Ok(ForAi {
+        files,
+        texts: texts.iter().map(|t| redact_secrets(t)).collect(),
+    })
+}
+
+#[tauri::command]
+pub fn workspace_read_for_ai(
+    state: State<'_, WorkspaceState>,
+    paths: Vec<String>,
+    texts: Vec<String>,
+) -> FsResult<ForAi> {
+    for_ai(&state.scope()?, paths, texts)
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CheckRunRequest {
@@ -287,6 +336,7 @@ pub fn workspace_delete(state: State<'_, WorkspaceState>, path: String) -> FsRes
 #[cfg(test)]
 mod tests {
     use super::*;
+    use knyc_analyzer::secrets::REDACTED;
 
     #[test]
     fn commands_need_an_open_folder() {
@@ -318,6 +368,36 @@ mod tests {
 
         assert!(matches!(
             prepare_workspace_folder(Path::new("relative/folder")),
+            Err(FsError::OutsideWorkspace(_))
+        ));
+    }
+
+    #[test]
+    fn files_for_ai_keep_secrets_out() {
+        let dir = tempfile::tempdir().unwrap();
+        let scope = Scope::new(dir.path()).unwrap();
+        scope.write_text(".env", "TOKEN=abc\n").unwrap();
+        scope
+            .write_text(
+                "config.ts",
+                "export const port = 3000;\nexport const db = \"postgres://admin:hunter22@db:5432/app\";\n",
+            )
+            .unwrap();
+        let out = for_ai(
+            &scope,
+            vec![".env".into(), "config.ts".into(), "missing.ts".into()],
+            vec!["Error: connect postgres://admin:hunter22@db:5432/app refused".into()],
+        )
+        .unwrap();
+        assert_eq!(out.files[0].content, None);
+        assert_eq!(
+            out.files[1].content.as_deref(),
+            Some(format!("export const port = 3000;\n{REDACTED}\n").as_str())
+        );
+        assert_eq!(out.files[2].content, None);
+        assert_eq!(out.texts, vec![REDACTED.to_string()]);
+        assert!(matches!(
+            for_ai(&scope, vec!["../outside.ts".into()], vec![]),
             Err(FsError::OutsideWorkspace(_))
         ));
     }

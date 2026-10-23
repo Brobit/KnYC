@@ -77,9 +77,48 @@ pub fn find_secret_lines(path: &str, content: &str) -> Vec<SecretLine> {
         .collect()
 }
 
+/// What replaces a secret-looking line; the same text as core's `redact` (pipeline/redact.ts).
+pub const REDACTED: &str = "[line removed by KnYC: possible secret]";
+
+/// `content` with its secret-looking lines replaced (indentation kept), for text the app sends
+/// to an AI provider outside the analysis: the learner's code, check output (#64).
+pub fn redact_secrets(content: &str) -> String {
+    let flagged: Vec<usize> = find_secret_lines("", content)
+        .iter()
+        .map(|s| s.line)
+        .collect();
+    if flagged.is_empty() {
+        return content.to_string();
+    }
+    content
+        .split('\n')
+        .enumerate()
+        .map(|(i, line)| {
+            if flagged.contains(&(i + 1)) {
+                let indent: String = line.chars().take_while(|c| c.is_whitespace()).collect();
+                let cr = if line.ends_with('\r') { "\r" } else { "" };
+                format!("{indent}{REDACTED}{cr}")
+            } else {
+                line.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn redacts_flagged_lines_only() {
+        let content = "const a = 1;\r\n  const db = \"postgres://admin:hunter22@db:5432/app\";\r\nconst b = 2;";
+        assert_eq!(
+            redact_secrets(content),
+            format!("const a = 1;\r\n  {REDACTED}\r\nconst b = 2;")
+        );
+        assert_eq!(redact_secrets("nothing here\n"), "nothing here\n");
+    }
 
     #[test]
     fn secret_files_by_name() {
