@@ -8,6 +8,12 @@ import {
   buildUnits,
   generateLesson,
   graphSchema,
+  hintPrompt,
+  nextHintLevel,
+  stepChanges,
+  withHint,
+  withHintUsed,
+  withReveal,
   knycPaths,
   latestRuns,
   learningPath,
@@ -281,5 +287,66 @@ describe("lessons", () => {
     });
     const lesson = await generateLesson(client, input, { model, now: NOW });
     expect(lesson).toMatchObject({ schemaVersion: 1, stepId: input.stepId, generatedWith: model, at: NOW.toISOString(), architectureNote: "Used by src/server.ts.", hints: [], chat: [] });
+  });
+});
+
+describe("hints and reveal", () => {
+  const summaries = summariesFixture as Summaries;
+  const base = { projectName: "express-notes", path: PATH, stepId: PATH.steps[0]!.id, summaries, diff: "+export function loadConfig() {}" };
+
+  it("asks for the level wanted, from the learner's code, the failures and the hints before", () => {
+    const prompt = hintPrompt({
+      ...base,
+      level: 2,
+      earlier: [{ level: 1, text: "Look at what the server imports.", unlockedAt: NOW.toISOString() }],
+      learnerFiles: new Map([
+        ["src/config.ts", "export const port = 3000;"],
+        ["src/errors.ts", null],
+      ]),
+      failures: ["config works: loadConfig is not a function"],
+    });
+    expect(prompt).toContain("Hint 2, the approach");
+    expect(prompt).not.toContain("Hint 1, a nudge");
+    expect(prompt).toContain("export const port = 3000;");
+    expect(prompt).toContain("## src/errors.ts\n(not written yet)");
+    expect(prompt).toContain("- config works: loadConfig is not a function");
+    expect(prompt).toContain("- Hint 1: Look at what the server imports.");
+    expect(prompt).toContain(PATH.steps[0]!.goal);
+    expect(prompt).not.toContain("Write the lesson as JSON");
+  });
+
+  it("counts each rung once, in order, and the reveal", async () => {
+    const { files } = memoryFiles();
+    await startWorkspace(files, { project: project(), path: PATH, setup: new Map(), now: NOW });
+    let progress = (await readProgress(files))!;
+    expect(nextHintLevel(progress.paths[PATH_ID]!.steps.s01)).toBe(1);
+    progress = withHintUsed(progress, PATH_ID, "s01", 1);
+    progress = withHintUsed(progress, PATH_ID, "s01", 1);
+    progress = withHintUsed(progress, PATH_ID, "s01", 2);
+    expect(progress.paths[PATH_ID]!.steps.s01).toMatchObject({ status: "in-progress", hintsUsed: [1, 2], revealed: false });
+    expect(nextHintLevel(progress.paths[PATH_ID]!.steps.s01)).toBe(3);
+    progress = withReveal(withHintUsed(progress, PATH_ID, "s01", 3), PATH_ID, "s01");
+    expect(progress.paths[PATH_ID]!.steps.s01).toMatchObject({ hintsUsed: [1, 2, 3], revealed: true });
+    expect(nextHintLevel(progress.paths[PATH_ID]!.steps.s01)).toBeNull();
+
+    const lesson = { schemaVersion: 1 as const, stepId: "s01", generatedWith: { providerId: "claude-cli", model: "sonnet" }, at: NOW.toISOString(), explanation: "x".repeat(90), hints: [], chat: [] };
+    const two = withHint(withHint(lesson, 2, "second", NOW), 1, "first", NOW);
+    expect(two.hints.map((h) => `${h.level}:${h.text}`)).toEqual(["1:first", "2:second"]);
+    expect(withHint(two, 2, "again", NOW).hints.map((h) => h.text)).toEqual(["first", "again"]);
+  });
+
+  it("lists what the original changes in a step, file by file", async () => {
+    const host = new MemoryHost({
+      git: (_cwd, args) => {
+        if (args[0] === "diff") return "src/config.ts\nsrc/server.ts\n";
+        if (args[1] === "p/s00:src/server.ts") return "import './app.js';\n";
+        if (args[1]?.startsWith("p/s01:")) return `after ${args[1].slice(6)}`;
+        throw new Error("fatal: path does not exist");
+      },
+    });
+    expect(await stepChanges(host, "/ref", "p/s00", "p/s01")).toEqual([
+      { path: "src/config.ts", before: null, after: "after src/config.ts" },
+      { path: "src/server.ts", before: "import './app.js';\n", after: "after src/server.ts" },
+    ]);
   });
 });

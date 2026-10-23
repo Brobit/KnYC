@@ -1,6 +1,7 @@
 // The learning state of the open workspace (#62): which path and step the learner is on (from
-// `.knyc/`), the step's checks and their last results, and its lesson. While the job still prepares
-// later steps (design/02 D5), their checks are copied into `.knyc/` as they become ready.
+// `.knyc/`), the step's checks and their last results, its lesson, and the help ladder (#63).
+// While the job still prepares later steps (design/02 D5), their checks are copied into `.knyc/`
+// as they become ready.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   appendRuns,
@@ -17,6 +18,9 @@ import {
   storedTestFiles,
   syncPreparedSteps,
   withCheckAttempt,
+  withHint,
+  withHintUsed,
+  withReveal,
   workspaceStepChecks,
   writeProgress,
   type Check,
@@ -24,12 +28,22 @@ import {
   type Job,
   type LearningPath,
   type Lesson,
+  type FileChange,
+  type HintLevel,
+  type LearnerFiles,
   type Progress,
+  type StepProgress,
   type Project,
 } from "@knyc/core";
 import { useOptionalJobs } from "@/jobs/jobs-context";
 import { useWorkspace } from "@/workspace/workspace-context";
 import { checkRunFor, workspaceFiles, type RunCheckCommand } from "./learn-backend";
+
+/** What Reveal original shows: the original's change for the step, and the learner's files. */
+export interface Reveal {
+  changes: FileChange[];
+  mine: LearnerFiles;
+}
 
 export type LessonState = { status: "loading" } | { status: "ready"; lesson: Lesson } | { status: "error"; message: string } | { status: "unavailable" };
 
@@ -52,8 +66,16 @@ interface LearningContext {
   /** Checks waiting for their result in the current run. */
   running: Set<string>;
   lesson: LessonState;
+  /** The current step in progress.json: attempts, hints used, revealed. */
+  stepProgress: StepProgress | undefined;
+  /** The hint being written, and why the last one couldn't be. */
+  hint: { writing: HintLevel | null; error: string | null };
   runChecks: () => Promise<void>;
   retryLesson: () => void;
+  /** Writes hint `level` (the next rung) into the lesson and counts it. */
+  takeHint: (level: HintLevel) => Promise<void>;
+  /** Counts the reveal and returns the original's changes for the step, with the learner's version. */
+  reveal: () => Promise<Reveal>;
   /** Creates the workspace of the job's path, on R₀, and opens it. */
   startLearning: (job: Job) => Promise<void>;
 }
@@ -196,6 +218,58 @@ export function LearningProvider({ children, runCheck }: { children: ReactNode; 
     }
   }, [learning, stepId, checks, running.size, files, run]);
 
+  const stepProgress = learning && stepId ? learning.progress.paths[learning.path.id]?.steps[stepId] : undefined;
+  const saveProgress = useCallback(
+    async (change: (progress: Progress) => Progress) => {
+      if (!learning) return;
+      const updated = change((await readProgress(files)) ?? learning.progress);
+      await writeProgress(files, updated);
+      setLearning((current) => current && { ...current, progress: updated });
+    },
+    [learning, files],
+  );
+
+  /** The step's files as the learner has them (null: not written yet). */
+  const learnerFiles = useCallback(
+    async (paths: string[]): Promise<LearnerFiles> => {
+      const mine: LearnerFiles = new Map();
+      for (const path of paths) mine.set(path, (await files.exists(path)) ? await files.read(path).catch(() => null) : null);
+      return mine;
+    },
+    [files],
+  );
+
+  const [hint, setHint] = useState<{ writing: HintLevel | null; error: string | null }>({ writing: null, error: null });
+  const takeHint = useCallback(
+    async (level: HintLevel) => {
+      if (!learning || !stepId || !jobs || !job || lesson.status !== "ready" || hint.writing) return;
+      setHint({ writing: level, error: null });
+      try {
+        const changes = await jobs.stepChanges(job, stepId);
+        const failures = checks
+          .map((c) => ({ check: c, run: results.get(c.id) }))
+          .filter(({ run }) => run && run.status !== "pass")
+          .map(({ check, run }) => `${check.label}: ${(run!.failures[0]?.message ?? run!.output).slice(0, 600)}`);
+        const text = await jobs.hint(job, stepId, { level, earlier: lesson.lesson.hints, learnerFiles: await learnerFiles(changes.map((c) => c.path)), failures });
+        const updated = withHint(lesson.lesson, level, text, new Date());
+        await files.write(knycPaths(learning.path.id).lesson(stepId), `${JSON.stringify(updated, null, 2)}\n`);
+        setLesson({ status: "ready", lesson: updated });
+        await saveProgress((progress) => withHintUsed(progress, learning.path.id, stepId, level));
+        setHint({ writing: null, error: null });
+      } catch (error) {
+        setHint({ writing: null, error: error instanceof Error ? error.message : String(error) });
+      }
+    },
+    [learning, stepId, jobs, job, lesson, hint.writing, checks, results, learnerFiles, files, saveProgress],
+  );
+
+  const reveal = useCallback(async (): Promise<Reveal> => {
+    if (!learning || !stepId || !jobs || !job) throw new Error("the original is in the analysis this workspace comes from; open it from Home");
+    const changes = await jobs.stepChanges(job, stepId);
+    await saveProgress((progress) => withReveal(progress, learning.path.id, stepId));
+    return { changes, mine: await learnerFiles(changes.map((c) => c.path)) };
+  }, [learning, stepId, jobs, job, saveProgress, learnerFiles]);
+
   const startLearning = useCallback(
     async (started: Job) => {
       if (!jobs) throw new Error("the analysis needs the KnYC desktop app");
@@ -224,7 +298,11 @@ export function LearningProvider({ children, runCheck }: { children: ReactNode; 
     running,
     lesson,
     runChecks,
+    stepProgress,
+    hint,
     retryLesson: () => setLessonAttempt((n) => n + 1),
+    takeHint,
+    reveal,
     startLearning,
   };
   return <Context.Provider value={value}>{children}</Context.Provider>;

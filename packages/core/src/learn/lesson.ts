@@ -33,7 +33,8 @@ export interface LessonInput {
   diff: string;
 }
 
-export function lessonPrompt(input: LessonInput): string {
+/** The project, the path so far, the step and the original's change: what lessons and hints start from. */
+export function stepContext(input: LessonInput): string {
   const { path, summaries } = input;
   const index = path.steps.findIndex((s) => s.id === input.stepId);
   const step = path.steps[index]!;
@@ -61,7 +62,11 @@ ${roles.map((f) => `- ${f.path}: ${f.role}. ${f.summary}`).join("\n")}
 # The original's change for this step (for you only)
 \`\`\`diff
 ${diff}
-\`\`\`
+\`\`\``;
+}
+
+export function lessonPrompt(input: LessonInput): string {
+  return `${stepContext(input)}
 
 Write the lesson as JSON:
 - "explanation": Markdown, 150 to 350 words, talking to the learner ("you"). Say what to build and why, which files to create or change, and what each piece must do. Use the exact names of exported functions, classes, routes and files from the change, since the checks call them. Explain the concepts the step introduces in a sentence or two each.

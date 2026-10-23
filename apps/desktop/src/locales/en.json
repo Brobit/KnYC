@@ -188,7 +188,31 @@
       "pass": "Output"
     },
     "noOutput": "No output.",
-    "allPass": "Every check passes: step complete."
+    "allPass": "Every check passes: step complete.",
+    "stuck": "Stuck?",
+    "hints": "Hints",
+    "nextHint": "Take hint {{level}}",
+    "writingHint": "Writing hint {{level}}…",
+    "hintFailed": "The hint couldn’t be written: {{reason}}",
+    "revealFailed": "The original couldn’t be shown: {{reason}}",
+    "revealedAgain": "Original revealed · show it again",
+    "revealTitle": "Reveal the original for this step?",
+    "revealBodyHints": "You’ll see the original code of this step, and it counts in your stats. The hints are still there if you want to try a little more first.",
+    "revealBody": "You’ll see the original code of this step, and it counts in your stats.",
+    "revealConfirm": "Reveal",
+    "cancel": "Cancel"
+  },
+  "reveal": {
+    "title": "The original for this step",
+    "counted": "Revealed: counted in your stats.",
+    "empty": "This step changes no file of the original.",
+    "files": "Files",
+    "added": "added by this step",
+    "removed": "removed by this step",
+    "changed": "changed by this step",
+    "sidesOriginal": "Before this step → the original after it",
+    "sidesMine": "Your code → the original after this step",
+    "compareMine": "Compare with my code"
   },
   "path": {
     "stepOf": "Step {{current}} of {{total}}"
