@@ -17,6 +17,7 @@ import { Home } from "@/screens/Home";
 import { Onboarding } from "@/screens/Onboarding";
 import { useAiStatus } from "@/settings/ai-status";
 import { SettingsScreen } from "@/settings/SettingsScreen";
+import { LearningProvider, useLearning } from "@/learn/learning-context";
 import { Workspace } from "@/workspace/Workspace";
 import { useWorkspace, WorkspaceProvider } from "@/workspace/workspace-context";
 
@@ -43,7 +44,9 @@ function App() {
   return (
     <CommandsProvider workspaceVisible={screen === "workspace"} showWorkspace={showWorkspace}>
       <WorkspaceProvider>
-        <Shell screen={screen} setScreen={setScreen} />
+        <LearningProvider>
+          <Shell screen={screen} setScreen={setScreen} />
+        </LearningProvider>
       </WorkspaceProvider>
     </CommandsProvider>
   );
@@ -53,6 +56,7 @@ function Shell({ screen, setScreen }: { screen: Screen; setScreen: (screen: Scre
   const { t, i18n } = useTranslation();
   const { settings } = useSettings();
   const { pickFolder } = useWorkspace();
+  const { startLearning } = useLearning();
   const { setName, setMode } = useTheme();
   const { registry, run } = useCommands();
   const aiStatus = useAiStatus();
@@ -150,6 +154,10 @@ function Shell({ screen, setScreen }: { screen: Screen; setScreen: (screen: Scre
               setScreen("overview");
             }}
             onChoosePath={(job) => choosePath(job, job.choice?.track ?? null)}
+            onStartLearning={async (job) => {
+              await startLearning(job);
+              setScreen("workspace");
+            }}
           />
         </main>
       )}

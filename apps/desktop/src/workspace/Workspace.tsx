@@ -1,5 +1,5 @@
-// The dockable learning workspace (design 04 §7, "Movable panels"). Panels still placeholders
-// until their issues land: Output and Lesson (M3).
+// The dockable learning workspace (design 04 §7, "Movable panels"). The Output panel is still a
+// placeholder until its issue lands.
 import {
   DockviewReact,
   type DockviewApi,
@@ -20,6 +20,7 @@ import { useTheme } from "@/lib/theme";
 import { Explorer } from "@/explorer/Explorer";
 import { Collapser } from "./collapse";
 import { EditorPanel } from "@/editor/EditorPanel";
+import { LessonPanel } from "@/learn/LessonPanel";
 import { RunPanel } from "@/run/RunPanel";
 import { TerminalPanel } from "@/terminal/TerminalPanel";
 import { applyDefaultLayout, PANEL_COMPONENT, PANEL_IDS, restoreLayout, saveLayout, type PanelId, type PanelTitle } from "./layout";
@@ -57,6 +58,7 @@ function Panel({ api }: IDockviewPanelProps) {
   if (id === "editor") return <EditorPanel empty={<Placeholder id={id} />} />;
   if (id === "run") return <RunPanel empty={<Placeholder id={id} />} />;
   if (id === "terminal") return <TerminalPanel empty={<Placeholder id={id} />} panelApi={api} />;
+  if (id === "lesson") return <LessonPanel empty={<Placeholder id={id} />} />;
   return <Placeholder id={id} />;
 }
 

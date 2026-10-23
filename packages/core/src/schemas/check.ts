@@ -73,6 +73,28 @@ export const check = z.object({
 });
 export type Check = z.infer<typeof check>;
 
+/** One run of one check in the learner's workspace; `.knyc/runs/<pathId>/<stepId>.jsonl`, one per line. */
+export const checkRun = z.object({
+  checkId: id,
+  at: isoDate,
+  status: z.enum(["pass", "fail", "error", "timeout"]),
+  durationMs: z.number().min(0),
+  /** stdout + stderr, truncated to 64 KB. */
+  output: z.string(),
+  failures: z
+    .array(
+      z.object({
+        message: z.string(),
+        expected: z.string().optional(),
+        actual: z.string().optional(),
+        file: z.string().optional(),
+        line: z.number().int().optional(),
+      }),
+    )
+    .default([]),
+});
+export type CheckRun = z.infer<typeof checkRun>;
+
 export function isValidated(c: Check): boolean {
   return c.validation?.failsOnPrevious === true && c.validation.passesOnReference === true;
 }

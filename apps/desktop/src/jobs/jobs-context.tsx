@@ -2,7 +2,7 @@
 // In the desktop app it uses the Rust pipeline host and Claude Code; a plain browser (`pnpm dev`)
 // gets a simulated analysis instead (demo-jobs.ts).
 import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import type { AnalysisInput, Job, PathChoice } from "@knyc/core";
+import type { AnalysisInput, Job, Lesson, PathChoice, PreparedStepChecks, WorkspaceStart } from "@knyc/core";
 import { AppClaudeProvider } from "@/lib/claude-provider";
 import { TauriHost, pipelineDataDir } from "@/lib/pipeline-host";
 import { isTauri, useSettings } from "@/lib/settings";
@@ -21,6 +21,11 @@ interface JobsContext {
   choosePath: (id: string, choice: PathChoice) => Promise<Job>;
   /** What a job's finished stages saved so far. */
   results: (job: Job) => Promise<JobResults>;
+  /** For the learner's workspace (#62): what it starts from, prepared checks, tests, lessons. */
+  learningStart: (job: Job) => Promise<WorkspaceStart>;
+  stepChecks: (job: Job, stepId: string) => Promise<PreparedStepChecks | undefined>;
+  testFiles: (job: Job) => Promise<Map<string, string>>;
+  lesson: (job: Job, stepId: string) => Promise<Lesson>;
 }
 
 const Context = createContext<JobsContext | null>(null);
@@ -59,6 +64,10 @@ export function JobsProvider({ children, manager: given }: { children: ReactNode
     remove: (id) => manager?.remove(id) ?? Promise.resolve(),
     choosePath: (id, choice) => manager?.choosePath(id, choice) ?? unavailable(),
     results: (job) => manager?.results(job) ?? Promise.resolve({}),
+    learningStart: (job) => manager?.learningStart(job) ?? unavailable(),
+    stepChecks: (job, stepId) => manager?.stepChecks(job, stepId) ?? Promise.resolve(undefined),
+    testFiles: (job) => manager?.testFiles(job) ?? Promise.resolve(new Map()),
+    lesson: (job, stepId) => manager?.lesson(job, stepId) ?? unavailable(),
   };
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

@@ -1,12 +1,14 @@
 // A simulated analysis for `pnpm dev` in a plain browser (no Rust, no Claude Code): the same
 // JobManager and job files, on an in-memory host, with stages that take a few seconds and save
-// sample results. It lets the import, live analysis, overview and path screens be built and checked.
+// sample results. It lets the import, live analysis, overview, path and lesson screens be built and
+// checked: the reference answers git with a sample setup, and lessons come from a pretend model.
 import {
   analysisPaths,
   learningPath,
   MemoryHost,
   pathIdFor,
   pathPaths,
+  type AiProvider,
   type Graph,
   type Job,
   type LearningPath,
@@ -113,7 +115,15 @@ function demoStages(host: MemoryHost) {
       timeline: async () => {
         await wait(1500, signal);
         const planned = await readPath();
-        if (!signal.aborted) await save(path!.path, { ...planned, steps: planned.steps.map((s) => ({ ...s, prep: "reference-ready" })) });
+        if (signal.aborted) return;
+        await save(path!.timeline, {
+          pathId: planned.id,
+          workDir: path!.workDir,
+          steps: planned.steps.map((s) => ({ stepId: s.id, ok: true, tag: `${planned.id}/${s.id}`, durationMs: 1 })),
+          finalMatchesOriginal: true,
+          setupFixes: [],
+        });
+        await save(path!.path, { ...planned, steps: planned.steps.map((s) => ({ ...s, prep: "reference-ready" })) });
       },
       // A few seconds per step, so step 1 is ready long before the others.
       checks: async (context) => {
@@ -126,6 +136,23 @@ function demoStages(host: MemoryHost) {
           await wait(2500, signal);
           if (signal.aborted) return;
           const checkIds = [`chk-${step.id}-1`];
+          const file = step.introduces[0]!.unit;
+          const checkFile = `.knyc-checks/${step.id}.test.mjs`;
+          await save(path!.step(step.id), {
+            checks: [
+              {
+                schemaVersion: 1,
+                id: checkIds[0],
+                stepId: step.id,
+                label: `${file} exists and holds its code`,
+                origin: "generated",
+                timeoutMs: 60_000,
+                spec: { kind: "test", root: ".", runner: "other", command: `node --test ${checkFile}`, filter: [], files: [checkFile] },
+              },
+            ],
+            files: { [checkFile]: `${DEMO_REQUIRES}${file}\n` },
+            report: { stepId: step.id, strength: "strong", existing: 0, generated: 1, aiCalls: 1, notes: [] },
+          });
           current = { ...current, steps: current.steps.map((s) => (s.id === step.id ? { ...s, prep: "checks-ready", checkIds, checkStrength: "strong" } : s)) };
           await save(path!.path, current);
         }
@@ -137,16 +164,52 @@ function demoStages(host: MemoryHost) {
   };
 }
 
+/** The first line of a demo check file: the check passes once this file has code (check-backend.ts). */
+export const DEMO_REQUIRES = "// knyc-demo requires ";
+
+/** The setup of the sample project, as the reference timeline's R₀ would hold it. */
+const DEMO_SETUP: Record<string, string> = {
+  "package.json": '{\n  "name": "express-notes",\n  "type": "module",\n  "scripts": { "build": "tsc", "start": "node dist/server.js" },\n  "dependencies": { "express": "^4.21.2" }\n}\n',
+  "tsconfig.json": '{\n  "compilerOptions": { "outDir": "dist", "rootDir": "src", "strict": true, "module": "nodenext" }\n}\n',
+  ".gitignore": "node_modules/\ndist/\n",
+};
+
+/** git as the reference repository would answer the learning screens (no working copy is touched). */
+function demoGit(_cwd: string, args: string[]): string {
+  if (args[0] === "ls-tree") return Object.keys(DEMO_SETUP).join("\n");
+  if (args[0] === "show") return DEMO_SETUP[args[1]!.split(":").slice(1).join(":")] ?? "";
+  if (args[0] === "diff") return `+// what the original adds between ${args[1]} and ${args[2]}\n`;
+  return "";
+}
+
+/** Answers lesson requests like the model would, from the step in the prompt. */
+const demoProvider: AiProvider = {
+  id: "claude-cli",
+  async complete(request) {
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    const step = /# This step: (\S+) "([^"]+)"/.exec(request.prompt);
+    const files = /\nFiles: (.+)\n/.exec(request.prompt)?.[1] ?? "the step's file";
+    const title = step?.[2] ?? "this step";
+    return {
+      json: {
+        explanation: `## ${title}\n\nIn this step you create **${files}**. It is a small, self-contained piece of the notes API, and the next steps build on it.\n\n- Start from the goal on the right: it says what must work when you are done.\n- Write the file from scratch; the names the checks use are the ones in the goal.\n- Run the checks with \`Ctrl+Enter\` as often as you like: red first, then green.\n\nThis is the browser preview: the lesson is a sample, and the check passes as soon as \`${files}\` has some code.`,
+        architectureNote: `${files} is used by the files of the next steps.`,
+      },
+      usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
+      costUsd: null,
+      durationMs: 1200,
+    };
+  },
+};
+
 export function createDemoJobManager(): JobManager {
-  const host = new MemoryHost();
+  const host = new MemoryHost({ git: demoGit });
   let n = 0;
   return new JobManager({
     host,
     dataDir: async () => "/demo",
     roles: () => defaultSettings().roles,
-    provider: () => {
-      throw new Error("the demo has no AI");
-    },
+    provider: () => demoProvider,
     stages: demoStages(host),
     newId: () => `demo-${++n}`,
   });

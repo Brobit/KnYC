@@ -3,7 +3,7 @@
 // in the background (#57): leaving this screen doesn't stop it. Once a path is chosen (#61) the same
 // view shows the path stages and the steps as they become ready (design/02 D5).
 import { ArrowRight, Check, Clock, LoaderCircle, Pause, Play, Route, Square, X } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { importReport, PATH_STAGES, projectTracks, SECONDS_PER_CALL, stepIsReady, type Job, type JobStage, type LearningPath } from "@knyc/core";
 import { Button } from "@/components/ui/button";
@@ -133,17 +133,34 @@ export function AnalysisScreen({
   jobId,
   onOverview,
   onChoosePath,
+  onStartLearning,
   onHome,
 }: {
   jobId: string;
   onOverview: (job: Job) => void;
   onChoosePath: (job: Job) => void;
+  /** Creates the workspace on step 1 and opens it (#62). */
+  onStartLearning: (job: Job) => Promise<void>;
   onHome: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const jobs = useJobs();
   const job = jobs.jobs.find((j) => j.id === jobId);
   const results = useJobResults(job);
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
+  const start = async () => {
+    if (!job) return;
+    setStarting(true);
+    setStartError(null);
+    try {
+      await onStartLearning(job);
+    } catch (error) {
+      setStartError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setStarting(false);
+    }
+  };
 
   if (!job) {
     return (
@@ -249,12 +266,19 @@ export function AnalysisScreen({
             </div>
             {path ? (
               <>
-                {/* Opening the workspace on step 1 is the lesson panel (#62); the step is ready here. */}
-                <Button className="h-[38px]" disabled title={t("analysis.startLearningSoon")}>
-                  <Play />
+                <Button className="h-[38px]" disabled={!firstReady || starting} onClick={() => void start()}>
+                  {starting ? <LoaderCircle className="animate-spin" /> : <Play />}
                   {t(firstReady ? "analysis.startLearning" : "analysis.startLearningWait")}
                 </Button>
-                <p className="text-[11px] text-text-muted">{t(firstReady ? "analysis.startLearningSoon" : "analysis.firstStepSoon")}</p>
+                {startError ? (
+                  <p role="alert" className="text-xs text-danger">
+                    {t("analysis.startFailed", { reason: startError })}
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-text-muted">
+                    {firstReady ? t("analysis.startLearningWhere", { folder: job.input.workspace ?? "" }) : t("analysis.firstStepSoon")}
+                  </p>
+                )}
                 <PathSteps path={path} job={job} />
               </>
             ) : (

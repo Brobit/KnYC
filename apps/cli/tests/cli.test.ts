@@ -65,7 +65,7 @@ const now = new Date("2026-10-21T12:00:00.000Z");
 
 describe("workspace documents", () => {
   it("builds a valid project.json from the scan", () => {
-    const project = projectDocument("/code/express-no-tests", scan, units, "backend", now);
+    const project = projectDocument({ path: "/code/express-no-tests", hash: scan.hash }, scan, units, "backend", now);
     expect(project.tracks[0]).toMatchObject({ id: "backend", label: "Backend" });
     expect(project.tracks[0]!.units).toHaveLength(units.atoms.length);
     expect(project.excluded).toEqual([
@@ -89,7 +89,7 @@ describe("workspace documents", () => {
     const dir = await mkdtemp(join(tmpdir(), "knyc-ws-"));
     try {
       const written = await writeWorkspace(dir, {
-        project: projectDocument("/code/express-no-tests", scan, units, "backend", now),
+        project: projectDocument({ path: "/code/express-no-tests", hash: scan.hash }, scan, units, "backend", now),
         path,
         checks: checksRun.checks,
         checkFiles: new Map(Object.entries(checksRun.files)),
