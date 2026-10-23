@@ -1,11 +1,15 @@
 // Stage ⑧ (design/02-analysis-pipeline.md): every step gets checks that are proven red → green on
 // the reference timeline — the project's own tests first, then generated checks.
+//
+// Steps are prepared one at a time (design/02 D5): `prepareChecks` maps the project's tests once,
+// then `forStep` proves one step's checks, so the learner can start step 1 while later steps are
+// still being prepared. `buildChecks` does every step in a row (the CLI).
 
 import type { AiClient } from "../../ai/client.ts";
 import { AiError } from "../../ai/types.ts";
 import type { Host } from "../../host/host.ts";
 import type { Check } from "../../schemas/check.ts";
-import type { LearningPath } from "../../schemas/learning-path.ts";
+import type { LearningPath, Step } from "../../schemas/learning-path.ts";
 import type { Graph, Scan } from "../../sys/knyc-sys.ts";
 import { stepOfUnits, type Timeline } from "../timeline.ts";
 import { buildUnits } from "../units.ts";
@@ -32,6 +36,23 @@ export interface ChecksResult {
   discardedTests: TestMapping["discarded"];
 }
 
+/** One step's checks, ready for the learner. */
+export interface StepChecksResult {
+  checks: Check[];
+  /** Generated check files: path in the working copy → code. */
+  files: Map<string, string>;
+  report: StepChecks;
+  /** The step with its check ids and strength, prep "checks-ready". */
+  step: Step;
+}
+
+export interface ChecksPreparation {
+  /** Which of the project's tests prove which step (save it to skip the suite runs next time). */
+  mapping: TestMapping;
+  /** Proves one step's checks. Steps can be prepared in any order, one call at a time. */
+  forStep(stepId: string): Promise<StepChecksResult>;
+}
+
 export interface ChecksOptions {
   host: Host;
   sourceRoot: string;
@@ -40,16 +61,17 @@ export interface ChecksOptions {
   retries?: number;
   onProgress?: (message: string) => void;
   now?: () => Date;
+  /** The test mapping of an earlier run on the same timeline (the suite isn't run again). */
+  mapping?: TestMapping;
 }
 
-export async function buildChecks(
+export async function prepareChecks(
   path: LearningPath,
   timeline: Timeline,
   graph: Graph,
   scan: Scan,
   options: ChecksOptions,
-): Promise<ChecksResult> {
-  const at = (options.now ?? (() => new Date()))().toISOString();
+): Promise<ChecksPreparation> {
   const log = options.onProgress ?? (() => {});
   const { host } = options;
   const workDir = timeline.workDir;
@@ -64,8 +86,8 @@ export async function buildChecks(
   // 1. The project's own tests.
   const runner = scan.testRunners[0]?.runner;
   const command = runner ? suiteCommand(runner) : null;
-  let mapping: TestMapping = { byStep: new Map(), discarded: [] };
-  if (runner && command) {
+  let mapping: TestMapping = options.mapping ?? { byStep: new Map(), discarded: [] };
+  if (runner && command && !options.mapping) {
     const testFiles = graph.files.filter((f) => f.test).map((f) => f.path);
     const runs: SuiteRun[] = [];
     for (const step of [{ stepId: null, tag: setupTag }, ...tagged.map((s) => ({ stepId: s.stepId, tag: s.tag! }))]) {
@@ -117,31 +139,24 @@ export async function buildChecks(
 
   const layout = await buildOutDir(host, workDir);
   const dependencies = Object.keys(scan.packages[0]?.dependencies ?? {});
-  const accepted = new Map<string, CandidateCheck[]>();
-  const report = new Map<string, StepChecks>(
-    path.steps.map((s) => [s.id, { stepId: s.id, strength: "weak", existing: mapping.byStep.get(s.id)?.length ?? 0, generated: 0, aiCalls: 0, notes: [] }]),
-  );
-  for (const build of timeline.steps.filter((s) => s.mergedInto)) {
-    report.get(build.stepId)!.strength = "merged";
-    report.get(build.stepId)!.notes.push(`doesn't build alone; merged into ${build.mergedInto}`);
-  }
+  // No .at(): the desktop webview targets ES2020 (older macOS WebKit).
+  const last = tagged[tagged.length - 1];
 
-  for (const build of tagged) {
-    const entry = report.get(build.stepId)!;
-    if (entry.existing > 0) continue;
-    const step = path.steps.find((s) => s.id === build.stepId)!;
+  /** Generated checks proven red → green for one step, and still green at the last step. */
+  async function generatedFor(step: Step, tag: string, entry: StepChecks): Promise<CandidateCheck[]> {
     const before = previousTag(step.id);
-    const sources = (await git("ls-tree", "-r", "--name-only", build.tag!)).split("\n").filter((f) => graph.files.some((g) => g.path === f && !g.test));
+    const sources = (await git("ls-tree", "-r", "--name-only", tag)).split("\n").filter((f) => graph.files.some((g) => g.path === f && !g.test));
     const ctx: StepContext = {
       step,
-      diff: await git("diff", before, build.tag!, "--", ...sources),
+      diff: await git("diff", before, tag, "--", ...sources),
       importPaths: new Map(sources.map((src) => [src, `../${compiledPath(src, layout)}`])),
       dependencies,
       exports: exportsAt(path.steps.indexOf(step), sources),
-      context: await contextFor(build.tag!, before, sources),
+      context: await contextFor(tag, before, sources),
     };
 
     let problems: string[] = [];
+    let accepted: CandidateCheck[] = [];
     for (let attempt = 0; attempt <= (options.retries ?? 2); attempt++) {
       let answer;
       try {
@@ -162,7 +177,7 @@ export async function buildChecks(
       }
       const candidates = answer.checks.map((c, i) => ({ ...c, file: `${CHECKS_DIR}/${step.id}-${attempt + 1}-${i + 1}.test.mjs` }));
 
-      await checkoutStep(host, workDir, build.tag!, scan);
+      await checkoutStep(host, workDir, tag, scan);
       const atStep = await Promise.all(candidates.map((c) => runCandidate(host, workDir, c)));
       await checkoutStep(host, workDir, before, scan);
       const beforeStep = await Promise.all(
@@ -178,64 +193,95 @@ export async function buildChecks(
       });
       log(`${step.id} attempt ${attempt + 1}: ${good.length}/${candidates.length} checks proven`);
       if (good.length > 0) {
-        accepted.set(step.id, good);
+        accepted = good;
         break;
       }
     }
-    if (!accepted.has(step.id) && problems.length > 0) entry.notes.push(`no proven check after retries; last problem: ${problems[0]!.split("\n")[0]}`);
-  }
+    if (accepted.length === 0 && problems.length > 0) entry.notes.push(`no proven check after retries; last problem: ${problems[0]!.split("\n")[0]}`);
 
-  // 3. Generated checks must also pass at the last step (they shouldn't break as the code grows).
-  // No .at(): the desktop webview targets ES2020 (older macOS WebKit).
-  const last = tagged[tagged.length - 1];
-  if (accepted.size > 0) {
-    await checkoutStep(host, workDir, last.tag!, scan);
-    for (const [stepId, list] of accepted) {
+    // Generated checks must also pass at the last step (they shouldn't break as the code grows).
+    if (accepted.length > 0 && last && last.tag !== tag) {
+      await checkoutStep(host, workDir, last.tag!, scan);
       const kept: CandidateCheck[] = [];
-      for (const check of list) {
+      for (const check of accepted) {
         if ((await runCandidate(host, workDir, check)).status === "pass") kept.push(check);
-        else report.get(stepId)!.notes.push(`"${check.label}" breaks at the last step; dropped`);
+        else entry.notes.push(`"${check.label}" breaks at the last step; dropped`);
       }
-      if (kept.length > 0) accepted.set(stepId, kept);
-      else accepted.delete(stepId);
+      accepted = kept;
     }
+    return accepted;
   }
 
-  // 4. Check documents and updated steps.
-  const checks: Check[] = [];
-  const files = new Map<string, string>();
-  const steps = path.steps.map((step) => {
-    const entry = report.get(step.id)!;
-    const ids: string[] = [];
+  async function forStep(stepId: string): Promise<StepChecksResult> {
+    const step = path.steps.find((s) => s.id === stepId);
+    if (!step) throw new Error(`the path has no step ${stepId}`);
+    const at = (options.now ?? (() => new Date()))().toISOString();
+    const build = timeline.steps.find((s) => s.stepId === stepId);
+    const existing = mapping.byStep.get(stepId) ?? [];
+    const entry: StepChecks = { stepId, strength: "weak", existing: existing.length, generated: 0, aiCalls: 0, notes: [] };
+    let generated: CandidateCheck[] = [];
+    if (build?.mergedInto) {
+      entry.strength = "merged";
+      entry.notes.push(`doesn't build alone; merged into ${build.mergedInto}`);
+    } else if (build?.tag && existing.length === 0) {
+      generated = await generatedFor(step, build.tag, entry);
+    }
+
+    // Check documents and the updated step.
+    const checks: Check[] = [];
+    const files = new Map<string, string>();
     const add = (check: Omit<Check, "schemaVersion" | "id" | "stepId">) => {
-      const id = `chk-${step.id}-${ids.length + 1}`;
-      ids.push(id);
-      checks.push({ schemaVersion: 1, id, stepId: step.id, ...check });
+      checks.push({ schemaVersion: 1, id: `chk-${step.id}-${checks.length + 1}`, stepId: step.id, ...check });
     };
     const proven = { failsOnPrevious: true, passesOnReference: true, at };
 
-    for (const test of mapping.byStep.get(step.id) ?? []) {
+    for (const test of existing) {
       const name = test.split(" › ").slice(1).join(" › ");
       add({ label: name, origin: "repo", timeoutMs: 120_000, validation: proven, spec: { kind: "test", root: ".", runner: runner as "vitest", command: command!, filter: [name], files: [] } });
     }
-    for (const check of accepted.get(step.id) ?? []) {
+    for (const check of generated) {
       files.set(check.file, check.code);
       add({ label: check.label, origin: "generated", timeoutMs: 60_000, validation: proven, spec: { kind: "test", root: ".", runner: "other", command: `node --test ${check.file}`, filter: [], files: [check.file] } });
     }
-    entry.generated = accepted.get(step.id)?.length ?? 0;
-    if (entry.strength !== "merged") entry.strength = ids.length > 0 ? "strong" : "weak";
+    entry.generated = generated.length;
+    if (entry.strength !== "merged") entry.strength = checks.length > 0 ? "strong" : "weak";
     if (entry.strength === "weak" && scan.commands[0]?.build) {
       add({ label: "The project builds", origin: "generated", timeoutMs: 300_000, spec: { kind: "build", root: ".", command: scan.commands[0].build } });
     }
     return {
-      ...step,
-      checkIds: ids,
-      checkStrength: entry.strength === "strong" ? ("strong" as const) : ("weak" as const),
-      prep: "checks-ready" as const,
+      checks,
+      files,
+      report: entry,
+      step: {
+        ...step,
+        checkIds: checks.map((c) => c.id),
+        checkStrength: entry.strength === "strong" ? "strong" : "weak",
+        prep: "checks-ready",
+      },
     };
-  });
+  }
 
-  return { checks, files, path: { ...path, steps }, report: [...report.values()], discardedTests: mapping.discarded };
+  return { mapping, forStep };
+}
+
+/** Every step's checks, in path order. */
+export async function buildChecks(
+  path: LearningPath,
+  timeline: Timeline,
+  graph: Graph,
+  scan: Scan,
+  options: ChecksOptions,
+): Promise<ChecksResult> {
+  const preparation = await prepareChecks(path, timeline, graph, scan, options);
+  const results: StepChecksResult[] = [];
+  for (const step of path.steps) results.push(await preparation.forStep(step.id));
+  return {
+    checks: results.flatMap((r) => r.checks),
+    files: new Map(results.flatMap((r) => [...r.files])),
+    path: { ...path, steps: results.map((r) => r.step) },
+    report: results.map((r) => r.report),
+    discardedTests: preparation.mapping.discarded,
+  };
 }
 
 export { mapTests, runSuiteAtStep, suiteCommand } from "./existing.ts";

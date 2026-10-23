@@ -56,7 +56,7 @@ export function newAnalysisJob(input: AnalysisInput, options: { id: string; data
 }
 
 /** Counts calls as they are made, including those of a stage that stops halfway. */
-function counting(provider: AiProvider, onCall: () => void): AiProvider {
+export function counting(provider: AiProvider, onCall: () => void): AiProvider {
   return {
     id: provider.id,
     async complete(request: ProviderRequest) {
@@ -75,7 +75,7 @@ export interface AnalysisDependencies {
   roles: Settings["roles"];
 }
 
-const readJson = async (host: Host, path: string) => JSON.parse(await host.readFile(path)) as unknown;
+export const readJson = async (host: Host, path: string) => JSON.parse(await host.readFile(path)) as unknown;
 
 export function analysisStages(job: Job, deps: AnalysisDependencies): StageDefinition[] {
   const { host } = deps;

@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { isoDate } from "./common.ts";
+import { isoDate, trackId } from "./common.ts";
+import { pathSize } from "./learning-path.ts";
 
 // Background jobs (#57): the analysis runs for 10–20 minutes and must survive the window, a
 // usage limit and the app being closed. Each job saves its state after every change.
@@ -33,6 +34,15 @@ export const analysisInput = z.object({
 });
 export type AnalysisInput = z.infer<typeof analysisInput>;
 
+/** The path the learner chose on the overview (design/04 §6, #61). */
+export const pathChoice = z.object({
+  track: trackId,
+  size: pathSize,
+  /** "Teach project setup as the first step" (design/02 D1); off = the setup is provided. */
+  setupAsStep: z.boolean(),
+});
+export type PathChoice = z.infer<typeof pathChoice>;
+
 /** <app data>/jobs/<id>.json */
 export const job = z.object({
   schemaVersion: z.literal(1),
@@ -42,6 +52,8 @@ export const job = z.object({
   updatedAt: isoDate,
   status: jobStatus,
   input: analysisInput,
+  /** Set once a path is chosen: the job goes on with the path stages (plan, timeline, checks). */
+  choice: pathChoice.optional(),
   /** `<app data>/cache/<hash>`: the sandbox and every stage's result. */
   cacheDir: z.string().min(1),
   stages: z.array(jobStage).min(1),

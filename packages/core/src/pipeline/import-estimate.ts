@@ -5,7 +5,7 @@
 import { profiles } from "../profiles/index.ts";
 import type { PathSize } from "../schemas/learning-path.ts";
 import type { Graph, Scan } from "../sys/knyc-sys.ts";
-import { stepRange } from "./plan.ts";
+import { behaviorCount, stepRange } from "./plan.ts";
 import { batchBySize } from "./summaries.ts";
 import { buildUnits } from "./units.ts";
 
@@ -27,6 +27,7 @@ export interface AnalysisEstimate {
 /**
  * The estimate shared by the CLI and the import screen. `fileTokens`: token size of each file the
  * summaries read, in layer order (the CLI counts the real content, the import screen file sizes).
+ * `unitCount`: units with behavior, as the planner counts them (plan.ts `behaviorCount`).
  */
 export function estimateAnalysis(fileTokens: number[], unitCount: number, size: PathSize): AnalysisEstimate {
   const range = stepRange(size, unitCount);
@@ -86,7 +87,7 @@ export function importReport(scan: Scan, graph: Graph, size: PathSize = "standar
     testRunners: [...new Set(scan.testRunners.map((r) => label(r.runner)))],
     estimate: estimateAnalysis(
       sent.map((path) => Math.ceil((bytes.get(path)?.bytes ?? 0) / 4)),
-      buildUnits(graph).atoms.length,
+      behaviorCount(buildUnits(graph)),
       size,
     ),
   };

@@ -5,6 +5,7 @@ import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import {
   AiClient,
+  behaviorCount,
   buildChecks,
   buildTimeline,
   buildUnits,
@@ -74,7 +75,7 @@ export async function analyze(options: AnalyzeOptions, io: AnalyzeIo) {
   // Estimate (design 02 D4).
   const { steps, calls, tokens } = estimateAnalysis(
     files.map((f) => estimateTokens(f.content)),
-    units.atoms.length,
+    behaviorCount(units),
     options.size,
   );
   const secrets = scan.excluded.filter((e) => e.reason === "secret").map((e) => e.path);

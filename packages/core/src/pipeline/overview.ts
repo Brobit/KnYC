@@ -3,9 +3,10 @@
 // (design/06 H3); the other tracks come with their profiles in M4.
 
 import type { Graph, Scan } from "../sys/knyc-sys.ts";
-import { stepRange } from "./plan.ts";
+import { behaviorCount, stepRange } from "./plan.ts";
 import { moduleOf, type Summaries } from "./summaries.ts";
-import { buildUnits } from "./units.ts";
+import { buildUnits, type Units } from "./units.ts";
+import type { PathSize } from "../schemas/learning-path.ts";
 
 /** What a step takes a learner, for the "~6 h standard" on track cards (M1's golden repos). */
 export const LEARNER_MINUTES_PER_STEP = 25;
@@ -28,10 +29,18 @@ export interface ProjectTracks {
   hasFrontend: boolean;
 }
 
-const hoursFor = (unitCount: number) => {
-  const range = stepRange("standard", unitCount);
-  return Math.max(1, Math.round((((range.min + range.max) / 2) * LEARNER_MINUTES_PER_STEP) / 60));
-};
+export interface PathEstimate {
+  /** The step range the planner is asked for (plan.ts). */
+  steps: { min: number; max: number };
+  /** Learner time, from the middle of the range. */
+  hours: number;
+}
+
+/** Steps and learner time of a path at one size (design/04 §6). */
+export function pathEstimate(units: Units, size: PathSize): PathEstimate {
+  const steps = stepRange(size, behaviorCount(units));
+  return { steps, hours: Math.max(1, Math.round((((steps.min + steps.max) / 2) * LEARNER_MINUTES_PER_STEP) / 60)) };
+}
 
 /** The short name of a folder: "src/users" → "users", "src" or "." → "app". */
 export function moduleLabel(module: string): string {
@@ -42,7 +51,7 @@ export function moduleLabel(module: string): string {
 export function projectTracks(scan: Scan, graph: Graph): ProjectTracks {
   const hasFrontend = scan.frameworks.some((f) => FRONTEND_PROFILES.has(f.profileId));
   const source = graph.files.filter((f) => !f.test);
-  const units = buildUnits(graph).atoms.length;
+  const { hours } = pathEstimate(buildUnits(graph), "standard");
   const byModule = new Map<string, number>();
   for (const file of source) byModule.set(moduleOf(file.path), (byModule.get(moduleOf(file.path)) ?? 0) + 1);
   const modules = [...byModule.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([m]) => moduleLabel(m));
@@ -52,13 +61,13 @@ export function projectTracks(scan: Scan, graph: Graph): ProjectTracks {
 
   const tracks: TrackSummary[] = [];
   if (!hasFrontend && source.length > 0) {
-    tracks.push({ id: "backend", files: source.length, lines: source.reduce((sum, f) => sum + f.loc, 0), hours: hoursFor(units), modules });
+    tracks.push({ id: "backend", files: source.length, lines: source.reduce((sum, f) => sum + f.loc, 0), hours, modules });
   }
   tracks.push({
     id: "full",
     files: whole.length,
     lines: whole.reduce((sum, f) => sum + f.lines, 0),
-    hours: hoursFor(units),
+    hours,
     modules,
   });
   return { tracks, hasFrontend };

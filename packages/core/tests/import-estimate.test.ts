@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import graphFixture from "./fixtures/graphs/express-notes.json";
-import { buildUnits, estimateAnalysis, graphSchema, importReport, stepRange, type Scan } from "../src/index.ts";
+import { behaviorCount, buildUnits, estimateAnalysis, graphSchema, importReport, stepRange, type Scan } from "../src/index.ts";
 
 const graph = graphSchema.parse(graphFixture);
 
@@ -65,6 +65,6 @@ describe("importReport", () => {
     expect(report.languages).toEqual(["TypeScript"]);
     expect(report.frameworks).toEqual(["Express 4.21.2"]);
     expect(report.testRunners).toEqual(["Vitest"]);
-    expect(report.estimate).toEqual(estimateAnalysis(Array(sources.length).fill(1_000), buildUnits(graph).atoms.length, "standard"));
+    expect(report.estimate).toEqual(estimateAnalysis(Array(sources.length).fill(1_000), behaviorCount(buildUnits(graph)), "standard"));
   });
 });

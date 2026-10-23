@@ -451,19 +451,28 @@
       "intake": "Copying the project into a private sandbox…",
       "scan": "Scanning…",
       "graph": "Reading the code…",
-      "summaries": "Summarizing files: {{done}}/{{total}}"
+      "summaries": "Summarizing files: {{done}}/{{total}}",
+      "plan": "Planning the steps…",
+      "timeline": "Building each step of the original…",
+      "checks": "Proving checks: {{done}}/{{total}} steps ready"
     },
     "starting": {
       "intake": "Copying the project into a private sandbox…",
       "scan": "Finding languages, frameworks and commands…",
       "graph": "Reading imports, exports and symbols…",
-      "summaries": "Starting…"
+      "summaries": "Starting…",
+      "plan": "Planning the steps…",
+      "timeline": "Installing and building each step of the original…",
+      "checks": "Running the project’s tests on each step…"
     },
     "todo": {
       "intake": "Copy the project, without secrets",
       "scan": "Languages, frameworks, commands",
       "graph": "Imports, exports, symbols, layers",
-      "summaries": "What each file and folder does"
+      "summaries": "What each file and folder does",
+      "plan": "Steps and milestones",
+      "timeline": "The original, rebuilt step by step",
+      "checks": "Checks proven on each step"
     },
     "done": {
       "intake": "Copied to a private sandbox",
@@ -473,7 +482,12 @@
       "graph": "{{files}} files · {{symbols}} symbols",
       "summaries_one": "{{count}} file summarized",
       "summaries_other": "{{count}} files summarized",
-      "generic": "Done"
+      "generic": "Done",
+      "plan_one": "{{count}} step in {{milestones}}",
+      "plan_other": "{{count}} steps in {{milestones}}",
+      "timeline": "Every step of the original is built",
+      "checks_one": "{{count}} step ready",
+      "checks_other": "All {{count}} steps ready"
     },
     "cancel": "Cancel analysis",
     "resume": "Resume",
@@ -482,7 +496,25 @@
     "aiCalls_other": "{{count}} AI calls so far",
     "openOverview": "See the overview",
     "gone": "This analysis no longer exists.",
-    "home": "Back to Home"
+    "home": "Back to Home",
+    "pathTitle": "Preparing your path for {{name}}",
+    "pathTitleDone": "Your path for {{name}} is ready",
+    "pathDoneSub": "Every step is ready.",
+    "changePath": "Change path",
+    "yourPath": "Your path",
+    "stepsReady": "{{done}}/{{total}} steps ready",
+    "pathEmpty": "The steps appear here once the plan is ready.",
+    "startLearning": "Start step 1",
+    "startLearningWait": "Step 1 is being prepared…",
+    "startLearningSoon": "Step 1 is ready. Opening it in the learning workspace comes in the next update.",
+    "firstStepSoon": "You can start step 1 as soon as its checks are proven; the next steps keep preparing in the background.",
+    "prep": {
+      "ready": "Ready",
+      "preparing": "Preparing…",
+      "waiting": "Waiting"
+    },
+    "milestones_one": "{{count}} milestone",
+    "milestones_other": "{{count}} milestones"
   },
   "overview": {
     "crumb": "Project overview",
@@ -506,7 +538,46 @@
     "files_other": "{{count}} files",
     "hours": "~{{count}} h standard",
     "apiOnly": "No frontend found: this project is an API only.",
-    "choosePath": "Choose a path",
-    "choosePathSoon": "Choosing the path (size, setup step) comes in the next update."
+    "choosePath": "Choose a path"
+  },
+  "choose": {
+    "crumb": "Choose a path",
+    "title": "Choose your path",
+    "track": "What do you want to rebuild?",
+    "size": "How deep?",
+    "sizeSub": "Same project, different step sizes",
+    "sizes": {
+      "overview": "Overview",
+      "standard": "Standard",
+      "deep": "Deep dive"
+    },
+    "sizeMeta": "{{steps}} steps · ~{{hours}} h",
+    "sizeDescription": {
+      "overview": "Big steps, the big picture",
+      "standard": "Balanced: recommended",
+      "deep": "Small steps, every detail"
+    },
+    "options": "Options",
+    "setup": "Teach project setup as the first step",
+    "setupDescription": "package.json, tsconfig, build and test tools. Off = provided.",
+    "yourPath": "Your path",
+    "steps": "Steps",
+    "stepsValue_one": "~{{count}} step",
+    "stepsValue_other": "~{{count}} steps",
+    "time": "Estimated time",
+    "hours_one": "~{{count}} h",
+    "hours_other": "~{{count}} h",
+    "checks": "Checks",
+    "checksTests": "Your tests + generated",
+    "checksGenerated": "Generated, proven on the original",
+    "setupRow": "Project setup",
+    "setupTaught": "Taught as step 1",
+    "setupProvided": "Provided",
+    "preparation": "Preparation",
+    "calls_one": "≈ {{count}} AI call",
+    "calls_other": "≈ {{count}} AI calls",
+    "generate": "Generate my path",
+    "note": "You can start step 1 while the later steps are still being prepared. It uses part of your Claude plan.",
+    "back": "Back to the overview"
   }
 }

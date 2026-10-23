@@ -3,15 +3,18 @@
 import { Layers, Server } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { MAP_NODE, type AnalysisResult, type ArchitectureMap, type Job, type ProjectTracks } from "@knyc/core";
+import { MAP_NODE, type ArchitectureMap, type Job, type ProjectTracks } from "@knyc/core";
 import { TrackCard } from "@/components/knyc/panels";
+import type { JobResults } from "@/jobs/job-manager";
 import { useJobs } from "@/jobs/jobs-context";
 
 /** What the job's finished stages saved; read again whenever a stage changes state. */
-export function useJobResults(job: Job | undefined): Partial<AnalysisResult> {
+export function useJobResults(job: Job | undefined): JobResults {
   const { results } = useJobs();
-  const [loaded, setLoaded] = useState<Partial<AnalysisResult>>({});
-  const stages = job?.stages.map((s) => s.status).join(",");
+  const [loaded, setLoaded] = useState<JobResults>({});
+  // The checks stage saves a step at a time (#61): each one counts as a change too.
+  const checks = job?.stages.find((s) => s.id === "checks")?.progress?.done;
+  const stages = `${job?.stages.map((s) => s.status).join(",")}:${checks ?? ""}`;
   useEffect(() => {
     if (!job) return;
     let live = true;
@@ -19,17 +22,17 @@ export function useJobResults(job: Job | undefined): Partial<AnalysisResult> {
     return () => {
       live = false;
     };
-    // Progress inside a stage doesn't change what is saved: only stage states matter.
+    // Other progress inside a stage doesn't change what is saved.
   }, [job?.id, stages, results]);
   return loaded;
 }
 
 export const formatLines = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k` : String(n));
 
-export function TrackCards({ tracks, selected, onSelect }: { tracks: ProjectTracks; selected?: string | null; onSelect?: (id: string) => void }) {
+export function TrackCards({ tracks, selected, onSelect, row }: { tracks: ProjectTracks; selected?: string | null; onSelect?: (id: string) => void; row?: boolean }) {
   const { t } = useTranslation();
   return (
-    <div className="flex flex-col gap-2.5">
+    <div className={row ? "grid gap-2.5 sm:grid-cols-2" : "flex flex-col gap-2.5"}>
       {tracks.tracks.map((track) => {
         const shown = track.modules.slice(0, 4).join(", ");
         const description =
@@ -49,7 +52,7 @@ export function TrackCards({ tracks, selected, onSelect }: { tracks: ProjectTrac
           />
         );
       })}
-      {!tracks.hasFrontend && <p className="rounded-md bg-surface-2 px-3.5 py-2.5 text-xs text-text-secondary">{t("overview.apiOnly")}</p>}
+      {!tracks.hasFrontend && <p className="rounded-md bg-surface-2 px-3.5 py-2.5 text-xs text-text-secondary sm:col-span-2">{t("overview.apiOnly")}</p>}
     </div>
   );
 }
