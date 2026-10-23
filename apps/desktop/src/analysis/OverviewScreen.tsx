@@ -1,21 +1,21 @@
 // The project overview (design/04 §5, knyc.pen "Screen · Project overview", #60): what the project
 // is, its architecture map from the code graph, and the tracks the learner can rebuild. Choosing a
-// path (size, setup toggle) comes next (#61).
+// path (size, setup toggle) is the next screen (#61).
 import { Route } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { architectureMap, importReport, projectTracks, type Job } from "@knyc/core";
+import { architectureMap, importReport, projectTracks, type Job, type TrackId } from "@knyc/core";
 import { Chip } from "@/components/knyc/badges";
 import { Button } from "@/components/ui/button";
 import { useJobs } from "@/jobs/jobs-context";
 import { ArchitectureMapView, TrackCards, useJobResults } from "./shared";
 
-export function OverviewScreen({ jobId, onHome }: { jobId: string; onHome: () => void }) {
+export function OverviewScreen({ jobId, onHome, onChoosePath }: { jobId: string; onHome: () => void; onChoosePath: (job: Job, track: TrackId) => void }) {
   const { t } = useTranslation();
   const jobs = useJobs();
   const job: Job | undefined = jobs.jobs.find((j) => j.id === jobId);
   const { scan, graph, summaries } = useJobResults(job);
-  const [track, setTrack] = useState<string | null>(null);
+  const [track, setTrack] = useState<TrackId | null>(null);
 
   if (!job) {
     return (
@@ -74,13 +74,11 @@ export function OverviewScreen({ jobId, onHome }: { jobId: string; onHome: () =>
         <h2 id="overview-tracks" className="text-[11px] font-semibold tracking-[0.06em] text-text-muted uppercase">
           {t("overview.tracksTitle")}
         </h2>
-        <TrackCards tracks={tracks} selected={track} onSelect={setTrack} />
-        {/* Choosing the size and the setup toggle, then preparing the path, is #61. */}
-        <Button className="h-[38px]" disabled title={t("overview.choosePathSoon")}>
+        <TrackCards tracks={tracks} selected={track} onSelect={(id) => setTrack(id as TrackId)} />
+        <Button className="h-[38px]" onClick={() => onChoosePath(job, track ?? tracks.tracks[0]!.id)}>
           <Route />
           {t("overview.choosePath")}
         </Button>
-        <p className="text-[11px] text-text-muted">{t("overview.choosePathSoon")}</p>
       </aside>
     </div>
   );

@@ -2,12 +2,12 @@
 // In the desktop app it uses the Rust pipeline host and Claude Code; a plain browser (`pnpm dev`)
 // gets a simulated analysis instead (demo-jobs.ts).
 import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import type { AnalysisInput, AnalysisResult, Job } from "@knyc/core";
+import type { AnalysisInput, Job, PathChoice } from "@knyc/core";
 import { AppClaudeProvider } from "@/lib/claude-provider";
 import { TauriHost, pipelineDataDir } from "@/lib/pipeline-host";
 import { isTauri, useSettings } from "@/lib/settings";
 import { createDemoJobManager } from "./demo-jobs";
-import { JobManager } from "./job-manager";
+import { JobManager, type JobResults } from "./job-manager";
 
 interface JobsContext {
   /** False in a plain browser: the analysis needs the desktop app. */
@@ -17,8 +17,10 @@ interface JobsContext {
   resume: (id: string) => void;
   cancel: (id: string) => Promise<void>;
   remove: (id: string) => Promise<void>;
+  /** Goes on with the path the learner chose (plan, timeline, checks). */
+  choosePath: (id: string, choice: PathChoice) => Promise<Job>;
   /** What a job's finished stages saved so far. */
-  results: (job: Job) => Promise<Partial<AnalysisResult>>;
+  results: (job: Job) => Promise<JobResults>;
 }
 
 const Context = createContext<JobsContext | null>(null);
@@ -55,6 +57,7 @@ export function JobsProvider({ children, manager: given }: { children: ReactNode
     resume: (id) => manager?.resume(id),
     cancel: (id) => manager?.cancel(id) ?? Promise.resolve(),
     remove: (id) => manager?.remove(id) ?? Promise.resolve(),
+    choosePath: (id, choice) => manager?.choosePath(id, choice) ?? unavailable(),
     results: (job) => manager?.results(job) ?? Promise.resolve({}),
   };
   return <Context.Provider value={value}>{children}</Context.Provider>;

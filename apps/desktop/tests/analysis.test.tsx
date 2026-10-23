@@ -1,9 +1,23 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import { analysisPaths, graphSchema, MemoryHost, scanSchema, type Job, type StageContext, type StageDefinition, type Summaries } from "@knyc/core";
+import {
+  analysisPaths,
+  graphSchema,
+  learningPath,
+  MemoryHost,
+  pathIdFor,
+  pathPaths,
+  scanSchema,
+  type Job,
+  type LearningPath,
+  type StageContext,
+  type StageDefinition,
+  type Summaries,
+} from "@knyc/core";
 import { defaultSettings } from "@knyc/core/schemas";
 import { AnalysisScreen } from "@/analysis/AnalysisScreen";
+import { ChoosePathScreen } from "@/analysis/ChoosePathScreen";
 import { OverviewScreen } from "@/analysis/OverviewScreen";
 import { createFakeImportBackend } from "@/import/import-backend";
 import { JobManager } from "@/jobs/job-manager";
@@ -12,13 +26,39 @@ import { SettingsProvider } from "@/lib/settings";
 
 const INPUT = { source: "/home/you/code/express-notes", sourceHash: "blake3:0123456789abcdef", name: "express-notes", workspace: "/home/you/KnYC/express-notes" };
 
+/** A three-step path, as the plan stage would save it. */
+function samplePath(job: Job): LearningPath {
+  const step = (n: number, title: string, unit: string) => ({
+    id: `s0${n}`,
+    index: n - 1,
+    title,
+    goal: "g",
+    introduces: [{ unit, kind: "file" as const, change: "add" as const }],
+    estimatedMinutes: 25,
+  });
+  return learningPath.parse({
+    schemaVersion: 1,
+    id: pathIdFor(job.choice!),
+    trackId: job.choice!.track,
+    size: job.choice!.size,
+    setupAsStep: job.choice!.setupAsStep,
+    generatedWith: { planning: { providerId: "claude-cli", model: "sonnet" }, at: "2026-10-23T08:00:00.000Z" },
+    status: "preparing",
+    milestones: [{ id: "m1", title: "Notes API", summary: "s", stepIds: ["s01", "s02", "s03"] }],
+    steps: [step(1, "Configuration", "src/config.ts"), step(2, "Note store", "src/notes/notes.store.ts"), step(3, "Routes", "src/notes/notes.routes.ts")],
+  });
+}
+
 /**
  * A manager whose stages save the sample project's results at once. `hold` keeps the summaries
- * stage waiting (at 3/8) until released, to look at the screen mid-analysis.
+ * stage waiting (at 3/8) until released, to look at the screen mid-analysis; `holdStep2` keeps the
+ * checks of step 2 waiting the same way.
  */
-function manager(host = new MemoryHost(), hold = false) {
+function manager(host = new MemoryHost(), hold = false, holdStep2 = false) {
   let release: () => void = () => {};
   const held = new Promise<void>((resolve) => (release = resolve));
+  let releaseStep2: () => void = () => {};
+  const step2 = new Promise<void>((resolve) => (releaseStep2 = resolve));
   const backend = createFakeImportBackend();
   const jobs = new JobManager({
     host,
@@ -49,11 +89,25 @@ function manager(host = new MemoryHost(), hold = false) {
           };
           await host.writeFile(paths.summaries, JSON.stringify(summaries));
         },
+        plan: async () => host.writeFile(pathPaths(job.cacheDir, pathIdFor(job.choice!)).path, JSON.stringify(samplePath(job))),
+        timeline: async () => {},
+        checks: async (context) => {
+          const file = pathPaths(job.cacheDir, pathIdFor(job.choice!)).path;
+          let path = learningPath.parse(JSON.parse(await host.readFile(file)));
+          for (const [i, step] of path.steps.entries()) {
+            context.progress(i, 3);
+            if (holdStep2 && i === 1) await step2;
+            path = { ...path, steps: path.steps.map((s) => (s.id === step.id ? { ...s, prep: "checks-ready" as const } : s)) };
+            await host.writeFile(file, JSON.stringify(path));
+          }
+          context.progress(3, 3);
+          await host.writeFile(file, JSON.stringify({ ...path, status: "ready" }));
+        },
       };
       return job.stages.map(({ id }) => ({ id, run: (context) => steps[id]!(context) }));
     },
   });
-  return { jobs, release };
+  return { jobs, release, releaseStep2 };
 }
 
 function renderWith(jobs: JobManager, ui: React.ReactNode) {
@@ -78,7 +132,7 @@ describe("AnalysisScreen", () => {
     const user = userEvent.setup();
     let opened: Job | null = null;
     const job = await jobs.startAnalysis(INPUT);
-    renderWith(jobs, <AnalysisScreen jobId={job.id} onHome={() => {}} onOverview={(j) => (opened = j)} />);
+    renderWith(jobs, <AnalysisScreen jobId={job.id} onHome={() => {}} onOverview={(j) => (opened = j)} onChoosePath={() => {}} />);
 
     expect(screen.getByRole("heading", { name: "Analyzing express-notes" })).toBeInTheDocument();
     const stages = screen.getByRole("list", { name: "Stages" });
@@ -105,7 +159,7 @@ describe("AnalysisScreen", () => {
     const { jobs } = manager(new MemoryHost(), true);
     const job = await jobs.startAnalysis(INPUT);
     const user = userEvent.setup();
-    renderWith(jobs, <AnalysisScreen jobId={job.id} onHome={() => {}} onOverview={() => {}} />);
+    renderWith(jobs, <AnalysisScreen jobId={job.id} onHome={() => {}} onOverview={() => {}} onChoosePath={() => {}} />);
     await user.click(await screen.findByRole("button", { name: /Cancel analysis/ }));
     expect(await screen.findByText("Cancelled. Resume to go on where it stopped.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Resume/ })).toBeInTheDocument();
@@ -113,7 +167,7 @@ describe("AnalysisScreen", () => {
 
   it("says when the analysis no longer exists", () => {
     const { jobs } = manager();
-    renderWith(jobs, <AnalysisScreen jobId="gone" onHome={() => {}} onOverview={() => {}} />);
+    renderWith(jobs, <AnalysisScreen jobId="gone" onHome={() => {}} onOverview={() => {}} onChoosePath={() => {}} />);
     expect(screen.getByText("This analysis no longer exists.")).toBeInTheDocument();
   });
 });
@@ -124,7 +178,8 @@ describe("OverviewScreen", () => {
     const job = await jobs.startAnalysis(INPUT);
     await jobs.whenSettled(job.id);
     const user = userEvent.setup();
-    renderWith(jobs, <OverviewScreen jobId={job.id} onHome={() => {}} />);
+    const chosen: string[] = [];
+    renderWith(jobs, <OverviewScreen jobId={job.id} onHome={() => {}} onChoosePath={(_job, track) => chosen.push(track)} />);
 
     expect(await screen.findByRole("heading", { name: "express-notes", level: 1 })).toBeInTheDocument();
     const stack = screen.getByLabelText("Stack");
@@ -139,6 +194,61 @@ describe("OverviewScreen", () => {
     const backend = screen.getByRole("button", { name: /Backend/ });
     await user.click(backend);
     expect(backend).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: /Choose a path/ })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: /Choose a path/ }));
+    expect(chosen).toEqual(["backend"]);
+  });
+});
+
+describe("ChoosePathScreen", () => {
+  it("chooses the track, the size and the setup step, then goes on with the same job", async () => {
+    const { jobs } = manager();
+    const job = await jobs.startAnalysis(INPUT);
+    await jobs.whenSettled(job.id);
+    const user = userEvent.setup();
+    let started: Job | null = null;
+    renderWith(jobs, <ChoosePathScreen jobId={job.id} track="backend" onBack={() => {}} onStarted={(j) => (started = j)} />);
+
+    expect(await screen.findByRole("heading", { name: "Choose your path" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Backend/ })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("radio", { name: /Standard/ })).toHaveAttribute("aria-checked", "true");
+    await user.click(screen.getByRole("button", { name: /Full project/ }));
+    await user.click(screen.getByRole("radio", { name: /Deep dive/ }));
+    await user.click(screen.getByRole("switch", { name: /Teach project setup/ }));
+
+    const summary = screen.getByRole("complementary");
+    expect(within(summary).getByText("Deep dive")).toBeInTheDocument();
+    expect(within(summary).getByText("Taught as step 1")).toBeInTheDocument();
+    expect(within(summary).getByText("Your tests + generated")).toBeInTheDocument();
+
+    await user.click(within(summary).getByRole("button", { name: /Generate my path/ }));
+    await waitFor(() => expect(started).not.toBeNull());
+    expect(started!.choice).toEqual({ track: "full", size: "deep", setupAsStep: true });
+    expect(started!.stages.map((s) => s.id).slice(4)).toEqual(["plan", "timeline", "checks"]);
+    expect((await jobs.whenSettled(job.id))?.status).toBe("done");
+  });
+});
+
+describe("AnalysisScreen with a path", () => {
+  it("opens step 1 while the next steps are prepared, then shows them ready on their own", async () => {
+    const { jobs, releaseStep2 } = manager(new MemoryHost(), false, true);
+    const job = await jobs.startAnalysis(INPUT);
+    await jobs.whenSettled(job.id);
+    await jobs.choosePath(job.id, { track: "backend", size: "standard", setupAsStep: false });
+    renderWith(jobs, <AnalysisScreen jobId={job.id} onHome={() => {}} onOverview={() => {}} onChoosePath={() => {}} />);
+
+    expect(screen.getByRole("heading", { name: "Preparing your path for express-notes" })).toBeInTheDocument();
+    const stages = screen.getByRole("list", { name: "Stages" });
+    await waitFor(() => expect(within(stages).getByRole("listitem", { name: "Checks" })).toHaveTextContent("1/3 steps ready"));
+    expect(within(stages).getByRole("listitem", { name: "Curriculum plan" })).toHaveTextContent("3 steps in 1 milestone");
+    const path = screen.getByRole("complementary");
+    expect(await within(path).findByRole("listitem", { name: "Configuration: Ready" })).toBeInTheDocument();
+    expect(within(path).getByRole("listitem", { name: "Note store: Preparing…" })).toBeInTheDocument();
+    expect(within(path).getByRole("listitem", { name: "Routes: Waiting" })).toBeInTheDocument();
+    expect(within(path).getByRole("button", { name: /Start step 1/ })).toBeInTheDocument();
+
+    releaseStep2();
+    expect(await screen.findByRole("heading", { name: "Your path for express-notes is ready" })).toBeInTheDocument();
+    expect(await within(path).findByText("3/3 steps ready")).toBeInTheDocument();
+    expect(within(path).getByRole("listitem", { name: "Routes: Ready" })).toBeInTheDocument();
   });
 });

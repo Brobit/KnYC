@@ -32,9 +32,18 @@ export * from "./pipeline/timeline.ts";
 export * from "./pipeline/workspace.ts";
 export * from "./pipeline/checks/existing.ts";
 export * from "./pipeline/checks/generated.ts";
-export { buildChecks, type ChecksOptions, type ChecksResult, type StepChecks } from "./pipeline/checks/index.ts";
+export {
+  buildChecks,
+  prepareChecks,
+  type ChecksOptions,
+  type ChecksPreparation,
+  type ChecksResult,
+  type StepChecks,
+  type StepChecksResult,
+} from "./pipeline/checks/index.ts";
 export * from "./pipeline/checks/audit.ts";
 export * from "./jobs/limit.ts";
 export * from "./jobs/runner.ts";
 export * from "./jobs/analysis.ts";
 export * from "./jobs/registry.ts";
+export * from "./jobs/path.ts";
