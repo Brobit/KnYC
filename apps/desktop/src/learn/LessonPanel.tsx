@@ -1,16 +1,28 @@
 // The lesson panel (design/04 §7, knyc.pen "Lesson panel", #62): the current step, its goal and
 // concepts, the lesson (written the first time the step opens), and its checks with one Run
-// (Ctrl/⌘+Enter). Hints, reveal, "explain this failure" and the step chat come with #63 / #64.
+// (Ctrl/⌘+Enter), then the help ladder (#63): hints 1 → 2 → 3, then reveal the original, each rung
+// counted. "Explain this failure" and the step chat come with #64.
 import { CircleCheck, LoaderCircle, Play, RotateCcw, Target } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import type { CheckRun } from "@knyc/core";
+import { nextHintLevel, type CheckRun } from "@knyc/core";
 import { formatShortcut, useRegisterCommands } from "@/commands/commands";
 import { Chip } from "@/components/knyc/badges";
-import { CheckRow, type CheckState } from "@/components/knyc/checks";
+import { CheckRow, HintLadder, type CheckState } from "@/components/knyc/checks";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { useLearning } from "./learning-context";
+import { useLearning, type Reveal } from "./learning-context";
 import { Markdown } from "./Markdown";
+import { RevealDialog } from "./RevealDialog";
 
 const seconds = (run: CheckRun) => (run.durationMs < 1000 ? `${(run.durationMs / 1000).toFixed(1)} s` : `${Math.round(run.durationMs / 100) / 10} s`);
 
@@ -28,11 +40,29 @@ function Section({ title, actions, children }: { title: string; actions?: ReactN
 
 export function LessonPanel({ empty }: { empty: ReactNode }) {
   const { t } = useTranslation();
-  const { learning, stepId, checks, results, running, lesson, runChecks, retryLesson } = useLearning();
+  const { learning, stepId, checks, results, running, lesson, stepProgress, hint, runChecks, retryLesson, takeHint, reveal } = useLearning();
+  const [confirmReveal, setConfirmReveal] = useState(false);
+  const [revealed, setRevealed] = useState<Reveal | null>(null);
+  const [revealError, setRevealError] = useState<string | null>(null);
+  const hintsUsed = stepProgress?.hintsUsed.length ?? 0;
+  const next = nextHintLevel(stepProgress);
+
+  const openReveal = async () => {
+    setRevealError(null);
+    try {
+      setRevealed(await reveal());
+    } catch (error) {
+      setRevealError(error instanceof Error ? error.message : String(error));
+    }
+  };
 
   useRegisterCommands(
-    () => [{ id: "learn.runChecks", title: t("lesson.runChecks"), group: "run" as const, shortcuts: ["Mod+Enter"], scope: "workspace" as const, run: () => void runChecks() }],
-    [t, runChecks],
+    () => [
+      { id: "learn.runChecks", title: t("lesson.runChecks"), group: "run" as const, shortcuts: ["Mod+Enter"], scope: "workspace" as const, run: () => void runChecks() },
+      ...(next ? [{ id: "learn.nextHint", title: t("lesson.nextHint", { level: next }), group: "run" as const, scope: "workspace" as const, run: () => void takeHint(next) }] : []),
+      { id: "learn.reveal", title: t("lesson.reveal"), group: "run" as const, scope: "workspace" as const, run: () => setConfirmReveal(true) },
+    ],
+    [t, runChecks, takeHint, next],
   );
 
   const step = learning?.path.steps.find((s) => s.id === stepId);
@@ -144,7 +174,51 @@ export function LessonPanel({ empty }: { empty: ReactNode }) {
             </p>
           )}
         </Section>
+
+        <Section title={t("lesson.stuck")}>
+          <HintLadder used={hintsUsed} onHint={(level) => void takeHint(level)} onReveal={() => setConfirmReveal(true)} />
+          {hint.writing && (
+            <p className="flex items-center gap-2 text-xs text-text-muted">
+              <LoaderCircle className="size-3.5 animate-spin" aria-hidden />
+              {t("lesson.writingHint", { level: hint.writing })}
+            </p>
+          )}
+          {(hint.error || revealError) && (
+            <p role="alert" className="text-xs text-danger">
+              {hint.error ? t("lesson.hintFailed", { reason: hint.error }) : t("lesson.revealFailed", { reason: revealError })}
+            </p>
+          )}
+          {lesson.status === "ready" && lesson.lesson.hints.length > 0 && (
+            <ol className="flex flex-col gap-2" aria-label={t("lesson.hints")}>
+              {lesson.lesson.hints.map((h) => (
+                <li key={h.level} className="flex flex-col gap-1 rounded-md border border-border bg-surface-2/50 px-3 py-2" aria-label={t("lesson.hint", { level: h.level })}>
+                  <span className="text-[11px] font-semibold text-accent">{t("lesson.hint", { level: h.level })}</span>
+                  <Markdown text={h.text} />
+                </li>
+              ))}
+            </ol>
+          )}
+          {stepProgress?.revealed && (
+            <button type="button" className="self-start text-xs text-text-muted underline-offset-2 hover:underline" onClick={() => void openReveal()}>
+              {t("lesson.revealedAgain")}
+            </button>
+          )}
+        </Section>
       </div>
+
+      <AlertDialog open={confirmReveal} onOpenChange={setConfirmReveal}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("lesson.revealTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t(hintsUsed < 3 ? "lesson.revealBodyHints" : "lesson.revealBody")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("lesson.cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void openReveal()}>{t("lesson.revealConfirm")}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <RevealDialog reveal={revealed} onClose={() => setRevealed(null)} />
     </div>
   );
 }

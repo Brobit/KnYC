@@ -2,7 +2,7 @@
 // In the desktop app it uses the Rust pipeline host and Claude Code; a plain browser (`pnpm dev`)
 // gets a simulated analysis instead (demo-jobs.ts).
 import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import type { AnalysisInput, Job, Lesson, PathChoice, PreparedStepChecks, WorkspaceStart } from "@knyc/core";
+import type { AnalysisInput, FileChange, HintInput, Job, Lesson, PathChoice, PreparedStepChecks, WorkspaceStart } from "@knyc/core";
 import { AppClaudeProvider } from "@/lib/claude-provider";
 import { TauriHost, pipelineDataDir } from "@/lib/pipeline-host";
 import { isTauri, useSettings } from "@/lib/settings";
@@ -26,6 +26,8 @@ interface JobsContext {
   stepChecks: (job: Job, stepId: string) => Promise<PreparedStepChecks | undefined>;
   testFiles: (job: Job) => Promise<Map<string, string>>;
   lesson: (job: Job, stepId: string) => Promise<Lesson>;
+  hint: (job: Job, stepId: string, request: Pick<HintInput, "level" | "earlier" | "learnerFiles" | "failures">) => Promise<string>;
+  stepChanges: (job: Job, stepId: string) => Promise<FileChange[]>;
 }
 
 const Context = createContext<JobsContext | null>(null);
@@ -68,6 +70,8 @@ export function JobsProvider({ children, manager: given }: { children: ReactNode
     stepChecks: (job, stepId) => manager?.stepChecks(job, stepId) ?? Promise.resolve(undefined),
     testFiles: (job) => manager?.testFiles(job) ?? Promise.resolve(new Map()),
     lesson: (job, stepId) => manager?.lesson(job, stepId) ?? unavailable(),
+    hint: (job, stepId, request) => manager?.hint(job, stepId, request) ?? unavailable(),
+    stepChanges: (job, stepId) => manager?.stepChanges(job, stepId) ?? unavailable(),
   };
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

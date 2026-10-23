@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { configure, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import {
@@ -29,6 +29,9 @@ import { inline, parseBlocks } from "@/learn/Markdown";
 import { createFakeWorkspaceFs } from "@/lib/fake-workspace-fs";
 import { SettingsProvider } from "@/lib/settings";
 import { WorkspaceProvider } from "@/workspace/workspace-context";
+
+// Check runs go through a pretend install, build and run: slower than the default 1 s under load.
+configure({ asyncUtilTimeout: 5000 });
 
 describe("Markdown", () => {
   it("reads headings, paragraphs, lists and code blocks", () => {
@@ -72,8 +75,10 @@ function samplePath(job: Job): LearningPath {
 
 const lessonModel: AiProvider = {
   id: "claude-cli",
-  complete: async () => ({
-    json: { explanation: "## Configuration\n\nExport `loadConfig` from **src/config.ts**: it reads the port from the environment, with 3000 when it is missing.", architectureNote: "Used by src/server.ts." },
+  complete: async (request) => ({
+    json: /\nWrite Hint (\d)/.test(request.prompt)
+      ? { text: `Hint text ${/\nWrite Hint (\d)/.exec(request.prompt)![1]}: look at what src/server.ts imports.` }
+      : { explanation: "## Configuration\n\nExport `loadConfig` from **src/config.ts**: it reads the port from the environment, with 3000 when it is missing.", architectureNote: "Used by src/server.ts." },
     usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
     costUsd: null,
     durationMs: 1,
@@ -83,7 +88,15 @@ const lessonModel: AiProvider = {
 /** Instant stages: the sample analysis, a two-step path, a timeline and one demo check per step. */
 function manager() {
   const host = new MemoryHost({
-    git: (_cwd, args) => (args[0] === "ls-tree" ? Object.keys(SETUP).join("\n") : args[0] === "show" ? (SETUP[args[1]!.split(":")[1]!] ?? "") : args[0] === "diff" ? "+export function loadConfig() {}" : ""),
+    git: (_cwd, args) => {
+      if (args[0] === "ls-tree") return Object.keys(SETUP).join("\n");
+      if (args[0] === "diff") return args[1] === "--name-only" ? "src/config.ts\n" : "+export function loadConfig() {}";
+      if (args[0] !== "show") return "";
+      const [tag, file] = args[1]!.split(":") as [string, string];
+      if (SETUP[file] !== undefined) return SETUP[file];
+      if (file === "src/config.ts" && tag.endsWith("/s01")) return "export function loadConfig() {\n  return { port: 3000 };\n}\n";
+      throw new Error(`fatal: path '${file}' does not exist in '${tag}'`);
+    },
   });
   const backend = createFakeImportBackend();
   return new JobManager({
@@ -193,5 +206,29 @@ describe("the learning workspace", () => {
     expect((await fs.read(knycPaths("backend-standard").runs("s01"))).trim().split("\n")).toHaveLength(2);
     // The check file was only there while the checks ran.
     expect(await fs.exists(".knyc-checks")).toBe(false);
-  });
+
+    // The help ladder: only the next hint can be taken; each one is shown, kept and counted.
+    expect(within(panel).getByRole("button", { name: "Hint 2" })).toBeDisabled();
+    await user.click(within(panel).getByRole("button", { name: "Hint 1" }));
+    expect(await within(panel).findByRole("listitem", { name: "Hint 1" })).toHaveTextContent("Hint text 1: look at what src/server.ts imports.");
+    await user.click(within(panel).getByRole("button", { name: "Hint 2" }));
+    await within(panel).findByRole("listitem", { name: "Hint 2" });
+    await user.click(within(panel).getByRole("button", { name: "Hint 3" }));
+    await within(panel).findByRole("listitem", { name: "Hint 3" });
+    const lesson = JSON.parse(await fs.read(knycPaths("backend-standard").lesson("s01")));
+    expect(lesson.hints.map((h: { level: number }) => h.level)).toEqual([1, 2, 3]);
+
+    // The last rung: confirmed, counted, then the original's change for the step.
+    await user.click(within(panel).getByRole("button", { name: /Reveal original/ }));
+    await user.click(await screen.findByRole("button", { name: "Reveal" }));
+    const dialog = await screen.findByRole("dialog", { name: "The original for this step" });
+    expect(within(dialog).getByText("Revealed: counted in your stats.")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "src/config.ts" })).toHaveAttribute("aria-current", "true");
+    expect(within(dialog).getByText("added by this step")).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("switch", { name: "Compare with my code" }));
+    expect(within(dialog).getByText("Your code → the original after this step")).toBeInTheDocument();
+
+    const after = JSON.parse(await fs.read(".knyc/progress.json"));
+    expect(after.paths["backend-standard"].steps.s01).toMatchObject({ hintsUsed: [1, 2, 3], revealed: true, attempts: 2 });
+  }, 30_000); // The whole flow, from Start step 1 to the reveal.
 });

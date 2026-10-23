@@ -6,14 +6,15 @@ import {
   analysisPaths,
   buildUnits,
   FileCache,
+  generateHint,
   generateLesson,
   joinPath,
   JobRegistry,
   loadAnalysis,
   loadStepChecks,
-  pathIdFor,
   projectDocument,
   referenceFiles,
+  stepChanges,
   stepTags,
   jobStages,
   loadAnalysisSoFar,
@@ -25,6 +26,8 @@ import {
   type AnalysisResult,
   type Host,
   type Job,
+  type FileChange,
+  type HintInput,
   type LearningPath,
   type Lesson,
   type PreparedStepChecks,
@@ -185,6 +188,24 @@ export class JobManager {
 
   /** Writes the lesson of a step (design/02 ⑨): from the summaries and the original's change. */
   async lesson(job: Job, stepId: string): Promise<Lesson> {
+    const { client, input, roles } = await this.teaching(job, stepId);
+    return generateLesson(client, input, { model: roles.lessons, now: this.now() });
+  }
+
+  /** Writes hint `level` of a step (#63) from the learner's files, the failures and the hints before. */
+  async hint(job: Job, stepId: string, request: Pick<HintInput, "level" | "earlier" | "learnerFiles" | "failures">): Promise<string> {
+    const { client, input } = await this.teaching(job, stepId);
+    return generateHint(client, { ...input, ...request });
+  }
+
+  /** What the original changes in a step, file by file (Reveal original, design/04 §7a). */
+  async stepChanges(job: Job, stepId: string): Promise<FileChange[]> {
+    const { workDir, before, after } = await stepTags(this.deps.host, job, stepId);
+    return stepChanges(this.deps.host, workDir, before, after);
+  }
+
+  /** What lessons and hints start from: the path, the summaries, the original's change, a client. */
+  private async teaching(job: Job, stepId: string) {
     const path = await loadPathSoFar(this.deps.host, job);
     if (!path) throw new Error("the path isn't prepared yet");
     const { summaries } = await loadAnalysis(this.deps.host, job.cacheDir);
@@ -196,12 +217,7 @@ export class JobManager {
       roles,
       cache: new FileCache(this.deps.host, analysisPaths(job.cacheDir).aiCache),
     });
-    return generateLesson(client, { projectName: job.input.name, path, stepId, summaries, diff }, { model: roles.lessons, now: this.now() });
-  }
-
-  /** The job a workspace was started from: same source and path (project.json, progress.json). */
-  jobFor(sourceHash: string, pathId: string): Job | undefined {
-    return this.snapshot.find((j) => j.input.sourceHash === sourceHash && j.choice && pathIdFor(j.choice) === pathId);
+    return { client, roles, input: { projectName: job.input.name, path, stepId, summaries, diff } };
   }
 
   /** The run in progress, for tests and for waiting on a job. */

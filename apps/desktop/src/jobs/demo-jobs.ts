@@ -174,15 +174,32 @@ const DEMO_SETUP: Record<string, string> = {
   ".gitignore": "node_modules/\ndist/\n",
 };
 
-/** git as the reference repository would answer the learning screens (no working copy is touched). */
-function demoGit(_cwd: string, args: string[]): string {
-  if (args[0] === "ls-tree") return Object.keys(DEMO_SETUP).join("\n");
-  if (args[0] === "show") return DEMO_SETUP[args[1]!.split(":").slice(1).join(":")] ?? "";
-  if (args[0] === "diff") return `+// what the original adds between ${args[1]} and ${args[2]}\n`;
-  return "";
+/** git as the reference repository would answer the learning screens: R₀, each step's file, diffs. */
+function demoGit(host: MemoryHost) {
+  /** The steps of the path being prepared, in order: each one writes one source file. */
+  const stepFiles = () => {
+    const file = [...host.files.keys()].find((key) => key.endsWith("/path.json"));
+    const path = file ? learningPath.parse(JSON.parse(host.files.get(file)!)) : null;
+    return path?.steps.map((s) => s.introduces[0]!.unit) ?? [];
+  };
+  /** "backend-standard/s03" → 3 (s00 = the setup). */
+  const stepOf = (tag: string) => Number(tag.split("/").pop()!.slice(1));
+  return (_cwd: string, args: string[]): string => {
+    if (args[0] === "ls-tree") return Object.keys(DEMO_SETUP).join("\n");
+    if (args[0] === "show") {
+      const [tag, file] = [args[1]!.split(":")[0]!, args[1]!.split(":").slice(1).join(":")];
+      if (DEMO_SETUP[file] !== undefined) return DEMO_SETUP[file];
+      const at = stepFiles().indexOf(file) + 1;
+      if (at === 0 || stepOf(tag) < at) throw new Error(`fatal: path '${file}' does not exist in '${tag}'`);
+      return `// The original ${file} (browser preview sample)\nexport function ${file.split("/").pop()!.replace(/\W.*$/, "")}() {\n  return "from the original";\n}\n`;
+    }
+    if (args[0] === "diff" && args[1] === "--name-only") return stepFiles()[stepOf(args[3]!) - 1] ?? "";
+    if (args[0] === "diff") return `+// what the original adds between ${args[1]} and ${args[2]}\n`;
+    return "";
+  };
 }
 
-/** Answers lesson requests like the model would, from the step in the prompt. */
+/** Answers lesson and hint requests like the model would, from the step in the prompt. */
 const demoProvider: AiProvider = {
   id: "claude-cli",
   async complete(request) {
@@ -190,6 +207,15 @@ const demoProvider: AiProvider = {
     const step = /# This step: (\S+) "([^"]+)"/.exec(request.prompt);
     const files = /\nFiles: (.+)\n/.exec(request.prompt)?.[1] ?? "the step's file";
     const title = step?.[2] ?? "this step";
+    const level = /\nWrite Hint (\d)/.exec(request.prompt)?.[1];
+    if (level) {
+      const text = {
+        "1": `Look at **${files}**: the check needs it to exist and export the step's code.`,
+        "2": `Create \`${files}\` and export one function from it. The check only looks for code in that file (browser preview).`,
+        "3": `In \`${files}\`, write \`export function …() { … }\` with the name from the goal, then run the checks with \`Ctrl+Enter\`.`,
+      }[level];
+      return { json: { text }, usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 }, costUsd: null, durationMs: 1200 };
+    }
     return {
       json: {
         explanation: `## ${title}\n\nIn this step you create **${files}**. It is a small, self-contained piece of the notes API, and the next steps build on it.\n\n- Start from the goal on the right: it says what must work when you are done.\n- Write the file from scratch; the names the checks use are the ones in the goal.\n- Run the checks with \`Ctrl+Enter\` as often as you like: red first, then green.\n\nThis is the browser preview: the lesson is a sample, and the check passes as soon as \`${files}\` has some code.`,
@@ -203,7 +229,8 @@ const demoProvider: AiProvider = {
 };
 
 export function createDemoJobManager(): JobManager {
-  const host = new MemoryHost({ git: demoGit });
+  const host: MemoryHost = new MemoryHost({ git: (cwd, args) => git(cwd, args) });
+  const git = demoGit(host);
   let n = 0;
   return new JobManager({
     host,
