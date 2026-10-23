@@ -28,7 +28,7 @@ pub enum FsError {
 }
 
 impl FsError {
-    fn io(path: &str, error: std::io::Error) -> Self {
+    pub(crate) fn io(path: &str, error: std::io::Error) -> Self {
         match error.kind() {
             ErrorKind::NotFound => Self::NotFound(path.to_string()),
             ErrorKind::AlreadyExists => Self::AlreadyExists(path.to_string()),

@@ -162,7 +162,33 @@
     "hint": "Hint {{level}}",
     "reveal": "Reveal original",
     "revealShort": "Reveal",
-    "runChecks": "Run checks"
+    "step": "Step {{step}}",
+    "stepOfMilestone": "Step {{step}} · Milestone {{milestone}}: {{title}}",
+    "concepts": "Concepts",
+    "goal": "Goal",
+    "lesson": "Lesson",
+    "writing": "Writing the lesson for this step…",
+    "failed": "The lesson couldn’t be written: {{reason}}",
+    "retry": "Try again",
+    "unavailable": "The lesson is written by the analysis this workspace comes from; open it from Home to write it.",
+    "whereItFits": "Where this fits: {{note}}",
+    "checks": "Checks",
+    "runChecks": "Run checks",
+    "preparing": "This step’s checks are still being prepared. They show up here as soon as they are ready.",
+    "state": {
+      "pass": "passes",
+      "fail": "fails",
+      "running": "running",
+      "pending": "not run yet"
+    },
+    "why": {
+      "fail": "Why it fails",
+      "error": "Why it couldn’t run",
+      "timeout": "It took too long",
+      "pass": "Output"
+    },
+    "noOutput": "No output.",
+    "allPass": "Every check passes: step complete."
   },
   "path": {
     "stepOf": "Step {{current}} of {{total}}"
@@ -186,7 +212,7 @@
       "terminal": "Open a folder to start a terminal in it.",
       "run": "Open a folder to run its commands here.",
       "output": "Build and check output.",
-      "lesson": "The lesson for the current step: goal, explanation, checks and hints."
+      "lesson": "The lesson of your current step shows here once you start a path (Home → Import a project)."
     }
   },
   "explorer": {
@@ -506,7 +532,6 @@
     "pathEmpty": "The steps appear here once the plan is ready.",
     "startLearning": "Start step 1",
     "startLearningWait": "Step 1 is being prepared…",
-    "startLearningSoon": "Step 1 is ready. Opening it in the learning workspace comes in the next update.",
     "firstStepSoon": "You can start step 1 as soon as its checks are proven; the next steps keep preparing in the background.",
     "prep": {
       "ready": "Ready",
@@ -514,7 +539,9 @@
       "waiting": "Waiting"
     },
     "milestones_one": "{{count}} milestone",
-    "milestones_other": "{{count}} milestones"
+    "milestones_other": "{{count}} milestones",
+    "startLearningWhere": "Your workspace: {{folder}}. The next steps keep preparing in the background.",
+    "startFailed": "Couldn’t start: {{reason}}"
   },
   "overview": {
     "crumb": "Project overview",

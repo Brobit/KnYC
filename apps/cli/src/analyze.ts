@@ -159,7 +159,7 @@ export async function analyze(options: AnalyzeOptions, io: AnalyzeIo) {
     models: options.models,
   });
   const written = await writeWorkspace(workspace, {
-    project: projectDocument(source, scan, units, options.track, now),
+    project: projectDocument({ path: source, hash: scan.hash }, scan, units, options.track, now),
     path: checks.path,
     checks: checks.checks,
     checkFiles: checks.files,

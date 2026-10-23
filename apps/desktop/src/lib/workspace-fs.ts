@@ -24,10 +24,12 @@ export function createTauriWorkspaceFs(): WorkspaceFs {
   return {
     pick: () => call("workspace_pick"),
     open: (root) => call("workspace_open", { root }),
+    create: (root) => call("workspace_create", { root }),
     close: () => call("workspace_close"),
     tree: () => call("workspace_tree"),
     list: (dir) => call("workspace_list", { path: dir }),
     read: (path) => call("workspace_read", { path }),
+    exists: (path) => call("workspace_exists", { path }),
     write: (path, content) => call("workspace_write", { path, content }),
     createFile: (path) => call("workspace_create_file", { path }),
     createDir: (path) => call("workspace_create_dir", { path }),

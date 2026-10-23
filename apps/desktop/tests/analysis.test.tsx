@@ -132,7 +132,7 @@ describe("AnalysisScreen", () => {
     const user = userEvent.setup();
     let opened: Job | null = null;
     const job = await jobs.startAnalysis(INPUT);
-    renderWith(jobs, <AnalysisScreen jobId={job.id} onHome={() => {}} onOverview={(j) => (opened = j)} onChoosePath={() => {}} />);
+    renderWith(jobs, <AnalysisScreen jobId={job.id} onHome={() => {}} onOverview={(j) => (opened = j)} onChoosePath={() => {}} onStartLearning={async () => {}} />);
 
     expect(screen.getByRole("heading", { name: "Analyzing express-notes" })).toBeInTheDocument();
     const stages = screen.getByRole("list", { name: "Stages" });
@@ -159,7 +159,7 @@ describe("AnalysisScreen", () => {
     const { jobs } = manager(new MemoryHost(), true);
     const job = await jobs.startAnalysis(INPUT);
     const user = userEvent.setup();
-    renderWith(jobs, <AnalysisScreen jobId={job.id} onHome={() => {}} onOverview={() => {}} onChoosePath={() => {}} />);
+    renderWith(jobs, <AnalysisScreen jobId={job.id} onHome={() => {}} onOverview={() => {}} onChoosePath={() => {}} onStartLearning={async () => {}} />);
     await user.click(await screen.findByRole("button", { name: /Cancel analysis/ }));
     expect(await screen.findByText("Cancelled. Resume to go on where it stopped.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Resume/ })).toBeInTheDocument();
@@ -167,7 +167,7 @@ describe("AnalysisScreen", () => {
 
   it("says when the analysis no longer exists", () => {
     const { jobs } = manager();
-    renderWith(jobs, <AnalysisScreen jobId="gone" onHome={() => {}} onOverview={() => {}} onChoosePath={() => {}} />);
+    renderWith(jobs, <AnalysisScreen jobId="gone" onHome={() => {}} onOverview={() => {}} onChoosePath={() => {}} onStartLearning={async () => {}} />);
     expect(screen.getByText("This analysis no longer exists.")).toBeInTheDocument();
   });
 });
@@ -234,7 +234,7 @@ describe("AnalysisScreen with a path", () => {
     const job = await jobs.startAnalysis(INPUT);
     await jobs.whenSettled(job.id);
     await jobs.choosePath(job.id, { track: "backend", size: "standard", setupAsStep: false });
-    renderWith(jobs, <AnalysisScreen jobId={job.id} onHome={() => {}} onOverview={() => {}} onChoosePath={() => {}} />);
+    renderWith(jobs, <AnalysisScreen jobId={job.id} onHome={() => {}} onOverview={() => {}} onChoosePath={() => {}} onStartLearning={async () => {}} />);
 
     expect(screen.getByRole("heading", { name: "Preparing your path for express-notes" })).toBeInTheDocument();
     const stages = screen.getByRole("list", { name: "Stages" });

@@ -7,6 +7,7 @@
 import { AiClient } from "../ai/client.ts";
 import { FileCache } from "../ai/cache.ts";
 import { joinPath, type Host } from "../host/host.ts";
+import type { PreparedStepChecks } from "../learn/workspace.ts";
 import { prepareChecks, type ChecksPreparation, type StepChecksResult } from "../pipeline/checks/index.ts";
 import type { TestMapping } from "../pipeline/checks/existing.ts";
 import { generatePlan, type PlanInput } from "../pipeline/plan.ts";
@@ -201,3 +202,31 @@ export async function loadPathSoFar(host: Host, job: Job): Promise<LearningPath 
 
 /** A step the learner can open: its checks are proven (design/02 D5). */
 export const stepIsReady = (step: LearningPath["steps"][number]) => step.prep === "checks-ready" || step.prep === "ready";
+
+/** A step's checks once prepared, from the job's cache (the workspace copies them, #62). */
+export async function loadStepChecks(host: Host, job: Job, stepId: string): Promise<PreparedStepChecks | undefined> {
+  if (!job.choice) return undefined;
+  try {
+    const saved = (await readJson(host, pathPaths(job.cacheDir, pathIdFor(job.choice)).step(stepId))) as SavedStep;
+    return { checks: saved.checks, files: new Map(Object.entries(saved.files)) };
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The reference tags around a step: `before` is what the learner starts the step from (R_k-1),
+ * `after` where the step's code is complete. A step merged into the next one (it didn't build
+ * alone) shares that step's tag.
+ */
+export async function stepTags(host: Host, job: Job, stepId: string): Promise<{ workDir: string; before: string; after: string }> {
+  if (!job.choice) throw new Error("no path is chosen");
+  const paths = pathPaths(job.cacheDir, pathIdFor(job.choice));
+  const timeline = (await readJson(host, paths.timeline)) as Timeline;
+  const index = timeline.steps.findIndex((s) => s.stepId === stepId);
+  if (index < 0) throw new Error(`the timeline has no step ${stepId}`);
+  const before = timeline.steps.slice(0, index).reverse().find((s) => s.tag)?.tag ?? `${timeline.pathId}/s00`;
+  const after = timeline.steps.slice(index).find((s) => s.tag)?.tag;
+  if (!after) throw new Error(`step ${stepId} has no reference`);
+  return { workDir: paths.workDir, before, after };
+}

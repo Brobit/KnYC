@@ -10,6 +10,8 @@ interface WorkspaceContext {
   folder: WorkspaceInfo | null;
   /** Shows the open-folder dialog; keeps the current folder when cancelled. Resolves to whether a folder was opened. */
   pickFolder: () => Promise<boolean>;
+  /** Creates the learner's workspace folder for a path (#62) and opens it. */
+  createFolder: (root: string) => Promise<WorkspaceInfo>;
   /** Folders opened lately, most recent first. */
   recent: RecentWorkspace[];
   /** Reopens a recent folder; rejects (WorkspaceFsError) when it is gone. */
@@ -74,6 +76,14 @@ export function WorkspaceProvider({ children, fs = defaultFs, recents = defaultR
   }, [fs, opened]);
 
   const openRecent = useCallback(async (root: string) => opened(await fs.open(root)), [fs, opened]);
+  const createFolder = useCallback(
+    async (root: string) => {
+      const info = await fs.create(root);
+      opened(info);
+      return info;
+    },
+    [fs, opened],
+  );
   const forgetRecent = useCallback((root: string) => changeRecent((doc) => withoutRecentWorkspace(doc, root)), [changeRecent]);
 
   // Open files follow the disk (terminal, git, another editor).
@@ -88,6 +98,7 @@ export function WorkspaceProvider({ children, fs = defaultFs, recents = defaultR
       fs,
       folder,
       pickFolder,
+      createFolder,
       recent,
       openRecent,
       forgetRecent,
@@ -97,7 +108,7 @@ export function WorkspaceProvider({ children, fs = defaultFs, recents = defaultR
       onMoved: (from, to) => documents.moved(from, to),
       onDeleted: (path) => documents.deleted(path),
     }),
-    [fs, folder, pickFolder, recent, openRecent, forgetRecent, documents, activeFile],
+    [fs, folder, pickFolder, createFolder, recent, openRecent, forgetRecent, documents, activeFile],
   );
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

@@ -1,0 +1,197 @@
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it } from "vitest";
+import {
+  analysisPaths,
+  knycPaths,
+  learningPath,
+  MemoryHost,
+  pathIdFor,
+  pathPaths,
+  type AiProvider,
+  type Job,
+  type LearningPath,
+  type StageContext,
+  type StageDefinition,
+  type Summaries,
+} from "@knyc/core";
+import { defaultSettings } from "@knyc/core/schemas";
+import { AnalysisScreen } from "@/analysis/AnalysisScreen";
+import { CommandsProvider } from "@/commands/commands";
+import { createFakeImportBackend } from "@/import/import-backend";
+import { DEMO_REQUIRES } from "@/jobs/demo-jobs";
+import { JobManager } from "@/jobs/job-manager";
+import { JobsProvider } from "@/jobs/jobs-context";
+import { fakeCheckRun } from "@/learn/learn-backend";
+import { LearningProvider, useLearning } from "@/learn/learning-context";
+import { LessonPanel } from "@/learn/LessonPanel";
+import { inline, parseBlocks } from "@/learn/Markdown";
+import { createFakeWorkspaceFs } from "@/lib/fake-workspace-fs";
+import { SettingsProvider } from "@/lib/settings";
+import { WorkspaceProvider } from "@/workspace/workspace-context";
+
+describe("Markdown", () => {
+  it("reads headings, paragraphs, lists and code blocks", () => {
+    const blocks = parseBlocks("## Config\n\nRead the port\nfrom the env.\n\n- one\n- two\n  still two\n1. first\n\n```ts\nconst a = 1;\n```");
+    expect(blocks).toEqual([
+      { kind: "heading", level: 2, text: "Config" },
+      { kind: "paragraph", text: "Read the port from the env." },
+      { kind: "list", ordered: false, items: ["one", "two still two"] },
+      { kind: "list", ordered: true, items: ["first"] },
+      { kind: "code", text: "const a = 1;" },
+    ]);
+  });
+
+  it("keeps markup as text and formats code, bold and italic", () => {
+    const parts = inline("Use `loadConfig` and **never** <b>trust</b> *input*");
+    expect(parts[0]).toBe("Use ");
+    expect(parts).toContain(" and ");
+    expect(parts).toContain(" <b>trust</b> ");
+    expect(parts).toHaveLength(6);
+  });
+});
+
+const INPUT = { source: "/home/you/code/express-notes", sourceHash: "blake3:0123456789abcdef", name: "express-notes", workspace: "/home/you/KnYC/express-notes" };
+const SETUP: Record<string, string> = { "package.json": '{"name":"express-notes"}', "tsconfig.json": "{}" };
+
+/** A two-step path: the first step writes src/config.ts. */
+function samplePath(job: Job): LearningPath {
+  const step = (n: number, title: string, unit: string) => ({ id: `s0${n}`, index: n - 1, title, goal: `Write ${unit}.`, concepts: ["configuration"], introduces: [{ unit, kind: "file" as const, change: "add" as const }], estimatedMinutes: 25 });
+  return learningPath.parse({
+    schemaVersion: 1,
+    id: pathIdFor(job.choice!),
+    trackId: "backend",
+    size: "standard",
+    setupAsStep: false,
+    generatedWith: { planning: { providerId: "claude-cli", model: "sonnet" }, at: "2026-10-23T08:00:00.000Z" },
+    status: "preparing",
+    milestones: [{ id: "m1", title: "Foundations", summary: "s", stepIds: ["s01", "s02"] }],
+    steps: [step(1, "Configuration", "src/config.ts"), step(2, "Errors", "src/errors.ts")],
+  });
+}
+
+const lessonModel: AiProvider = {
+  id: "claude-cli",
+  complete: async () => ({
+    json: { explanation: "## Configuration\n\nExport `loadConfig` from **src/config.ts**: it reads the port from the environment, with 3000 when it is missing.", architectureNote: "Used by src/server.ts." },
+    usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
+    costUsd: null,
+    durationMs: 1,
+  }),
+};
+
+/** Instant stages: the sample analysis, a two-step path, a timeline and one demo check per step. */
+function manager() {
+  const host = new MemoryHost({
+    git: (_cwd, args) => (args[0] === "ls-tree" ? Object.keys(SETUP).join("\n") : args[0] === "show" ? (SETUP[args[1]!.split(":")[1]!] ?? "") : args[0] === "diff" ? "+export function loadConfig() {}" : ""),
+  });
+  const backend = createFakeImportBackend();
+  return new JobManager({
+    host,
+    dataDir: async () => "/data",
+    roles: () => defaultSettings().roles,
+    provider: () => lessonModel,
+    newId: () => "job-1",
+    stages: (job): StageDefinition[] => {
+      const paths = analysisPaths(job.cacheDir);
+      const path = job.choice && pathPaths(job.cacheDir, pathIdFor(job.choice));
+      const sample = backend.quickScan(job.input.source);
+      const save = (file: string, value: unknown) => host.writeFile(file, JSON.stringify(value));
+      const steps: Record<string, (context: StageContext) => Promise<void>> = {
+        intake: async () => {},
+        scan: async () => save(paths.scan, (await sample).scan),
+        graph: async () => save(paths.graph, (await sample).graph),
+        summaries: async () => {
+          const summaries: Summaries = { version: 1, files: [], modules: [], project: { name: "express-notes", purpose: "Notes API.", architecture: "Routes and a store.", entryPoints: [], keyConcepts: [] } };
+          await save(paths.summaries, summaries);
+        },
+        plan: async () => save(path!.path, samplePath(job)),
+        timeline: async () =>
+          save(path!.timeline, { pathId: "backend-standard", workDir: path!.workDir, steps: ["s01", "s02"].map((id) => ({ stepId: id, ok: true, tag: `backend-standard/${id}`, durationMs: 1 })), finalMatchesOriginal: true, setupFixes: [] }),
+        checks: async () => {
+          const planned = samplePath(job);
+          for (const step of planned.steps) {
+            const file = `.knyc-checks/${step.id}.test.mjs`;
+            await save(path!.step(step.id), {
+              checks: [{ schemaVersion: 1, id: `chk-${step.id}-1`, stepId: step.id, label: `${step.introduces[0]!.unit} has its code`, origin: "generated", timeoutMs: 1000, spec: { kind: "test", root: ".", runner: "other", command: `node --test ${file}`, filter: [], files: [file] } }],
+              files: { [file]: `${DEMO_REQUIRES}${step.introduces[0]!.unit}\n` },
+              report: { stepId: step.id, strength: "strong", existing: 0, generated: 1, aiCalls: 0, notes: [] },
+            });
+          }
+          await save(path!.path, { ...planned, status: "ready", steps: planned.steps.map((s) => ({ ...s, prep: "checks-ready", checkIds: [`chk-${s.id}-1`] })) });
+        },
+      };
+      return job.stages.map(({ id }) => ({ id, run: (context) => steps[id]!(context) }));
+    },
+  });
+}
+
+function StartButton({ job }: { job: Job }) {
+  const { startLearning } = useLearning();
+  return <button onClick={() => void startLearning(job)}>start for test</button>;
+}
+
+describe("the learning workspace", () => {
+  it("starts step 1 on the setup, writes the lesson once, and turns the checks from red to green", async () => {
+    const jobs = manager();
+    const job = await jobs.startAnalysis(INPUT);
+    await jobs.whenSettled(job.id);
+    await jobs.choosePath(job.id, { track: "backend", size: "standard", setupAsStep: false });
+    await jobs.whenSettled(job.id);
+    const fs = createFakeWorkspaceFs({});
+    const user = userEvent.setup();
+    let opened = false;
+    render(
+      <SettingsProvider initial={defaultSettings()}>
+        <CommandsProvider>
+          <JobsProvider manager={jobs}>
+            <WorkspaceProvider fs={fs}>
+              <LearningProvider runCheck={fakeCheckRun(fs)}>
+                <AnalysisScreen jobId={job.id} onHome={() => {}} onOverview={() => {}} onChoosePath={() => {}} onStartLearning={async () => void (opened = true)} />
+                <StartButton job={jobs.getSnapshot()[0]!} />
+                <LessonPanel empty={<p>no lesson</p>} />
+              </LearningProvider>
+            </WorkspaceProvider>
+          </JobsProvider>
+        </CommandsProvider>
+      </SettingsProvider>,
+    );
+
+    // The live view's button hands over to the app.
+    await user.click(await screen.findByRole("button", { name: /Start step 1/ }));
+    expect(opened).toBe(true);
+    expect(screen.getByText("no lesson")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "start for test" }));
+    await screen.findByRole("region", { name: "Lesson" });
+    const panel = document.body;
+    expect(within(panel).getByRole("heading", { name: "Configuration" })).toBeInTheDocument();
+    expect(within(panel).getByText("Step 1 · Milestone 1: Foundations")).toBeInTheDocument();
+    expect(within(panel).getByText("Write src/config.ts.")).toBeInTheDocument();
+    expect(await within(panel).findByText("loadConfig")).toBeInTheDocument();
+    expect(within(panel).getByText("Where this fits: Used by src/server.ts.")).toBeInTheDocument();
+
+    // R₀ and .knyc/ are in the workspace; the lesson is kept for next time.
+    expect(await fs.read("package.json")).toBe('{"name":"express-notes"}');
+    await waitFor(async () => expect(await fs.exists(knycPaths("backend-standard").lesson("s01"))).toBe(true));
+    expect(await fs.exists(knycPaths("backend-standard").check("chk-s02-1"))).toBe(true);
+
+    // Red: the file isn't written yet.
+    await user.click(within(panel).getByRole("button", { name: /Run checks/ }));
+    expect(await within(panel).findByRole("listitem", { name: "src/config.ts has its code: fails" })).toBeInTheDocument();
+    expect(within(panel).getByText(/src\/config.ts is missing or empty/)).toBeInTheDocument();
+
+    // Green once the learner writes it.
+    await fs.createDir("src");
+    await fs.write("src/config.ts", "export const loadConfig = () => ({ port: 3000 });\n");
+    await user.click(within(panel).getByRole("button", { name: /Run checks/ }));
+    expect(await within(panel).findByRole("listitem", { name: "src/config.ts has its code: passes" })).toBeInTheDocument();
+    expect(within(panel).getByRole("status")).toHaveTextContent("Every check passes: step complete.");
+
+    const progress = JSON.parse(await fs.read(".knyc/progress.json"));
+    expect(progress.paths["backend-standard"].steps.s01).toMatchObject({ status: "passed", attempts: 2 });
+    expect((await fs.read(knycPaths("backend-standard").runs("s01"))).trim().split("\n")).toHaveLength(2);
+    // The check file was only there while the checks ran.
+    expect(await fs.exists(".knyc-checks")).toBe(false);
+  });
+});

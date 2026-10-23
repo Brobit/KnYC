@@ -47,3 +47,7 @@ export * from "./jobs/runner.ts";
 export * from "./jobs/analysis.ts";
 export * from "./jobs/registry.ts";
 export * from "./jobs/path.ts";
+export * from "./learn/documents.ts";
+export * from "./learn/checks.ts";
+export * from "./learn/workspace.ts";
+export * from "./learn/lesson.ts";

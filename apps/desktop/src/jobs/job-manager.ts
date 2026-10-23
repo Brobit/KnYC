@@ -2,7 +2,19 @@
 // reads the job registry, goes on with jobs the app was closed in the middle of, and schedules
 // paused ones for when the usage limit resets. Screens read its snapshot and get updates live.
 import {
+  AiClient,
+  analysisPaths,
+  buildUnits,
+  FileCache,
+  generateLesson,
+  joinPath,
   JobRegistry,
+  loadAnalysis,
+  loadStepChecks,
+  pathIdFor,
+  projectDocument,
+  referenceFiles,
+  stepTags,
   jobStages,
   loadAnalysisSoFar,
   loadPathSoFar,
@@ -14,9 +26,12 @@ import {
   type Host,
   type Job,
   type LearningPath,
+  type Lesson,
+  type PreparedStepChecks,
   type PathChoice,
   type Settings,
   type StageDefinition,
+  type WorkspaceStart,
   withPathChoice,
 } from "@knyc/core";
 
@@ -137,6 +152,56 @@ export class JobManager {
   async results(job: Job): Promise<JobResults> {
     const [analysis, path] = await Promise.all([loadAnalysisSoFar(this.deps.host, job.cacheDir), loadPathSoFar(this.deps.host, job)]);
     return { ...analysis, path };
+  }
+
+  /** What a new workspace for the job's path starts from (#62): project.json, the path, R₀. */
+  async learningStart(job: Job): Promise<WorkspaceStart> {
+    const path = await loadPathSoFar(this.deps.host, job);
+    if (!job.choice || !path) throw new Error("the path isn't prepared yet");
+    const { scan, graph } = await loadAnalysisSoFar(this.deps.host, job.cacheDir);
+    if (!scan || !graph) throw new Error("the analysis results are missing");
+    const { workDir, before } = await stepTags(this.deps.host, job, path.steps[0]!.id);
+    return {
+      project: projectDocument({ path: job.input.source, hash: job.input.sourceHash, name: job.input.name }, scan, buildUnits(graph), job.choice.track, this.now()),
+      path,
+      setup: await referenceFiles(this.deps.host, workDir, before),
+      now: this.now(),
+    };
+  }
+
+  /** A step's checks once the job has prepared them. */
+  stepChecks(job: Job, stepId: string): Promise<PreparedStepChecks | undefined> {
+    return loadStepChecks(this.deps.host, job, stepId);
+  }
+
+  /** The project's own test files, from the sandbox (checks that run its suite need them). */
+  async testFiles(job: Job): Promise<Map<string, string>> {
+    const { graph } = await loadAnalysisSoFar(this.deps.host, job.cacheDir);
+    const sandbox = analysisPaths(job.cacheDir).sandbox;
+    const files = new Map<string, string>();
+    for (const file of graph?.files.filter((f) => f.test) ?? []) files.set(file.path, await this.deps.host.readFile(joinPath(sandbox, file.path)));
+    return files;
+  }
+
+  /** Writes the lesson of a step (design/02 ⑨): from the summaries and the original's change. */
+  async lesson(job: Job, stepId: string): Promise<Lesson> {
+    const path = await loadPathSoFar(this.deps.host, job);
+    if (!path) throw new Error("the path isn't prepared yet");
+    const { summaries } = await loadAnalysis(this.deps.host, job.cacheDir);
+    const { workDir, before, after } = await stepTags(this.deps.host, job, stepId);
+    const diff = await this.deps.host.git(workDir, ["diff", before, after]);
+    const roles = this.deps.roles();
+    const client = new AiClient({
+      providers: [this.deps.provider(new AbortController().signal)],
+      roles,
+      cache: new FileCache(this.deps.host, analysisPaths(job.cacheDir).aiCache),
+    });
+    return generateLesson(client, { projectName: job.input.name, path, stepId, summaries, diff }, { model: roles.lessons, now: this.now() });
+  }
+
+  /** The job a workspace was started from: same source and path (project.json, progress.json). */
+  jobFor(sourceHash: string, pathId: string): Job | undefined {
+    return this.snapshot.find((j) => j.input.sourceHash === sourceHash && j.choice && pathIdFor(j.choice) === pathId);
   }
 
   /** The run in progress, for tests and for waiting on a job. */

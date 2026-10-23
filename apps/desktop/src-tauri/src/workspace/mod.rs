@@ -6,11 +6,14 @@ mod scope;
 
 pub use scope::{FsError, FsResult, Scope, TreeEntry};
 
+use knyc_runner::check::{CheckOutcome, run_check};
+use knyc_runner::run::RunSpec;
 use notify_debouncer_full::notify::RecursiveMode;
 use notify_debouncer_full::{DebounceEventResult, Debouncer, RecommendedCache, new_debouncer};
-use serde::Serialize;
-use std::collections::BTreeSet;
-use std::path::PathBuf;
+use serde::{Deserialize, Serialize};
+use std::collections::{BTreeMap, BTreeSet};
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -145,6 +148,86 @@ pub fn workspace_open(
     open_folder(&app, &state, PathBuf::from(root))
 }
 
+/// Makes sure `path` can become a learner's workspace (#62): a new folder is created; an existing
+/// one must be empty or already be a KnYC workspace, so nobody's project is ever written over.
+fn prepare_workspace_folder(path: &Path) -> FsResult<()> {
+    let shown = path.display().to_string();
+    if !path.is_absolute() {
+        return Err(FsError::OutsideWorkspace(shown));
+    }
+    if !path.exists() {
+        return fs::create_dir_all(path).map_err(|e| FsError::io(&shown, e));
+    }
+    if !path.is_dir() {
+        return Err(FsError::AlreadyExists(shown));
+    }
+    let empty = fs::read_dir(path)
+        .map_err(|e| FsError::io(&shown, e))?
+        .next()
+        .is_none();
+    if empty || path.join(".knyc").join("project.json").is_file() {
+        Ok(())
+    } else {
+        Err(FsError::AlreadyExists(format!(
+            "{shown} already holds other files; choose an empty folder"
+        )))
+    }
+}
+
+/// Creates (or reuses) the learner's workspace folder and opens it.
+#[tauri::command]
+pub fn workspace_create(
+    app: AppHandle,
+    state: State<'_, WorkspaceState>,
+    root: String,
+) -> FsResult<WorkspaceInfo> {
+    let path = PathBuf::from(root);
+    prepare_workspace_folder(&path)?;
+    open_folder(&app, &state, path)
+}
+
+/// Whether a path exists in the open folder, including ones the tree hides (`node_modules`).
+#[tauri::command]
+pub fn workspace_exists(state: State<'_, WorkspaceState>, path: String) -> FsResult<bool> {
+    Ok(state.scope()?.resolve(&path)?.exists())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CheckRunRequest {
+    command: String,
+    /// Package folder, relative to the workspace.
+    root: String,
+    timeout_ms: u64,
+    #[serde(default)]
+    env: BTreeMap<String, String>,
+    /// Jest/Vitest JSON report the command writes, relative to `root`.
+    report: Option<String>,
+}
+
+/// Runs one check command in the open workspace (#62): same runner as the pipeline (timeout,
+/// process-tree kill, test report), but only inside the folder the learner opened.
+#[tauri::command]
+pub async fn workspace_check_run(
+    state: State<'_, WorkspaceState>,
+    request: CheckRunRequest,
+) -> FsResult<CheckOutcome> {
+    let scope = state.scope()?;
+    let cwd = scope.resolve(&request.root)?;
+    if let Some(report) = &request.report {
+        // Resolved only to refuse a report path outside the workspace.
+        scope.resolve(&format!("{}/{report}", request.root))?;
+    }
+    let mut spec = RunSpec::new(request.command, cwd);
+    spec.timeout = Duration::from_millis(request.timeout_ms);
+    spec.env = request.env;
+    tauri::async_runtime::spawn_blocking(move || {
+        run_check(&spec, request.report.map(PathBuf::from))
+    })
+    .await
+    .map_err(|e| FsError::Io(e.to_string()))
+}
+
 #[tauri::command]
 pub fn workspace_close(app: AppHandle, state: State<'_, WorkspaceState>) -> FsResult<()> {
     app.state::<TerminalState>().close_all();
@@ -209,6 +292,34 @@ mod tests {
     fn commands_need_an_open_folder() {
         let state = WorkspaceState::default();
         assert!(matches!(state.scope(), Err(FsError::NoWorkspace(_))));
+    }
+
+    #[test]
+    fn a_workspace_folder_is_new_empty_or_already_knyc() {
+        let dir = tempfile::tempdir().unwrap();
+        let new = dir.path().join("KnYC/notes");
+        prepare_workspace_folder(&new).unwrap();
+        assert!(new.is_dir());
+        // Empty: fine again.
+        prepare_workspace_folder(&new).unwrap();
+
+        let project = dir.path().join("my-project");
+        std::fs::create_dir(&project).unwrap();
+        std::fs::write(project.join("app.ts"), "").unwrap();
+        assert!(matches!(
+            prepare_workspace_folder(&project),
+            Err(FsError::AlreadyExists(_))
+        ));
+
+        std::fs::create_dir_all(new.join(".knyc")).unwrap();
+        std::fs::write(new.join(".knyc/project.json"), "{}").unwrap();
+        std::fs::write(new.join("package.json"), "{}").unwrap();
+        prepare_workspace_folder(&new).unwrap();
+
+        assert!(matches!(
+            prepare_workspace_folder(Path::new("relative/folder")),
+            Err(FsError::OutsideWorkspace(_))
+        ));
     }
 
     #[test]

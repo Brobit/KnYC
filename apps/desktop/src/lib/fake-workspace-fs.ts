@@ -52,13 +52,30 @@ export function createFakeWorkspaceFs(files: Record<string, string> = SAMPLE, na
       .map(([path, node]) => ({ path, kind: node.kind }))
       .sort((a, b) => (a.path < b.path ? -1 : 1));
 
-  const info: WorkspaceInfo = { root: `/fake/${name}`, name };
+  let info: WorkspaceInfo = { root: `/fake/${name}`, name };
   const run = async <T>(action: () => T): Promise<T> => action();
 
   return {
     pick: () => run(() => ((open = true), info)),
     open: () => run(() => ((open = true), info)),
+    // A new learner workspace (#62): an empty folder, like the Rust command makes.
+    create: (root) =>
+      run(() => {
+        nodes.clear();
+        open = true;
+        info = { root, name: root.split(/[\/]/).filter(Boolean).pop() ?? root };
+        return info;
+      }),
     close: () => run(() => void (open = false)),
+    exists: (path) =>
+      run(() => {
+        try {
+          return nodes.has(resolve(path));
+        } catch (error) {
+          if (error instanceof WorkspaceFsError && error.kind === "notFound") return false;
+          throw error;
+        }
+      }),
     tree: () => run(() => (resolve("", { child: false }), [...nodes.keys()].sort().map((path) => ({ path, kind: nodes.get(path)!.kind })))),
     list: (dir) =>
       run(() => {

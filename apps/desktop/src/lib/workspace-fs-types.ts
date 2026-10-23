@@ -27,11 +27,15 @@ export interface WorkspaceFs {
   pick(): Promise<WorkspaceInfo | null>;
   /** Reopens a folder picked before (recent projects). */
   open(root: string): Promise<WorkspaceInfo>;
+  /** Creates the learner's workspace for a path (#62): a new or empty folder, or a KnYC workspace already. */
+  create(root: string): Promise<WorkspaceInfo>;
   close(): Promise<void>;
   tree(): Promise<TreeEntry[]>;
   /** Direct children of a folder ("" for the root). */
   list(dir: string): Promise<TreeEntry[]>;
   read(path: string): Promise<string>;
+  /** Also for paths the tree hides (node_modules). */
+  exists(path: string): Promise<boolean>;
   write(path: string, content: string): Promise<void>;
   createFile(path: string): Promise<void>;
   createDir(path: string): Promise<void>;
