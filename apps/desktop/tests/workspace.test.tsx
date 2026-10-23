@@ -36,13 +36,14 @@ describe("default layout", () => {
     applyDefaultLayout(api, title);
     expect(api.panels.map((p) => p.id).sort()).toEqual([...PANEL_IDS].sort());
     expect(groupedPanels(api)).toEqual(
-      expect.arrayContaining([["explorer"], ["editor"], ["output", "run", "terminal"], ["lesson"]]),
+      expect.arrayContaining([["explorer"], ["editor"], ["output", "run", "terminal"], ["lesson", "path"]]),
     );
     expect(groupOf(api, "explorer").api.width).toBe(240);
     expect(groupOf(api, "lesson").api.width).toBe(340);
     expect(groupOf(api, "terminal").api.height).toBe(220);
     expect(groupOf(api, "terminal").activePanel?.id).toBe("terminal");
     expect(api.getPanel("lesson")!.title).toBe("LESSON");
+    expect(groupOf(api, "lesson").activePanel?.id).toBe("lesson");
   });
 });
 

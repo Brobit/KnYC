@@ -38,6 +38,7 @@ pub fn run() {
             workspace::workspace_check_run,
             workspace::workspace_exists,
             workspace::workspace_read_for_ai,
+            workspace::workspace_snapshot,
             workspace::workspace_close,
             workspace::workspace_tree,
             workspace::workspace_list,

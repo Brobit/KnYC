@@ -10,7 +10,7 @@ import {
   type IDockviewPanelProps,
 } from "dockview-react";
 import "dockview-react/dist/styles/dockview.css";
-import { BookOpen, ChevronsDownUp, ChevronsUpDown, Code, FolderTree, Play, ScrollText, Terminal, type LucideIcon } from "lucide-react";
+import { BookOpen, ChevronsDownUp, ChevronsUpDown, Code, FolderTree, Play, Route, ScrollText, Terminal, type LucideIcon } from "lucide-react";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import { useRegisterCommands } from "@/commands/commands";
@@ -21,6 +21,7 @@ import { Explorer } from "@/explorer/Explorer";
 import { Collapser } from "./collapse";
 import { EditorPanel } from "@/editor/EditorPanel";
 import { LessonPanel } from "@/learn/LessonPanel";
+import { PathPanel } from "@/learn/PathPanel";
 import { RunPanel } from "@/run/RunPanel";
 import { TerminalPanel } from "@/terminal/TerminalPanel";
 import { applyDefaultLayout, PANEL_COMPONENT, PANEL_IDS, restoreLayout, saveLayout, type PanelId, type PanelTitle } from "./layout";
@@ -33,6 +34,7 @@ const ICONS: Record<PanelId, LucideIcon> = {
   run: Play,
   output: ScrollText,
   lesson: BookOpen,
+  path: Route,
 };
 
 /** Saving waits for the layout to settle, so a drag or resize writes settings.json once. */
@@ -59,6 +61,7 @@ function Panel({ api }: IDockviewPanelProps) {
   if (id === "run") return <RunPanel empty={<Placeholder id={id} />} />;
   if (id === "terminal") return <TerminalPanel empty={<Placeholder id={id} />} panelApi={api} />;
   if (id === "lesson") return <LessonPanel empty={<Placeholder id={id} />} />;
+  if (id === "path") return <PathPanel empty={<Placeholder id={id} />} />;
   return <Placeholder id={id} />;
 }
 

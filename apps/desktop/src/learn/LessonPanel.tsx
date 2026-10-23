@@ -2,10 +2,10 @@
 // concepts, the lesson (written the first time the step opens), and its checks with one Run
 // (Ctrl/⌘+Enter), then the help ladder (#63): hints 1 → 2 → 3, then reveal the original, each rung
 // counted; "Explain this failure" on a failing check and the step chat (#64), kept with the step.
-import { ArrowUp, CircleCheck, LoaderCircle, Play, RotateCcw, Sparkles, Target } from "lucide-react";
+import { ArrowRight, ArrowUp, CircleCheck, LoaderCircle, Play, RotateCcw, SkipForward, Sparkles, Target } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { nextHintLevel, type CheckRun } from "@knyc/core";
+import { nextHintLevel, nextStepOf, type CheckRun } from "@knyc/core";
 import { formatShortcut, useRegisterCommands } from "@/commands/commands";
 import { Chip } from "@/components/knyc/badges";
 import { CheckRow, HintLadder, type CheckState } from "@/components/knyc/checks";
@@ -41,7 +41,8 @@ function Section({ title, actions, children }: { title: string; actions?: ReactN
 
 export function LessonPanel({ empty }: { empty: ReactNode }) {
   const { t } = useTranslation();
-  const { learning, stepId, checks, results, running, lesson, stepProgress, hint, help, runChecks, retryLesson, takeHint, reveal, explain, ask } = useLearning();
+  const { learning, stepId, checks, results, running, lesson, stepProgress, hint, help, runChecks, retryLesson, takeHint, reveal, explain, ask, nextStep, skipTo, moving } = useLearning();
+  const [confirmSkip, setConfirmSkip] = useState(false);
   const [question, setQuestion] = useState("");
   const chatEnd = useRef<HTMLDivElement>(null);
   const send = () => {
@@ -85,6 +86,8 @@ export function LessonPanel({ empty }: { empty: ReactNode }) {
     const result = results.get(id);
     return !result ? "pending" : result.status === "pass" ? "pass" : "fail";
   };
+  const following = nextStepOf(learning.path, step.id);
+  const pathDone = learning.progress.paths[learning.path.id]?.completedAt !== undefined;
   const allPass = checks.length > 0 && checks.every((c) => results.get(c.id)?.status === "pass") && !busy;
 
   return (
@@ -188,10 +191,30 @@ export function LessonPanel({ empty }: { empty: ReactNode }) {
             </ul>
           )}
           {allPass && (
-            <p className="flex items-center gap-2 rounded-md bg-success-soft px-3 py-2 text-[13px] font-medium text-success" role="status">
-              <CircleCheck className="size-4" aria-hidden />
-              {t("lesson.allPass")}
-            </p>
+            <section className="flex flex-col gap-2 rounded-md border border-success/40 bg-success-soft px-3 py-3" role="status" aria-label={t("lesson.complete")}>
+              <p className="flex items-center gap-2 text-[13px] font-semibold text-success">
+                <CircleCheck className="size-4" aria-hidden />
+                {t("lesson.allPass")}
+              </p>
+              <p className="text-xs text-text-secondary">
+                {[
+                  t("lesson.attempts", { count: stepProgress?.attempts ?? 0 }),
+                  t("lesson.hintsTaken", { count: hintsUsed }),
+                  (stepProgress?.timeSpentSec ?? 0) < 60 ? t("lesson.underAMinute") : t("lesson.minutes", { count: Math.round(stepProgress!.timeSpentSec / 60) }),
+                  stepProgress?.snapshot ? t("lesson.snapshotSaved", { id: stepProgress.snapshot.slice(0, 7) }) : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+              {pathDone ? (
+                <p className="text-xs font-medium text-text-primary">{t("lesson.pathDone")}</p>
+              ) : (
+                <Button className="self-start" onClick={() => void nextStep()} disabled={moving.busy}>
+                  {t(following ? "lesson.nextStep" : "lesson.finishPath")}
+                  <ArrowRight />
+                </Button>
+              )}
+            </section>
           )}
         </Section>
 
@@ -222,6 +245,17 @@ export function LessonPanel({ empty }: { empty: ReactNode }) {
             <button type="button" className="self-start text-xs text-text-muted underline-offset-2 hover:underline" onClick={() => void openReveal()}>
               {t("lesson.revealedAgain")}
             </button>
+          )}
+          {!allPass && stepProgress?.status !== "skipped" && (
+            <button type="button" className="flex items-center gap-1 self-start text-xs text-text-muted hover:text-text-secondary" onClick={() => setConfirmSkip(true)} disabled={moving.busy}>
+              <SkipForward className="size-3" aria-hidden />
+              {t("lesson.skip")}
+            </button>
+          )}
+          {moving.error && (
+            <p role="alert" className="text-xs text-danger">
+              {t("lesson.skipFailed", { reason: moving.error })}
+            </p>
           )}
         </Section>
 
@@ -292,6 +326,18 @@ export function LessonPanel({ empty }: { empty: ReactNode }) {
           <AlertDialogFooter>
             <AlertDialogCancel>{t("lesson.cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={() => void openReveal()}>{t("lesson.revealConfirm")}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={confirmSkip} onOpenChange={setConfirmSkip}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("lesson.skipTitle", { step: step.index + 1 })}</AlertDialogTitle>
+            <AlertDialogDescription>{t("lesson.skipBody")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("lesson.cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void skipTo(null)}>{t("lesson.skipConfirm")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
