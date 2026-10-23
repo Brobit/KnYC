@@ -196,7 +196,7 @@ describe("the learning workspace", () => {
     await user.click(screen.getByRole("button", { name: "start for test" }));
     await screen.findByRole("region", { name: "Lesson" });
     const panel = document.body;
-    expect(within(panel).getByRole("heading", { name: "Configuration" })).toBeInTheDocument();
+    expect(within(panel).getByRole("heading", { name: "Configuration", level: 2 })).toBeInTheDocument();
     expect(within(panel).getByText("Step 1 · Milestone 1: Foundations")).toBeInTheDocument();
     expect(within(panel).getByText("Write src/config.ts.")).toBeInTheDocument();
     expect(await within(panel).findByText("loadConfig")).toBeInTheDocument();
