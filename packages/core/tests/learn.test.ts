@@ -8,7 +8,10 @@ import {
   buildUnits,
   generateLesson,
   graphSchema,
+  chatPrompt,
+  explainPrompt,
   hintPrompt,
+  withChat,
   nextHintLevel,
   stepChanges,
   withHint,
@@ -347,6 +350,38 @@ describe("hints and reveal", () => {
     expect(await stepChanges(host, "/ref", "p/s00", "p/s01")).toEqual([
       { path: "src/config.ts", before: null, after: "after src/config.ts" },
       { path: "src/server.ts", before: "import './app.js';\n", after: "after src/server.ts" },
+    ]);
+  });
+});
+
+describe("explain this failure and the step chat", () => {
+  const summaries = summariesFixture as Summaries;
+  const base = { projectName: "express-notes", path: PATH, stepId: PATH.steps[0]!.id, summaries, diff: "+export function loadConfig() {}" };
+  const learnerFiles = new Map<string, string | null>([["src/config.ts", "export const port = 3000;"]]);
+
+  it("gives the real error and the learner's code, and asks for an explanation without the fix", () => {
+    const prompt = explainPrompt({ ...base, check: "loadConfig reads PORT", failure: "TypeError: loadConfig is not a function\n    at test.mjs:3", learnerFiles });
+    expect(prompt).toContain('# The failing check: "loadConfig reads PORT"');
+    expect(prompt).toContain("TypeError: loadConfig is not a function");
+    expect(prompt).toContain("export const port = 3000;");
+    expect(prompt).toContain("Don't write the fix for them");
+  });
+
+  it("keeps the recent conversation and the lesson as the chat's context", () => {
+    const history = Array.from({ length: 14 }, (_, i) => ({ role: (i % 2 ? "assistant" : "user") as "user" | "assistant", content: `message ${i}`, at: NOW.toISOString() }));
+    const prompt = chatPrompt({ ...base, lesson: "Export loadConfig.", learnerFiles, history, question: "Why a function and not a constant?" });
+    expect(prompt).toContain("# The lesson the learner read\nExport loadConfig.");
+    expect(prompt).not.toContain("message 1\n");
+    expect(prompt).toContain("Learner: message 2");
+    expect(prompt).toContain("You: message 13");
+    expect(prompt).toContain("# The learner asks\nWhy a function and not a constant?");
+  });
+
+  it("adds an exchange to the step's chat", () => {
+    const lesson = { schemaVersion: 1 as const, stepId: "s01", generatedWith: { providerId: "claude-cli", model: "sonnet" }, at: NOW.toISOString(), explanation: "x".repeat(90), hints: [], chat: [] };
+    expect(withChat(lesson, "Why?", "Because.", NOW).chat).toEqual([
+      { role: "user", content: "Why?", at: NOW.toISOString() },
+      { role: "assistant", content: "Because.", at: NOW.toISOString() },
     ]);
   });
 });

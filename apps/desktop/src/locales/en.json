@@ -200,7 +200,18 @@
     "revealBodyHints": "You’ll see the original code of this step, and it counts in your stats. The hints are still there if you want to try a little more first.",
     "revealBody": "You’ll see the original code of this step, and it counts in your stats.",
     "revealConfirm": "Reveal",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "explain": "Explain this failure",
+    "explaining": "Explaining…",
+    "explainQuestion": "Why does “{{check}}” fail?",
+    "chat": "Questions about this step",
+    "you": "You",
+    "teacher": "KnYC",
+    "thinking": "Thinking…",
+    "helpFailed": "No answer this time: {{reason}}",
+    "ask": "Ask about this step",
+    "askPlaceholder": "Ask about this step…",
+    "send": "Send"
   },
   "reveal": {
     "title": "The original for this step",

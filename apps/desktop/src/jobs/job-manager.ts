@@ -3,9 +3,11 @@
 // paused ones for when the usage limit resets. Screens read its snapshot and get updates live.
 import {
   AiClient,
+  answerQuestion,
   analysisPaths,
   buildUnits,
   FileCache,
+  explainFailure,
   generateHint,
   generateLesson,
   joinPath,
@@ -26,6 +28,8 @@ import {
   type AnalysisResult,
   type Host,
   type Job,
+  type ChatInput,
+  type ExplainInput,
   type FileChange,
   type HintInput,
   type LearningPath,
@@ -196,6 +200,18 @@ export class JobManager {
   async hint(job: Job, stepId: string, request: Pick<HintInput, "level" | "earlier" | "learnerFiles" | "failures">): Promise<string> {
     const { client, input } = await this.teaching(job, stepId);
     return generateHint(client, { ...input, ...request });
+  }
+
+  /** Explains why a check fails (#64), from the real error and the learner's code. */
+  async explain(job: Job, stepId: string, request: Pick<ExplainInput, "check" | "failure" | "learnerFiles">): Promise<string> {
+    const { client, input } = await this.teaching(job, stepId);
+    return explainFailure(client, { ...input, ...request });
+  }
+
+  /** Answers a question in the step chat (#64). */
+  async chat(job: Job, stepId: string, request: Pick<ChatInput, "lesson" | "learnerFiles" | "history" | "question">): Promise<string> {
+    const { client, input } = await this.teaching(job, stepId);
+    return answerQuestion(client, { ...input, ...request });
   }
 
   /** What the original changes in a step, file by file (Reveal original, design/04 §7a). */

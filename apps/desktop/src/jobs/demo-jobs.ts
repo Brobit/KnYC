@@ -199,7 +199,7 @@ function demoGit(host: MemoryHost) {
   };
 }
 
-/** Answers lesson and hint requests like the model would, from the step in the prompt. */
+/** Answers lessons, hints, failure explanations and chat questions like the model would, from the prompt. */
 const demoProvider: AiProvider = {
   id: "claude-cli",
   async complete(request) {
@@ -207,6 +207,17 @@ const demoProvider: AiProvider = {
     const step = /# This step: (\S+) "([^"]+)"/.exec(request.prompt);
     const files = /\nFiles: (.+)\n/.exec(request.prompt)?.[1] ?? "the step's file";
     const title = step?.[2] ?? "this step";
+    const usage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
+    const failing = /# The failing check: "([^"]+)"/.exec(request.prompt)?.[1];
+    if (failing) {
+      const text = `The check **${failing}** looks for code in \`${files}\`, and the file is missing or empty, so there is nothing for it to run.\n\nCreate \`${files}\` and export the step's function from it, then run the checks again. (Browser preview: a sample explanation.)`;
+      return { json: { text }, usage, costUsd: null, durationMs: 1200 };
+    }
+    const question = /# The learner asks\n([\s\S]*?)\n\nAnswer in Markdown/.exec(request.prompt)?.[1];
+    if (question) {
+      const text = `Good question. In this step everything happens in \`${files}\`: ${title.toLowerCase()} is a small piece the next steps import.\n\n(Browser preview: a sample answer to "${question.trim()}".)`;
+      return { json: { text }, usage, costUsd: null, durationMs: 1200 };
+    }
     const level = /\nWrite Hint (\d)/.exec(request.prompt)?.[1];
     if (level) {
       const text = {

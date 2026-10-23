@@ -52,3 +52,4 @@ export * from "./learn/checks.ts";
 export * from "./learn/workspace.ts";
 export * from "./learn/lesson.ts";
 export * from "./learn/hints.ts";
+export * from "./learn/help.ts";

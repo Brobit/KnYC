@@ -22,11 +22,12 @@ import { createFakeImportBackend } from "@/import/import-backend";
 import { DEMO_REQUIRES } from "@/jobs/demo-jobs";
 import { JobManager } from "@/jobs/job-manager";
 import { JobsProvider } from "@/jobs/jobs-context";
-import { fakeCheckRun } from "@/learn/learn-backend";
+import { fakeCheckRun, fakeReadForAi, type ReadForAi } from "@/learn/learn-backend";
 import { LearningProvider, useLearning } from "@/learn/learning-context";
 import { LessonPanel } from "@/learn/LessonPanel";
 import { inline, parseBlocks } from "@/learn/Markdown";
 import { createFakeWorkspaceFs } from "@/lib/fake-workspace-fs";
+import type { WorkspaceFs } from "@/lib/workspace-fs";
 import { SettingsProvider } from "@/lib/settings";
 import { WorkspaceProvider } from "@/workspace/workspace-context";
 
@@ -73,12 +74,19 @@ function samplePath(job: Job): LearningPath {
   });
 }
 
+/** The prompts of explanations and chat answers, to see what was sent. */
+const prompts: string[] = [];
+
 const lessonModel: AiProvider = {
   id: "claude-cli",
   complete: async (request) => ({
     json: /\nWrite Hint (\d)/.test(request.prompt)
       ? { text: `Hint text ${/\nWrite Hint (\d)/.exec(request.prompt)![1]}: look at what src/server.ts imports.` }
-      : { explanation: "## Configuration\n\nExport `loadConfig` from **src/config.ts**: it reads the port from the environment, with 3000 when it is missing.", architectureNote: "Used by src/server.ts." },
+      : (prompts.push(request.prompt), /# The failing check/.test(request.prompt))
+        ? { text: "The file is empty, so the check has **nothing to run**." }
+        : /# The learner asks/.test(request.prompt)
+          ? { text: "Because the server calls it at start-up." }
+          : { explanation: "## Configuration\n\nExport `loadConfig` from **src/config.ts**: it reads the port from the environment, with 3000 when it is missing.", architectureNote: "Used by src/server.ts." },
     usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
     costUsd: null,
     durationMs: 1,
@@ -139,6 +147,16 @@ function manager() {
   });
 }
 
+/** Stands in for the Rust secret guard: a secret-looking line becomes "[guarded]". */
+function guarded(fs: WorkspaceFs): ReadForAi {
+  const read = fakeReadForAi(fs);
+  const hide = (text: string) => text.replace(/.*hunter22.*/g, "[guarded]");
+  return async (paths, texts) => {
+    const out = await read(paths, texts);
+    return { files: new Map([...out.files].map(([p, c]) => [p, c === null ? null : hide(c)])), texts: out.texts.map(hide) };
+  };
+}
+
 function StartButton({ job }: { job: Job }) {
   const { startLearning } = useLearning();
   return <button onClick={() => void startLearning(job)}>start for test</button>;
@@ -159,7 +177,7 @@ describe("the learning workspace", () => {
         <CommandsProvider>
           <JobsProvider manager={jobs}>
             <WorkspaceProvider fs={fs}>
-              <LearningProvider runCheck={fakeCheckRun(fs)}>
+              <LearningProvider runCheck={fakeCheckRun(fs)} readForAi={guarded(fs)}>
                 <AnalysisScreen jobId={job.id} onHome={() => {}} onOverview={() => {}} onChoosePath={() => {}} onStartLearning={async () => void (opened = true)} />
                 <StartButton job={jobs.getSnapshot()[0]!} />
                 <LessonPanel empty={<p>no lesson</p>} />
@@ -178,7 +196,7 @@ describe("the learning workspace", () => {
     await user.click(screen.getByRole("button", { name: "start for test" }));
     await screen.findByRole("region", { name: "Lesson" });
     const panel = document.body;
-    expect(within(panel).getByRole("heading", { name: "Configuration" })).toBeInTheDocument();
+    expect(within(panel).getByRole("heading", { name: "Configuration", level: 2 })).toBeInTheDocument();
     expect(within(panel).getByText("Step 1 · Milestone 1: Foundations")).toBeInTheDocument();
     expect(within(panel).getByText("Write src/config.ts.")).toBeInTheDocument();
     expect(await within(panel).findByText("loadConfig")).toBeInTheDocument();
@@ -194,8 +212,23 @@ describe("the learning workspace", () => {
     expect(await within(panel).findByRole("listitem", { name: "src/config.ts has its code: fails" })).toBeInTheDocument();
     expect(within(panel).getByText(/src\/config.ts is missing or empty/)).toBeInTheDocument();
 
-    // Green once the learner writes it.
+    // Explain this failure, then a question: both go through the secret guard and stay in the step chat.
     await fs.createDir("src");
+    await fs.write("src/config.ts", 'const db = "postgres://admin:hunter22@db/app";\n');
+    await user.click(within(panel).getByRole("button", { name: "Explain this failure" }));
+    const chat = await within(panel).findByRole("list", { name: "Questions about this step" });
+    expect(await within(chat).findByText("nothing to run")).toBeInTheDocument();
+    expect(within(chat).getByRole("listitem", { name: "You" })).toHaveTextContent("Why does “src/config.ts has its code” fail?");
+    expect(prompts[prompts.length - 1]).toContain("[guarded]");
+    expect(prompts[prompts.length - 1]).not.toContain("hunter22");
+    await user.type(within(panel).getByRole("textbox", { name: "Ask about this step" }), "Why a function?{Enter}");
+    expect(await within(chat).findByText("Because the server calls it at start-up.")).toBeInTheDocument();
+    expect(prompts[prompts.length - 1]).toContain("# The learner asks\nWhy a function?");
+    const saved = JSON.parse(await fs.read(knycPaths("backend-standard").lesson("s01")));
+    expect(saved.chat.map((m: { role: string }) => m.role)).toEqual(["user", "assistant", "user", "assistant"]);
+    await fs.write("src/config.ts", "");
+
+    // Green once the learner writes it.
     await fs.write("src/config.ts", "export const loadConfig = () => ({ port: 3000 });\n");
     await user.click(within(panel).getByRole("button", { name: /Run checks/ }));
     expect(await within(panel).findByRole("listitem", { name: "src/config.ts has its code: passes" })).toBeInTheDocument();
