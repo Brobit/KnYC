@@ -156,10 +156,10 @@ function JobList() {
 }
 
 describe("JobsProvider", () => {
-  it("is unavailable in a plain browser", () => {
+  it("is unavailable without a pipeline (a production build in a plain browser)", () => {
     render(
       <SettingsProvider initial={defaultSettings()}>
-        <JobsProvider>
+        <JobsProvider manager={null}>
           <JobList />
         </JobsProvider>
       </SettingsProvider>,

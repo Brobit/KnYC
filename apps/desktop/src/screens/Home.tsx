@@ -3,6 +3,7 @@
 import { ArrowRight, FolderClock, FolderOpen, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { Job } from "@knyc/core";
 import type { RecentWorkspace } from "@knyc/core/schemas";
 import { Button } from "@/components/ui/button";
 import { AnalysesList } from "@/jobs/AnalysesList";
@@ -81,7 +82,7 @@ function RecentRow({ entry, now, onOpen, onForget, error }: { entry: RecentWorks
   );
 }
 
-export function Home({ onOpened, onImport, now = new Date() }: { onOpened: () => void; onImport?: () => void; now?: Date }) {
+export function Home({ onOpened, onImport, onOpenAnalysis, now = new Date() }: { onOpened: () => void; onImport?: () => void; onOpenAnalysis?: (job: Job) => void; now?: Date }) {
   const { t } = useTranslation();
   const { folder, pickFolder, recent, openRecent, forgetRecent } = useWorkspace();
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -131,7 +132,7 @@ export function Home({ onOpened, onImport, now = new Date() }: { onOpened: () =>
           {errors[""] && <p className="text-xs text-danger">{errors[""]}</p>}
         </header>
 
-        <AnalysesList />
+        <AnalysesList onOpen={onOpenAnalysis} />
 
         <section className="flex flex-col gap-3" aria-labelledby="home-recent">
           <h2 id="home-recent" className="text-[11px] font-semibold tracking-[0.06em] text-text-muted uppercase">

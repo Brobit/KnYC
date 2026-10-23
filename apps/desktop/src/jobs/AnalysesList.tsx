@@ -12,7 +12,7 @@ function currentStage(job: Job) {
   return job.stages.find((s) => s.status !== "done") ?? job.stages[job.stages.length - 1];
 }
 
-function JobRow({ job }: { job: Job }) {
+function JobRow({ job, onOpen }: { job: Job; onOpen?: (job: Job) => void }) {
   const { t, i18n } = useTranslation();
   const jobs = useOptionalJobs()!;
   const stage = currentStage(job);
@@ -35,7 +35,13 @@ function JobRow({ job }: { job: Job }) {
     <li className="flex items-center gap-3 px-4 py-2.5" aria-label={job.input.name}>
       <StatusIcon className={cn("size-4 shrink-0", tone, job.status === "running" && "animate-spin")} aria-hidden />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="truncate font-mono text-[13px] text-text-primary">{job.input.name}</span>
+        {onOpen ? (
+          <button type="button" className="truncate text-left font-mono text-[13px] text-text-primary hover:underline" onClick={() => onOpen(job)}>
+            {job.input.name}
+          </button>
+        ) : (
+          <span className="truncate font-mono text-[13px] text-text-primary">{job.input.name}</span>
+        )}
         <span className={cn("truncate text-xs", job.status === "failed" ? "text-danger" : "text-text-muted")} title={job.reason}>
           {detail}
         </span>
@@ -61,7 +67,7 @@ function JobRow({ job }: { job: Job }) {
   );
 }
 
-export function AnalysesList() {
+export function AnalysesList({ onOpen }: { onOpen?: (job: Job) => void }) {
   const { t } = useTranslation();
   const jobs = useOptionalJobs();
   if (!jobs || jobs.jobs.length === 0) return null;
@@ -72,7 +78,7 @@ export function AnalysesList() {
       </h2>
       <ul className="divide-y divide-border overflow-hidden rounded-[10px] border border-border bg-surface" aria-labelledby="home-analyses">
         {[...jobs.jobs].reverse().map((job) => (
-          <JobRow key={job.id} job={job} />
+          <JobRow key={job.id} job={job} onOpen={onOpen} />
         ))}
       </ul>
     </section>

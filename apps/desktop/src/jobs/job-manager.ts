@@ -4,10 +4,12 @@
 import {
   analysisStages,
   JobRegistry,
+  loadAnalysisSoFar,
   newAnalysisJob,
   runJob,
   type AiProvider,
   type AnalysisInput,
+  type AnalysisResult,
   type Host,
   type Job,
   type Settings,
@@ -107,6 +109,11 @@ export class JobManager {
     await this.registry?.remove(id);
     this.jobs.delete(id);
     this.publish();
+  }
+
+  /** What the job's finished stages saved (scan, graph, summaries), for the analysis screens. */
+  results(job: Job): Promise<Partial<AnalysisResult>> {
+    return loadAnalysisSoFar(this.deps.host, job.cacheDir);
   }
 
   /** The run in progress, for tests and for waiting on a job. */
