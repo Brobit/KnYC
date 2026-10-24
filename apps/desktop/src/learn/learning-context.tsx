@@ -1,5 +1,6 @@
 // The learning state of the open workspace (#62): which path and step the learner is on (from
-// `.knyc/`), the step's checks and their last results, its lesson, and the help ladder (#63).
+// `.knyc/`), the step's checks and their last results, its lesson, the help ladder (#63), and
+// moving on: snapshots, next step, skip (#65).
 // While the job still prepares later steps (design/02 D5), their checks are copied into `.knyc/`
 // as they become ready.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -19,7 +20,15 @@ import {
   storedTestFiles,
   syncPreparedSteps,
   withCheckAttempt,
+  filesForSkip,
+  nextStepOf,
+  stepsSkippedBy,
   withChat,
+  withCurrentStep,
+  withPathComplete,
+  withSkipped,
+  withSnapshot,
+  withTimeSpent,
   withHint,
   withHintUsed,
   withReveal,
@@ -39,7 +48,10 @@ import {
 } from "@knyc/core";
 import { useOptionalJobs } from "@/jobs/jobs-context";
 import { useWorkspace } from "@/workspace/workspace-context";
-import { checkRunFor, readForAiFor, workspaceFiles, type ReadForAi, type RunCheckCommand } from "./learn-backend";
+import { checkRunFor, readForAiFor, snapshotFor, workspaceFiles, type ReadForAi, type RunCheckCommand, type TakeSnapshot } from "./learn-backend";
+
+/** Time on a step is added in these ticks. */
+const TIME_TICK_MS = 60_000;
 
 /** What Reveal original shows: the original's change for the step, and the learner's files. */
 export interface Reveal {
@@ -83,6 +95,11 @@ interface LearningContext {
   /** Explains why a check fails; the answer goes in the step chat. */
   explain: (checkId: string) => Promise<void>;
   ask: (question: string) => Promise<void>;
+  /** Goes to the next step (once this one passed), or completes the path. */
+  nextStep: () => Promise<void>;
+  /** Skips to a later step (null: just this one); the original's code is applied (F3). */
+  skipTo: (stepId: string | null) => Promise<void>;
+  moving: { busy: boolean; error: string | null };
   /** Creates the workspace of the job's path, on R₀, and opens it. */
   startLearning: (job: Job) => Promise<void>;
 }
@@ -94,13 +111,24 @@ export interface HelpState {
   error: string | null;
 }
 
-export function LearningProvider({ children, runCheck, readForAi: givenReadForAi }: { children: ReactNode; runCheck?: RunCheckCommand; readForAi?: ReadForAi }) {
+export function LearningProvider({
+  children,
+  runCheck,
+  readForAi: givenReadForAi,
+  snapshot: givenSnapshot,
+}: {
+  children: ReactNode;
+  runCheck?: RunCheckCommand;
+  readForAi?: ReadForAi;
+  snapshot?: TakeSnapshot;
+}) {
   const { t } = useTranslation();
   const { fs, folder, createFolder } = useWorkspace();
   const jobs = useOptionalJobs();
   const files = useMemo(() => workspaceFiles(fs), [fs]);
   const run = useMemo(() => runCheck ?? checkRunFor(fs), [runCheck, fs]);
   const readForAi = useMemo(() => givenReadForAi ?? readForAiFor(fs), [givenReadForAi, fs]);
+  const snapshot = useMemo(() => givenSnapshot ?? snapshotFor(), [givenSnapshot]);
   const [learning, setLearning] = useState<Learning | null>(null);
   const [checks, setChecks] = useState<Check[]>([]);
   const [results, setResults] = useState<Map<string, CheckRun>>(new Map());
@@ -223,14 +251,20 @@ export function LearningProvider({ children, runCheck, readForAi: givenReadForAi
         },
       });
       await appendRuns(files, path.id, stepId, runs);
+      const passed = runs.every((r) => r.status === "pass");
       const progress = (await readProgress(files)) ?? learning.progress;
-      const updated = withCheckAttempt(progress, path.id, stepId, runs.every((r) => r.status === "pass"), new Date());
+      let updated = withCheckAttempt(progress, path.id, stepId, passed, new Date());
+      // The first time every check passes, the learner's code is saved (design/04 §7: step complete).
+      if (passed && !updated.paths[path.id]?.steps[stepId]?.snapshot) {
+        const step = path.steps.find((s) => s.id === stepId);
+        updated = withSnapshot(updated, path.id, stepId, await snapshot(`${stepId} passed: ${step?.title ?? ""}`));
+      }
       await writeProgress(files, updated);
       setLearning((current) => current && { ...current, progress: updated });
     } finally {
       setRunning(new Set());
     }
-  }, [learning, stepId, checks, running.size, files, run]);
+  }, [learning, stepId, checks, running.size, files, run, snapshot]);
 
   const stepProgress = learning && stepId ? learning.progress.paths[learning.path.id]?.steps[stepId] : undefined;
   const saveProgress = useCallback(
@@ -345,6 +379,55 @@ export function LearningProvider({ children, runCheck, readForAi: givenReadForAi
     return { changes, mine: await learnerFiles(changes.map((c) => c.path)) };
   }, [learning, stepId, jobs, job, saveProgress, learnerFiles]);
 
+  // Moving on (#65): next step once passed, or skipping to a later step (decision F3).
+  const [moving, setMoving] = useState<{ busy: boolean; error: string | null }>({ busy: false, error: null });
+  const nextStep = useCallback(async () => {
+    if (!learning || !stepId || moving.busy) return;
+    const next = nextStepOf(learning.path, stepId);
+    await saveProgress((progress) => (next ? withCurrentStep(progress, learning.path.id, next.id, new Date()) : withPathComplete(progress, learning.path.id, new Date())));
+  }, [learning, stepId, moving.busy, saveProgress]);
+
+  const skipTo = useCallback(
+    async (targetId: string | null) => {
+      if (!learning || !stepId || !jobs || !job || moving.busy) return;
+      const { path } = learning;
+      // null: skip the current step only (to the next one, or to the end of the path).
+      const target = targetId ?? nextStepOf(path, stepId)?.id ?? null;
+      const skipped = target ? stepsSkippedBy(path, stepId, target) : [stepId];
+      if (skipped.length === 0) return;
+      setMoving({ busy: true, error: null });
+      try {
+        const passed = learning.progress.paths[path.id]?.steps ?? {};
+        const toApply = skipped.filter((id) => passed[id]?.status !== "passed");
+        // The learner's code first, so nothing they wrote is lost; then the original's code.
+        await snapshot(`before skipping ${toApply.join(", ") || stepId}`);
+        const changes = [];
+        for (const id of toApply) changes.push(await jobs.stepChanges(job, id));
+        for (const [file, content] of filesForSkip(changes)) {
+          if (content === null) await files.remove(file).catch(() => {});
+          else await files.write(file, content);
+        }
+        await saveProgress((progress) => {
+          const marked = withSkipped(progress, path.id, toApply);
+          return target ? withCurrentStep(marked, path.id, target, new Date()) : withPathComplete(marked, path.id, new Date());
+        });
+        setMoving({ busy: false, error: null });
+      } catch (error) {
+        setMoving({ busy: false, error: error instanceof Error ? error.message : String(error) });
+      }
+    },
+    [learning, stepId, jobs, job, moving.busy, snapshot, files, saveProgress],
+  );
+
+  // Time on the current step, counted while the window is in front (design/03 timeSpentSec).
+  useEffect(() => {
+    if (!learning || !stepId) return;
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible" && document.hasFocus()) void saveProgress((progress) => withTimeSpent(progress, learning.path.id, stepId, TIME_TICK_MS / 1000));
+    }, TIME_TICK_MS);
+    return () => clearInterval(timer);
+  }, [learning?.path.id, stepId, saveProgress]);
+
   const startLearning = useCallback(
     async (started: Job) => {
       if (!jobs) throw new Error("the analysis needs the KnYC desktop app");
@@ -380,6 +463,9 @@ export function LearningProvider({ children, runCheck, readForAi: givenReadForAi
     help,
     explain,
     ask,
+    nextStep,
+    skipTo,
+    moving,
     reveal,
     startLearning,
   };

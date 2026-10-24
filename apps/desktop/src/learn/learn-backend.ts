@@ -78,3 +78,16 @@ export function fakeCheckRun(fs: WorkspaceFs): RunCheckCommand {
 }
 
 export const checkRunFor = (fs: WorkspaceFs): RunCheckCommand => (isTauri() || !import.meta.env.DEV ? tauriCheckRun : fakeCheckRun(fs));
+
+/** Saves the learner's code in `.knyc/snapshots.git` (src-tauri `workspace_snapshot`); returns the commit. */
+export type TakeSnapshot = (message: string) => Promise<string>;
+
+export const tauriSnapshot: TakeSnapshot = (message) => invoke<string>("workspace_snapshot", { message });
+
+/** The browser preview has no git: snapshots get made-up ids. */
+export function fakeSnapshot(): TakeSnapshot {
+  let n = 0;
+  return async () => `demo${String(++n).padStart(4, "0")}`;
+}
+
+export const snapshotFor = (): TakeSnapshot => (isTauri() || !import.meta.env.DEV ? tauriSnapshot : fakeSnapshot());

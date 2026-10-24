@@ -3,6 +3,7 @@
 //! `workspace://changed` events.
 
 mod scope;
+mod snapshots;
 
 pub use scope::{FsError, FsResult, Scope, TreeEntry};
 
@@ -185,6 +186,19 @@ pub fn workspace_create(
     let path = PathBuf::from(root);
     prepare_workspace_folder(&path)?;
     open_folder(&app, &state, path)
+}
+
+/// Saves the learner's code in `.knyc/snapshots.git` (#65); returns the commit.
+#[tauri::command]
+pub async fn workspace_snapshot(
+    state: State<'_, WorkspaceState>,
+    message: String,
+) -> FsResult<String> {
+    let root = state.scope()?.root().to_path_buf();
+    tauri::async_runtime::spawn_blocking(move || snapshots::snapshot(&root, &message))
+        .await
+        .map_err(|e| FsError::Io(e.to_string()))?
+        .map_err(FsError::Io)
 }
 
 /// Whether a path exists in the open folder, including ones the tree hides (`node_modules`).

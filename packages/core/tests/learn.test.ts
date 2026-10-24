@@ -7,7 +7,16 @@ import {
   appendRuns,
   buildUnits,
   generateLesson,
+  filesForSkip,
   graphSchema,
+  nextStepOf,
+  stepStates,
+  stepsSkippedBy,
+  withCurrentStep,
+  withPathComplete,
+  withSkipped,
+  withSnapshot,
+  withTimeSpent,
   chatPrompt,
   explainPrompt,
   hintPrompt,
@@ -382,6 +391,43 @@ describe("explain this failure and the step chat", () => {
     expect(withChat(lesson, "Why?", "Because.", NOW).chat).toEqual([
       { role: "user", content: "Why?", at: NOW.toISOString() },
       { role: "assistant", content: "Because.", at: NOW.toISOString() },
+    ]);
+  });
+});
+
+describe("moving through the path", () => {
+  it("passes a step with its snapshot, opens the next, skips with the original's code, counts time", async () => {
+    const { files } = memoryFiles();
+    await startWorkspace(files, { project: project(), path: PATH, setup: new Map(), now: NOW });
+    const [s1, s2, s3, s4] = PATH.steps.map((s) => s.id) as [string, string, string, string];
+    let progress = withCheckAttempt((await readProgress(files))!, PATH_ID, s1, true, NOW);
+    progress = withCurrentStep(withSnapshot(progress, PATH_ID, s1, "abc123"), PATH_ID, nextStepOf(PATH, s1)!.id, NOW);
+    expect(progress.paths[PATH_ID]!.currentStepId).toBe(s2);
+    expect(progress.paths[PATH_ID]!.steps[s1]).toMatchObject({ status: "passed", snapshot: "abc123" });
+    expect(progress.paths[PATH_ID]!.steps[s2]).toMatchObject({ status: "available", startedAt: NOW.toISOString() });
+
+    // A jump from s2 to s4 skips s2 and s3; a passed step stays passed.
+    expect(stepsSkippedBy(PATH, s2, s4)).toEqual([s2, s3]);
+    expect(stepsSkippedBy(PATH, s2, s1)).toEqual([]);
+    progress = withCurrentStep(withSkipped(progress, PATH_ID, [s1, s2, s3]), PATH_ID, s4, NOW);
+    const states = stepStates(PATH, progress.paths[PATH_ID]);
+    expect([states.get(s1), states.get(s2), states.get(s3), states.get(s4), states.get(PATH.steps[4]!.id)]).toEqual(["passed", "skipped", "skipped", "current", "locked"]);
+
+    progress = withTimeSpent(withTimeSpent(progress, PATH_ID, s4, 30.4), PATH_ID, s4, 30);
+    expect(progress.paths[PATH_ID]!.steps[s4]!.timeSpentSec).toBe(60);
+    expect(withPathComplete(progress, PATH_ID, NOW).paths[PATH_ID]!.completedAt).toBe(NOW.toISOString());
+
+    expect([
+      ...filesForSkip([
+        [{ path: "src/config.ts", before: null, after: "v1" }],
+        [
+          { path: "src/config.ts", before: "v1", after: "v2" },
+          { path: "src/old.ts", before: "x", after: null },
+        ],
+      ]),
+    ]).toEqual([
+      ["src/config.ts", "v2"],
+      ["src/old.ts", null],
     ]);
   });
 });

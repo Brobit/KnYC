@@ -211,7 +211,24 @@
     "helpFailed": "No answer this time: {{reason}}",
     "ask": "Ask about this step",
     "askPlaceholder": "Ask about this step…",
-    "send": "Send"
+    "send": "Send",
+    "complete": "Step complete",
+    "attempts_one": "{{count}} run",
+    "attempts_other": "{{count}} runs",
+    "hintsTaken_one": "{{count}} hint",
+    "hintsTaken_other": "{{count}} hints",
+    "minutes_one": "~{{count}} min",
+    "minutes_other": "~{{count}} min",
+    "snapshotSaved": "snapshot {{id}} saved",
+    "nextStep": "Next step",
+    "finishPath": "Finish the path",
+    "pathDone": "Path complete: you rebuilt every step.",
+    "skip": "Skip this step",
+    "skipTitle": "Skip step {{step}}?",
+    "skipBody": "It is marked skipped, and its original code is written into your project so the next steps build. Your code is saved in a snapshot first.",
+    "skipConfirm": "Skip",
+    "skipFailed": "Couldn’t skip: {{reason}}",
+    "underAMinute": "< 1 min"
   },
   "reveal": {
     "title": "The original for this step",
@@ -224,6 +241,26 @@
     "sidesOriginal": "Before this step → the original after it",
     "sidesMine": "Your code → the original after this step",
     "compareMine": "Compare with my code"
+  },
+  "pathMap": {
+    "summary": "{{passed}} passed · {{skipped}} skipped",
+    "complete": "Path complete: every step is done.",
+    "milestone": "Milestone {{number}}: {{title}}",
+    "state": {
+      "passed": "passed",
+      "skipped": "skipped",
+      "current": "current step",
+      "locked": "not yet"
+    },
+    "snapshot": "Snapshot {{id}}",
+    "hints_one": "{{count}} hint",
+    "hints_other": "{{count}} hints",
+    "revealed": "original revealed",
+    "jumpTitle": "Jump to step {{step}}: {{title}}?",
+    "jumpBody_one": "The current step will be marked skipped, and its original code written into your project so the next steps build. Your code is saved in a snapshot first.",
+    "jumpBody_other": "The {{count}} steps before it will be marked skipped, and their original code written into your project so the next steps build. Your code is saved in a snapshot first.",
+    "jump": "Jump",
+    "jumpFailed": "Couldn’t move on: {{reason}}"
   },
   "path": {
     "stepOf": "Step {{current}} of {{total}}"
@@ -239,7 +276,8 @@
       "terminal": "Terminal",
       "run": "Run",
       "output": "Output",
-      "lesson": "Lesson"
+      "lesson": "Lesson",
+      "path": "Path"
     },
     "placeholder": {
       "explorer": "The files of the step you are rebuilding appear here.",
@@ -247,7 +285,8 @@
       "terminal": "Open a folder to start a terminal in it.",
       "run": "Open a folder to run its commands here.",
       "output": "Build and check output.",
-      "lesson": "The lesson of your current step shows here once you start a path (Home → Import a project)."
+      "lesson": "The lesson of your current step shows here once you start a path (Home → Import a project).",
+      "path": "Your path shows here once you start one: milestones, steps and where you are."
     }
   },
   "explorer": {

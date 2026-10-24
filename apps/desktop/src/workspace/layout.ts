@@ -2,7 +2,7 @@
 import type { DockviewApi, SerializedDockview } from "dockview-react";
 import type { Collapser, CollapsedGroups } from "./collapse";
 
-export const PANEL_IDS = ["explorer", "editor", "terminal", "run", "output", "lesson"] as const;
+export const PANEL_IDS = ["explorer", "editor", "terminal", "run", "output", "lesson", "path"] as const;
 export type PanelId = (typeof PANEL_IDS)[number];
 export type PanelTitle = (id: PanelId) => string;
 
@@ -22,7 +22,7 @@ export function saveLayout(api: DockviewApi, collapser: Collapser): SavedLayout 
   return { version: 1, dock: api.toJSON(), collapsed: collapser.toJSON() };
 }
 
-/** Explorer left, editor center with Terminal / Run / Output below it, lesson right. */
+/** Explorer left, editor center with Terminal / Run / Output below it, lesson (and path map) right. */
 export function applyDefaultLayout(api: DockviewApi, title: PanelTitle, collapser?: Collapser): void {
   api.clear();
   collapser?.clear();
@@ -35,6 +35,7 @@ export function applyDefaultLayout(api: DockviewApi, title: PanelTitle, collapse
   add("output", { referencePanel: "terminal", direction: "within" }, { inactive: true });
   add("explorer", { direction: "left" });
   add("lesson", { direction: "right" });
+  add("path", { referencePanel: "lesson", direction: "within" }, { inactive: true });
   // New splits share space equally; size the side and bottom groups once everything is placed.
   api.getPanel("explorer")?.group.api.setSize({ width: SIZES.explorer });
   api.getPanel("lesson")?.group.api.setSize({ width: SIZES.lesson });

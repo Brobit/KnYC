@@ -1,5 +1,6 @@
 import { configure, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useEffect } from "react";
 import { describe, expect, it } from "vitest";
 import {
   analysisPaths,
@@ -25,11 +26,12 @@ import { JobsProvider } from "@/jobs/jobs-context";
 import { fakeCheckRun, fakeReadForAi, type ReadForAi } from "@/learn/learn-backend";
 import { LearningProvider, useLearning } from "@/learn/learning-context";
 import { LessonPanel } from "@/learn/LessonPanel";
+import { PathPanel } from "@/learn/PathPanel";
 import { inline, parseBlocks } from "@/learn/Markdown";
 import { createFakeWorkspaceFs } from "@/lib/fake-workspace-fs";
 import type { WorkspaceFs } from "@/lib/workspace-fs";
 import { SettingsProvider } from "@/lib/settings";
-import { WorkspaceProvider } from "@/workspace/workspace-context";
+import { useWorkspace, WorkspaceProvider } from "@/workspace/workspace-context";
 
 // Check runs go through a pretend install, build and run: slower than the default 1 s under load.
 configure({ asyncUtilTimeout: 5000 });
@@ -98,10 +100,11 @@ function manager() {
   const host = new MemoryHost({
     git: (_cwd, args) => {
       if (args[0] === "ls-tree") return Object.keys(SETUP).join("\n");
-      if (args[0] === "diff") return args[1] === "--name-only" ? "src/config.ts\n" : "+export function loadConfig() {}";
+      if (args[0] === "diff") return args[1] === "--name-only" ? (args[3]!.endsWith("/s02") ? "src/errors.ts\n" : "src/config.ts\n") : "+export function loadConfig() {}";
       if (args[0] !== "show") return "";
       const [tag, file] = args[1]!.split(":") as [string, string];
       if (SETUP[file] !== undefined) return SETUP[file];
+      if (file === "src/errors.ts" && tag.endsWith("/s02")) return "export class NotFound extends Error {}\n";
       if (file === "src/config.ts" && tag.endsWith("/s01")) return "export function loadConfig() {\n  return { port: 3000 };\n}\n";
       throw new Error(`fatal: path '${file}' does not exist in '${tag}'`);
     },
@@ -157,6 +160,13 @@ function guarded(fs: WorkspaceFs): ReadForAi {
   };
 }
 
+/** Opens a workspace again, like Home's recent workspaces after a restart. */
+function Reopen({ root }: { root: string }) {
+  const { openRecent } = useWorkspace();
+  useEffect(() => void openRecent(root), [openRecent, root]);
+  return null;
+}
+
 function StartButton({ job }: { job: Job }) {
   const { startLearning } = useLearning();
   return <button onClick={() => void startLearning(job)}>start for test</button>;
@@ -172,15 +182,18 @@ describe("the learning workspace", () => {
     const fs = createFakeWorkspaceFs({});
     const user = userEvent.setup();
     let opened = false;
-    render(
+    const snapshots: string[] = [];
+    const snapshot = async (message: string) => (snapshots.push(message), `snap00${snapshots.length}`);
+    const { unmount } = render(
       <SettingsProvider initial={defaultSettings()}>
         <CommandsProvider>
           <JobsProvider manager={jobs}>
             <WorkspaceProvider fs={fs}>
-              <LearningProvider runCheck={fakeCheckRun(fs)} readForAi={guarded(fs)}>
+              <LearningProvider runCheck={fakeCheckRun(fs)} readForAi={guarded(fs)} snapshot={snapshot}>
                 <AnalysisScreen jobId={job.id} onHome={() => {}} onOverview={() => {}} onChoosePath={() => {}} onStartLearning={async () => void (opened = true)} />
                 <StartButton job={jobs.getSnapshot()[0]!} />
                 <LessonPanel empty={<p>no lesson</p>} />
+                <PathPanel empty={<p>no path</p>} />
               </LearningProvider>
             </WorkspaceProvider>
           </JobsProvider>
@@ -233,6 +246,9 @@ describe("the learning workspace", () => {
     await user.click(within(panel).getByRole("button", { name: /Run checks/ }));
     expect(await within(panel).findByRole("listitem", { name: "src/config.ts has its code: passes" })).toBeInTheDocument();
     expect(within(panel).getByRole("status")).toHaveTextContent("Every check passes: step complete.");
+    // Step complete: the code is saved in a snapshot, once.
+    await waitFor(() => expect(within(panel).getByRole("status")).toHaveTextContent("snapshot snap001 saved"));
+    expect(snapshots).toEqual(["s01 passed: Configuration"]);
 
     const progress = JSON.parse(await fs.read(".knyc/progress.json"));
     expect(progress.paths["backend-standard"].steps.s01).toMatchObject({ status: "passed", attempts: 2 });
@@ -262,6 +278,35 @@ describe("the learning workspace", () => {
     expect(within(dialog).getByText("Your code → the original after this step")).toBeInTheDocument();
 
     const after = JSON.parse(await fs.read(".knyc/progress.json"));
-    expect(after.paths["backend-standard"].steps.s01).toMatchObject({ hintsUsed: [1, 2, 3], revealed: true, attempts: 2 });
+    expect(after.paths["backend-standard"].steps.s01).toMatchObject({ hintsUsed: [1, 2, 3], revealed: true, attempts: 2, snapshot: "snap001" });
+
+    // Next step, then skip it: the learner's code is saved first, the original's is applied.
+    await user.keyboard("{Escape}");
+    await user.click(within(panel).getByRole("button", { name: /Next step/ }));
+    expect(await within(panel).findByRole("heading", { name: "Errors", level: 2 })).toBeInTheDocument();
+    expect(within(panel).getByRole("listitem", { name: "Configuration: passed" })).toBeInTheDocument();
+    await user.click(within(panel).getByRole("button", { name: /Skip this step/ }));
+    await user.click(await screen.findByRole("button", { name: "Skip" }));
+    expect(await within(panel).findByText("Path complete: every step is done.")).toBeInTheDocument();
+    expect(snapshots[1]).toBe("before skipping s02");
+    expect(await fs.read("src/errors.ts")).toBe("export class NotFound extends Error {}\n");
+    const done = JSON.parse(await fs.read(".knyc/progress.json")).paths["backend-standard"];
+    expect(done.steps.s02.status).toBe("skipped");
+    expect(done.completedAt).toBeDefined();
+
+    // After a restart, the workspace reads the same progress: the skipped step stays marked.
+    unmount();
+    render(
+      <SettingsProvider initial={defaultSettings()}>
+        <WorkspaceProvider fs={fs}>
+          <LearningProvider runCheck={fakeCheckRun(fs)} snapshot={snapshot}>
+            <Reopen root={INPUT.workspace} />
+            <PathPanel empty={<p>no path</p>} />
+          </LearningProvider>
+        </WorkspaceProvider>
+      </SettingsProvider>,
+    );
+    expect(await screen.findByText("Path complete: every step is done.")).toBeInTheDocument();
+    expect(screen.getByRole("listitem", { name: "Configuration: passed" })).toHaveAttribute("title", "Snapshot snap001");
   }, 30_000); // The whole flow, from Start step 1 to the reveal.
 });
