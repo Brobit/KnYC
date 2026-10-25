@@ -61,6 +61,15 @@ jobs:
           ' CHANGELOG.md)
           if [ -z "$notes" ]; then echo "::error::CHANGELOG.md has no section for $version"; exit 1; fi
           { echo "body<<KNYC_NOTES"; echo "$notes"; echo "KNYC_NOTES"; } >> "$GITHUB_OUTPUT"
+      # RPM refuses "-" in a version ("0.1.0-alpha.1"); Linux packages write a pre-release with "~"
+      # ("0.1.0~alpha.1", which also sorts before 0.1.0). Tauri merges this file on Linux only.
+      - name: Linux package version
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          node -e 'const v = require("./apps/desktop/package.json").version.replace(/-/g, "~");
+            require("fs").writeFileSync("apps/desktop/src-tauri/tauri.linux.conf.json", JSON.stringify({ version: v }) + "\n")'
+          cat apps/desktop/src-tauri/tauri.linux.conf.json
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
