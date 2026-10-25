@@ -1,8 +1,9 @@
 ---
 import '@knyc/tokens/tokens.css';
-import { ASSETS, DOWNLOAD_BASE, REPO, getLatestRelease } from '../lib/release';
+import { DOWNLOAD_BASE, REPO, availableAssets, getLatestRelease } from '../lib/release';
 
 const release = await getLatestRelease();
+const ASSETS = availableAssets(release);
 const base = import.meta.env.BASE_URL;
 ---
 
@@ -62,7 +63,7 @@ const base = import.meta.env.BASE_URL;
 			const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
 			const platform = /Mac/i.test(ua) ? 'macos' : /Win/i.test(ua) ? 'windows' : /Linux/i.test(ua) ? 'linux' : null;
 			const button = document.getElementById('download');
-			if (button && platform && !isMobile) {
+			if (button && platform && !isMobile && ASSETS[platform].files.length > 0) {
 				button.textContent = `Download for ${ASSETS[platform].label}`;
 				button.setAttribute('href', `${DOWNLOAD_BASE}/${ASSETS[platform].files[0].file}`);
 			}
