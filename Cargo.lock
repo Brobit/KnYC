@@ -2326,7 +2326,7 @@ dependencies = [
 
 [[package]]
 name = "knyc"
-version = "0.0.1"
+version = "0.1.0-alpha.1"
 dependencies = [
  "anyhow",
  "dunce",
@@ -2346,7 +2346,7 @@ dependencies = [
 
 [[package]]
 name = "knyc-analyzer"
-version = "0.0.1"
+version = "0.1.0-alpha.1"
 dependencies = [
  "anyhow",
  "blake3",
@@ -2363,7 +2363,7 @@ dependencies = [
 
 [[package]]
 name = "knyc-runner"
-version = "0.0.1"
+version = "0.1.0-alpha.1"
 dependencies = [
  "anyhow",
  "command-group",
@@ -2377,7 +2377,7 @@ dependencies = [
 
 [[package]]
 name = "knyc-sys"
-version = "0.0.1"
+version = "0.1.0-alpha.1"
 dependencies = [
  "anyhow",
  "clap",

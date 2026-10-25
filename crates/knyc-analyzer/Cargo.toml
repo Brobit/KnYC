@@ -1,6 +1,6 @@
 [package]
 name = "knyc-analyzer"
-version = "0.0.1"
+version = "0.1.0-alpha.1"
 license = "GPL-3.0-only"
 publish = false
 description = "Project intake, static scan and code graph for KnYC."

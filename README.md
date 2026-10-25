@@ -3,11 +3,11 @@
 Import any project and rebuild it step by step, with an AI guide and real checks.
 Understand every line, every step, and the architecture.
 
-> **Status:** early development. The analysis pipeline works (milestone M1, see the
-> [evaluation](design/08-m1-evaluation.md)) and the desktop editor shell is nearly done (M2: Home,
-> Explorer, editor, terminal, Run panel, settings, command palette). The learning loop comes in M3:
-> nothing to learn with yet. See the [vision](VISION.md), the [roadmap](design/06-roadmap.md) and the
-> [design docs](design/).
+> **Status:** first alpha (v0.1.0-alpha.1). The learning loop works for TypeScript / JavaScript
+> backend (Express) and simple Node projects, through your Claude Code CLI login: import, analysis,
+> a path of steps, lessons, real checks, hints and progress (see the [alpha check](design/09-alpha-check.md)
+> and the [changelog](CHANGELOG.md)). See the [vision](VISION.md), the [roadmap](design/06-roadmap.md)
+> and the [design docs](design/).
 
 ## Download
 

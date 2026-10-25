@@ -1,6 +1,6 @@
 [package]
 name = "knyc-runner"
-version = "0.0.1"
+version = "0.1.0-alpha.1"
 license = "GPL-3.0-only"
 publish = false
 description = "Runs commands and checks for KnYC: timeouts, process-tree kill, test report parsing."
