@@ -74,12 +74,30 @@ checks pin down:
    that add their data (s04), and goals name what a check calls that the learner can't guess (a
    clock or store parameter, /health, the exact response).
 
-Not yet measured: these change the AI prompts, so the analysis cache is cold for them. A
-`knyc eval` on the three golden repos would show the effect on the plan and the checks (and
-whether goals stay under their 300 characters). No automated test runs the generated-check
-loop itself (`fragileCheck` is unit-tested; its wiring in `prepareChecks` is only covered by a
-real run). Steps already prepared keep their checks; lessons are generated anew only for steps
-not opened yet.
+### Measured: `knyc eval` on express-notes (2026-10-25, after the fixes)
+
+| Run | Steps | Proven (behavior) | Weak | Merged | Timeline builds | Checks repo / generated / trivial | AI calls | Retries | Time |
+|---|---|---|---|---|---|---|---|---|---|
+| M1 (design/08) | 13 | 9 (69 %) | 3 | 1 | 12/13 | 12 / 12 / 0 | 8* | — | 6 min* |
+| Alpha fixes | 11 | **11 (100 %)** | 0 | 0 | 11/11 | 12 / 16 / 0 | 12 | 0 | 4 min |
+
+\* M1 reused cached summaries and plan.
+
+- **Reads after writes worked**: s04 is now "Create and list notes" (create + list together, checked
+  by the repo's store tests) instead of list / get on an empty store.
+- **Generated checks are sturdier**: none of the 16 is flagged by `fragileCheck`, and none needed a
+  retry. s11 now gets a free port, waits with fetch and reads no log text; s06 uses only the public
+  API (it waits 10 ms instead of setting the store's clock).
+- **Goals still miss contracts**: s08 says `parseNoteInput({title, body, tags})` (the tests pass a
+  max title length too), s09 says `notesRouter(store)` (the original takes `maxTitleLength`), s10
+  doesn't name `/health`. The planner writes goals before any check exists, so it can't know them;
+  the lesson, which sees the checks, is where the contracts are stated ("What the checks expect").
+  A later improvement could rewrite each goal once its checks are proven.
+
+Only express-notes was re-run (the other two golden repos weren't). No automated test runs the
+generated-check loop itself (`fragileCheck` is unit-tested; its wiring in `prepareChecks` was
+exercised by this run). Steps already prepared keep their checks; lessons are generated anew only
+for steps not opened yet.
 
 ## Smaller notes
 
@@ -92,5 +110,7 @@ not opened yet.
 ## Left for v0.1.0-alpha
 
 - Build and try the installers on the three OS (`release` workflow: tag → draft release), including
-  the Finder-opened `.app` for fix 2. Remaining #39 checks on macOS / Linux: panel dragging,
+  the Finder-opened `.app` for fix 2. A local `tauri build --bundles app` works (12.7 MB `.app`),
+  but launched with `open` from a terminal it already had the full PATH, so this Mac didn't show
+  the bug that way: the test is a double-click in the Finder, then a check run. Remaining #39 checks on macOS / Linux: panel dragging,
   keychain (`cargo test -p knyc --lib -- --ignored os_keychain`).
