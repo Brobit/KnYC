@@ -61,15 +61,16 @@ jobs:
           ' CHANGELOG.md)
           if [ -z "$notes" ]; then echo "::error::CHANGELOG.md has no section for $version"; exit 1; fi
           { echo "body<<KNYC_NOTES"; echo "$notes"; echo "KNYC_NOTES"; } >> "$GITHUB_OUTPUT"
-      # RPM refuses "-" in a version ("0.1.0-alpha.1"); Linux packages write a pre-release with "~"
-      # ("0.1.0~alpha.1", which also sorts before 0.1.0). Tauri merges this file on Linux only.
-      - name: Linux package version
+      # RPM can't hold a semver pre-release ("0.1.0-alpha.1": "-" is refused) and Tauri only takes
+      # semver versions, so pre-releases ship .deb and AppImage only on Linux; stable versions keep
+      # the .rpm. Tauri merges this file on Linux only.
+      - name: Linux bundles
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          node -e 'const v = require("./apps/desktop/package.json").version.replace(/-/g, "~");
-            require("fs").writeFileSync("apps/desktop/src-tauri/tauri.linux.conf.json", JSON.stringify({ version: v }) + "\n")'
-          cat apps/desktop/src-tauri/tauri.linux.conf.json
+          node -e 'const v = require("./apps/desktop/package.json").version;
+            if (v.includes("-")) require("fs").writeFileSync("apps/desktop/src-tauri/tauri.linux.conf.json", JSON.stringify({ bundle: { targets: ["deb", "appimage"] } }) + "\n")'
+          cat apps/desktop/src-tauri/tauri.linux.conf.json 2>/dev/null || echo "all Linux bundles"
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -102,7 +103,8 @@ jobs:
           cp *x64_en-US.msi            ../stable/KnYC-windows-x64.msi
           cp *amd64.AppImage           ../stable/KnYC-linux-x86_64.AppImage
           cp *amd64.deb                ../stable/KnYC-linux-amd64.deb
-          cp *x86_64.rpm               ../stable/KnYC-linux-x86_64.rpm
+          # No .rpm for pre-releases (see "Linux bundles").
+          if ls *x86_64.rpm >/dev/null 2>&1; then cp *x86_64.rpm ../stable/KnYC-linux-x86_64.rpm; fi
           cd ../stable
           sha256sum KnYC-* > SHA256SUMS
           gh release upload "$TAG" ./* --clobber --repo "$GITHUB_REPOSITORY"
