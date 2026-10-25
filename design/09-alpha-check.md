@@ -37,32 +37,49 @@ the first run of the whole learning loop against the real Claude Code CLI, in th
    (between markers, 5 s timeout, current PATH kept on any failure). Same need on Linux desktops.
    Not yet tried with a packaged `.app` opened from the Finder: do it with the release build.
 
-## Pipeline findings (not fixed: they need design choices)
+## Pipeline findings
 
 All steps went green because the learner was given the original's shape when the goal was not
-enough. A real learner, working only from the step's goal, would have been stuck on several:
+enough. Working from the step's goal alone, a learner would have been stuck on several. The
+lessons (which see the original's change) already covered some of it, but not what only the
+checks pin down:
 
-| Step | What the checks need | What the goal says |
-|---|---|---|
-| s05 create | `new NotesStore(clock)`: the repo test injects a fixed clock | "an ISO createdAt/updatedAt timestamp" |
-| s06 update | a generated check sets `store.now = …` from outside (a private field) | — |
-| s08 validation | `parseNoteInput(body, maxTitleLength, partial)`; tags lowercased and deduplicated, title trimmed | `parseNoteInput(body)` "returns a clean NoteInput" |
-| s10 app | `GET /health` → `{ status: "ok" }` | only the /notes endpoints and a JSON 404 |
-| s11 server | a startup log containing `http://localhost:<port>`; fixed port 34567 | "starts the Express app listening" |
-| s04 read | only tests an empty store (`list()` returning `[]` passes) | list / get |
+| Step | What the checks need | Goal | Lesson (as generated in the run) |
+|---|---|---|---|
+| s05 create | `new NotesStore(clock)`: the repo test injects a fixed clock | "an ISO timestamp" | `this.now()`, never says the constructor takes it |
+| s06 update | a generated check sets `store.now = …` from outside (an internal field) | — | — |
+| s08 validation | `parseNoteInput(body, maxTitleLength, partial)`; tags lowercased and deduplicated | `parseNoteInput(body)` | complete |
+| s10 app | `GET /health` → `{ status: "ok" }` | not mentioned | "a small JSON status payload" |
+| s11 server | a startup log containing `http://localhost:<port>`; fixed port 34567 | "starts listening" | "a short startup message" |
+| s04 read | only tests an empty store (`list()` returning `[]` passes) | list / get | — |
 
-So, for after the alpha (proposed M4 issues, to discuss):
+### Fixed on this branch
 
-1. **Contracts in the goal.** The planner (or lesson generation) should state what the checks rely
-   on: exact signatures, constructor parameters, routes, output the checks read. They can be read
-   from the checks themselves once they are proven (the repo test's calls, the generated check's
-   imports and assertions), then added to the step as a "Contract" list shown in the lesson.
-2. **Generated checks use the public API only.** Add a rule to the check prompt (no assignment to
-   instance fields, no private members), and an `auditCheck` rule to flag it.
-3. **No fixed ports in generated checks.** Ask for port 0 or a free port given through the
-   environment; flag literal ports in `auditCheck`.
-4. **Weak first steps of a data structure** (s04): when a step's behavior can't be observed yet,
-   merge it with the next one (design/08 improvement 1 already counts weak steps).
+1. **The lesson sees the step's checks** (`learn/lesson.ts`): `checkSources` gives it each
+   generated check's file and the project's test file behind each repo check (matched on the
+   `it(…)` title), cut at 12 000 characters, under "The checks the learner's code must pass (for
+   you only)". The lesson must end with a **"What the checks expect"** list: signatures and
+   parameter order, constructor parameters, status codes, exact responses, output the checks read,
+   environment variables — what, never how. Hints, explanations and chat get the same context
+   (`stepContext`). Tried for real (sonnet) on s05 of this run: the list now says the timestamps
+   come "from the store's injected clock function (not `new Date()` directly)".
+2. **Fragile generated checks are refused** (`pipeline/checks/audit.ts` `fragileCheck`, applied
+   in `prepareChecks` before a candidate runs, the reason sent back to the model): fields set from
+   outside on an object the check built (`store.now = …`), and fixed ports that are listened on,
+   fetched or given to a program the check starts. It flags both alpha checks and none of the 78
+   generated checks of the M1 runs (a port read back as data, `PORT: "4321"` into `loadConfig`,
+   is fine). The check prompt now says the same, plus: start the project's entry point on a free
+   port, wait with fetch, don't depend on printed text the goal doesn't state.
+3. **Planner rules** (`pipeline/plan.ts`): reads (list, get, find) go with or after the writes
+   that add their data (s04), and goals name what a check calls that the learner can't guess (a
+   clock or store parameter, /health, the exact response).
+
+Not yet measured: these change the AI prompts, so the analysis cache is cold for them. A
+`knyc eval` on the three golden repos would show the effect on the plan and the checks (and
+whether goals stay under their 300 characters). No automated test runs the generated-check
+loop itself (`fragileCheck` is unit-tested; its wiring in `prepareChecks` is only covered by a
+real run). Steps already prepared keep their checks; lessons are generated anew only for steps
+not opened yet.
 
 ## Smaller notes
 

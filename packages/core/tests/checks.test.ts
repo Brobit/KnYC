@@ -129,6 +129,10 @@ describe("checks prompt and answer", () => {
     expect(prompt).toContain("- src/notes/notes.store.ts: class NotesStore (methods: list, create)");
     expect(prompt).toContain("Source of src/notes/notes.store.ts, which the new code uses");
     expect(prompt).toContain('- "x" also passes on the code before the step');
+    // The alpha run's fragile checks (#66): internal fields, fixed ports, exact output.
+    expect(prompt).toContain("Never read or set\n  an object's internal fields");
+    expect(prompt).toContain("never use a fixed port");
+    expect(prompt).toContain("don't depend on the exact\n  text the program prints");
   });
 
   it("allows no check, with a reason, for steps that add nothing observable", () => {

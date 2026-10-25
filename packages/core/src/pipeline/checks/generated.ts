@@ -68,7 +68,13 @@ ${[...ctx.importPaths].map(([src, spec]) => `  - ${src} → "${spec}"`).join("\n
 - Test behavior: call the code and assert on what it returns or does. A check that only imports a module, or only
   checks that something exists or is a function, proves nothing. If the step only adds types or nothing callable,
   return no checks and say why.
-- Servers: listen on port 0, read the port from server.address(), and close them at the end.
+- Use only the public API: exported names, constructor arguments, methods and what they return. Never read or set
+  an object's internal fields (no \`store.now = …\`): the learner may name them differently. To control time or
+  randomness, pass it in the way the code allows (a constructor parameter), or don't assert on it.
+- Servers: listen on port 0, read the port from server.address(), and close them at the end. To start the
+  project's own entry point as a process, first get a free port (listen on 0 with node:net, read it, close),
+  pass it through PORT, and wait until fetch succeeds; never use a fixed port, and don't depend on the exact
+  text the program prints unless the goal states it.
 - No timers longer than 2 seconds, no network access outside localhost, no files written.
 ${
   problems.length > 0

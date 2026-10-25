@@ -15,6 +15,7 @@ import { stepOfUnits, type Timeline } from "../timeline.ts";
 import { buildUnits } from "../units.ts";
 import { buildOutDir, checkoutStep, compiledPath } from "../workspace.ts";
 import { mapTests, runSuiteAtStep, suiteCommand, type SuiteRun, type TestMapping } from "./existing.ts";
+import { fragileCheck } from "./audit.ts";
 import { askForChecks, CHECKS_DIR, describeProblem, runCandidate, type CandidateCheck, type StepContext } from "./generated.ts";
 
 export interface StepChecks {
@@ -175,7 +176,19 @@ export async function prepareChecks(
         entry.notes.push(`no runtime check: ${answer.reasonIfNone ?? "nothing observable at runtime"}`);
         break;
       }
-      const candidates = answer.checks.map((c, i) => ({ ...c, file: `${CHECKS_DIR}/${step.id}-${attempt + 1}-${i + 1}.test.mjs` }));
+      problems = [];
+      // Fragile checks are refused before running: they could pass here and fail for the learner.
+      const candidates = answer.checks
+        .map((c, i) => ({ ...c, file: `${CHECKS_DIR}/${step.id}-${attempt + 1}-${i + 1}.test.mjs` }))
+        .filter((c) => {
+          const fragile = fragileCheck(c.code);
+          for (const problem of fragile) problems.push(`"${c.label}": ${problem}`);
+          return fragile.length === 0;
+        });
+      if (candidates.length === 0) {
+        log(`${step.id} attempt ${attempt + 1}: every check is fragile`);
+        continue;
+      }
 
       await checkoutStep(host, workDir, tag, scan);
       const atStep = await Promise.all(candidates.map((c) => runCandidate(host, workDir, c)));
@@ -184,7 +197,6 @@ export async function prepareChecks(
         candidates.map((c, i) => (atStep[i]!.status === "pass" ? runCandidate(host, workDir, c) : Promise.resolve(null))),
       );
 
-      problems = [];
       const good: CandidateCheck[] = [];
       candidates.forEach((c, i) => {
         const problem = describeProblem(c.label, atStep[i]!, beforeStep[i] ?? null);

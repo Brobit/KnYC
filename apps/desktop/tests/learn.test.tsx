@@ -214,6 +214,8 @@ describe("the learning workspace", () => {
     expect(within(panel).getByText("Write src/config.ts.")).toBeInTheDocument();
     expect(await within(panel).findByText("loadConfig")).toBeInTheDocument();
     expect(within(panel).getByText("Where this fits: Used by src/server.ts.")).toBeInTheDocument();
+    // The lesson was written knowing the step's checks (#66).
+    expect(prompts.find((p) => p.includes("Write the lesson as JSON"))).toContain("# The checks the learner's code must pass (for you only)\n\"src/config.ts has its code\" runs");
 
     // R₀ and .knyc/ are in the workspace; the lesson is kept for next time.
     expect(await fs.read("package.json")).toBe('{"name":"express-notes"}');

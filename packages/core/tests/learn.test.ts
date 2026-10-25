@@ -7,6 +7,7 @@ import {
   appendRuns,
   buildUnits,
   generateLesson,
+  checkSources,
   filesForSkip,
   graphSchema,
   nextStepOf,
@@ -279,6 +280,44 @@ describe("lessons", () => {
     expect(prompt).toContain(`- ${PATH.steps[0]!.id} ${PATH.steps[0]!.title} (done)`);
     expect(prompt).toContain("+export function loadConfig() {}");
     expect(prompt).toContain("Never paste the original's code");
+  });
+
+  it("shows the model the step's checks and asks for what they expect (#66)", () => {
+    const without = lessonPrompt(input);
+    expect(without).not.toContain("# The checks the learner's code must pass");
+    const prompt = lessonPrompt({ ...input, checks: [{ label: "store creates notes", file: "tests/notes.store.test.ts", code: "new NotesStore(fixedNow)" }] });
+    expect(prompt).toContain('# The checks the learner\'s code must pass (for you only)\n"store creates notes" runs tests/notes.store.test.ts:');
+    expect(prompt).toContain("new NotesStore(fixedNow)");
+    expect(prompt).toContain("**What the checks expect**");
+  });
+
+  it("finds the code behind generated and repo checks", () => {
+    const test = (id: string, origin: "repo" | "generated", spec: { filter?: string[]; files?: string[] }) => ({
+      schemaVersion: 1 as const,
+      id,
+      stepId: "s05",
+      label: id,
+      origin,
+      timeoutMs: 1000,
+      spec: { kind: "test" as const, root: ".", runner: "vitest" as const, command: "npx vitest run", filter: spec.filter ?? [], files: spec.files ?? [] },
+    });
+    const storeTest = `describe("NotesStore", () => {\n  it("filters by tag", () => {});\n  it('creates notes', () => {});\n});`;
+    const sources = checkSources(
+      [
+        test("repo-1", "repo", { filter: ["NotesStore filters by tag"] }),
+        test("repo-2", "repo", { filter: ["NotesStore creates notes"] }),
+        test("gen-1", "generated", { files: [".knyc-checks/s05-1-1.test.mjs", ".knyc-checks/missing.test.mjs"] }),
+      ],
+      new Map([[".knyc-checks/s05-1-1.test.mjs", "assert.equal(1, 1);"]]),
+      new Map([
+        ["tests/notes.store.test.ts", storeTest],
+        ["tests/notes.api.test.ts", `it("returns ok", () => {});`],
+      ]),
+    );
+    expect(sources).toEqual([
+      { label: "repo-1", file: "tests/notes.store.test.ts", code: storeTest },
+      { label: "gen-1", file: ".knyc-checks/s05-1-1.test.mjs", code: "assert.equal(1, 1);" },
+    ]);
   });
 
   it("makes a lesson document with no hints or chat yet", async () => {
