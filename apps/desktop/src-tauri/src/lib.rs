@@ -4,6 +4,7 @@ mod pipeline;
 mod providers;
 mod run;
 mod settings;
+mod shell_path;
 mod terminal;
 mod workspace;
 
@@ -11,6 +12,8 @@ use tauri::{Manager, RunEvent};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Before anything spawns a program: a Finder-opened app only has the system PATH.
+    shell_path::adopt_shell_path();
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         // Install links (onboarding): https pages only, see capabilities/default.json.

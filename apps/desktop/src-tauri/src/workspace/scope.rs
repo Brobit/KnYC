@@ -88,12 +88,13 @@ impl Scope {
                 }
             }
         }
-        // Follow symlinks on whatever exists: the path itself, else its parent folder.
-        let existing = if path.symlink_metadata().is_ok() {
-            path.as_path()
-        } else {
-            path.parent().ok_or_else(outside)?
-        };
+        // Follow symlinks on whatever exists: the path itself, else its closest existing folder
+        // (`.knyc/paths/p/step.json` in a new workspace has no parent yet). What lies below that
+        // folder doesn't exist, so it can't be a symlink.
+        let mut existing = path.as_path();
+        while existing.symlink_metadata().is_err() {
+            existing = existing.parent().ok_or_else(outside)?;
+        }
         let real = dunce::canonicalize(existing).map_err(|e| FsError::io(rel, e))?;
         if real.starts_with(&self.root) {
             Ok(path)
@@ -287,6 +288,15 @@ mod tests {
             Err(outside("../evil.txt"))
         );
         assert!(!dir.path().join("evil.txt").exists());
+    }
+
+    #[test]
+    fn resolves_paths_whose_folders_do_not_exist_yet() {
+        // A new workspace: `.knyc/` and its subfolders are written in order (#66).
+        let (_dir, scope) = workspace();
+        let path = scope.resolve(".knyc/paths/p/steps/s01.json").unwrap();
+        assert_eq!(path, scope.root().join(".knyc/paths/p/steps/s01.json"));
+        assert!(!path.exists());
     }
 
     #[test]
@@ -489,6 +499,10 @@ mod tests {
         assert_eq!(
             scope.create_file("escape/new.txt"),
             Err(outside("escape/new.txt"))
+        );
+        assert_eq!(
+            scope.resolve("escape/missing/new.txt"),
+            Err(outside("escape/missing/new.txt"))
         );
         assert!(!dir.path().join("new.txt").exists());
         // A link that stays inside works, and the tree lists links without following them.
