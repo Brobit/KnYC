@@ -99,29 +99,29 @@ mode. When a learner picks one track, the others come from the original code.
 - **Progress per track**: a finished track's code replaces the original for the next one.
 - A golden repo for each profile, plus a full-stack one; `knyc eval` on all of them.
 
-Issues (milestone "M4 — Tracks & JS frameworks"), in dependency order:
+Issues (milestone "M4 — Tracks & JS frameworks", #84–#102), in dependency order:
 
 | # | Issue | Needs |
 |---|---|---|
-| M4.1 | Step goals rewritten from their proven checks (design/09 follow-up) | — |
-| M4.2 | Profile system: detection id, track rules, build order, check strategy, run commands, lesson hints; Express moved to it; generic fallback | — |
-| M4.3 | Track split and contracts: units → tracks (profile rules, AI for leftovers), HTTP / DB / env contracts, only existing tracks offered, plan / timeline / checks per track, other tracks from the original | M4.2 |
-| M4.4 | Projects with several packages (`apps/web` + `apps/api`, npm / pnpm workspaces): install, build, test per package | M4.3 |
-| M4.5 | Server checks: start the project's server, wait for its port, run `http` checks, stop the process tree | M4.2 |
-| M4.6 | Playwright UI checks: Chromium downloaded on first use (size shown, consent), `ui` check kind, generated UI tests proven red → green | M4.5 |
-| M4.7 | Docker checks: detect Docker, `docker` check kind (build, run, health path), cleanup | M4.2 |
-| M4.8 | Docker mode: every check in a container (`settings.runChecksIn = "docker"`) | M4.7 |
-| M4.9 | Frontend track: React (Vite) profile + full-stack golden repo (React web + Express API) | M4.3–M4.6 |
-| M4.10 | Next.js profile + golden repo (API routes go to the backend track) | M4.9 |
-| M4.11 | Vue profile + golden repo | M4.9 |
-| M4.12 | Angular profile + golden repo | M4.9 |
-| M4.13 | NestJS profile + golden repo | M4.2, M4.5 |
-| M4.14 | Fastify profile + golden repo | M4.2, M4.5 |
-| M4.15 | Database track: Prisma profile, migration and query checks + golden repo | M4.3 |
-| M4.16 | TypeORM and Drizzle profiles + golden repos | M4.15 |
-| M4.17 | Deployment track: Dockerfile, compose and CI checks + golden repo | M4.3, M4.7 |
-| M4.18 | Progress per track: a finished track's code replaces the original; per-track progress on the overview | M4.3 |
-| M4.19 | M4 evaluation (`knyc eval` on every golden repo, design/10) + `v0.2.0-alpha.1` | all |
+| M4.1 #84 | Step goals rewritten from their proven checks (design/09 follow-up) | — |
+| M4.2 #85 | Profile system: detection id, track rules, build order, check strategy, run commands, lesson hints; Express moved to it; generic fallback | — |
+| M4.3 #86 | Track split and contracts: units → tracks (profile rules, AI for leftovers), HTTP / DB / env contracts, only existing tracks offered, plan / timeline / checks per track, other tracks from the original | M4.2 |
+| M4.4 #87 | Projects with several packages (`apps/web` + `apps/api`, npm / pnpm workspaces): install, build, test per package | M4.3 |
+| M4.5 #88 | Server checks: start the project's server, wait for its port, run `http` checks, stop the process tree | M4.2 |
+| M4.6 #89 | Playwright UI checks: Chromium downloaded on first use (size shown, consent), `ui` check kind, generated UI tests proven red → green | M4.5 |
+| M4.7 #90 | Docker checks: detect Docker, `docker` check kind (build, run, health path), cleanup | M4.2 |
+| M4.8 #91 | Docker mode: every check in a container (`settings.runChecksIn = "docker"`) | M4.7 |
+| M4.9 #92 | Frontend track: React (Vite) profile + full-stack golden repo (React web + Express API) | M4.3–M4.6 |
+| M4.10 #93 | Next.js profile + golden repo (API routes go to the backend track) | M4.9 |
+| M4.11 #94 | Vue profile + golden repo | M4.9 |
+| M4.12 #95 | Angular profile + golden repo | M4.9 |
+| M4.13 #96 | NestJS profile + golden repo | M4.2, M4.5 |
+| M4.14 #97 | Fastify profile + golden repo | M4.2, M4.5 |
+| M4.15 #98 | Database track: Prisma profile, migration and query checks + golden repo | M4.3 |
+| M4.16 #99 | TypeORM and Drizzle profiles + golden repos | M4.15 |
+| M4.17 #100 | Deployment track: Dockerfile, compose and CI checks + golden repo | M4.3, M4.7 |
+| M4.18 #101 | Progress per track: a finished track's code replaces the original; per-track progress on the overview | M4.3 |
+| M4.19 #102 | M4 evaluation (`knyc eval` on every golden repo, design/10) + `v0.2.0-alpha.1` | all |
 
 **Done when**: on every golden repo, each track that exists can be rebuilt in the app, the eval
 passes the M1 bar (≥ 80 % of steps with a proven behavior check), and `v0.2.0-alpha.1` is released.
