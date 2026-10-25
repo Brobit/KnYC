@@ -195,6 +195,8 @@ Rules:
 - A step may only introduce a unit if everything it "needs" is introduced in the same step or an earlier one.
 - Every step introduces at least one exported function, class, method or value (units not marked "private" that aren't types), or a whole entry-point file: something its check can run. Types, interfaces, enums and private helpers go in the step that first uses them.
 - Prefer steps that end with something observable (a route answering, a function returning the right value), and goals phrased that way.
+- Code that reads data (list, get, find) goes in the same step as the code that adds that data (create, save), or after it: on an empty store a read can only be checked returning nothing.
+- In each goal, name what a check will call or read when the learner can't guess it: a parameter the code takes (a clock, a store, a limit), a route like /health, the exact response or output.
 - Group steps into 2-6 milestones that tell the story of the project.`;
 }
 

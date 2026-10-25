@@ -280,4 +280,10 @@ describe("every step has behavior (design/08, improvement 1)", () => {
     expect(prompt).toMatch(/isStringArray \(function, \d+ lines, private\)/);
     expect(prompt).toContain("Every step introduces at least one exported function, class, method or value");
   });
+
+  it("asks for reads after writes and for the contracts checks rely on in goals (#66)", () => {
+    const prompt = planPrompt({ track: "backend", size: "standard", units: notesUnits, summaries: summaries("express-notes"), hasTests: true });
+    expect(prompt).toContain("Code that reads data (list, get, find) goes in the same step as the code that adds that data");
+    expect(prompt).toContain("a parameter the code takes (a clock, a store, a limit)");
+  });
 });

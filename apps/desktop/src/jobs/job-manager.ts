@@ -9,6 +9,7 @@ import {
   FileCache,
   explainFailure,
   generateHint,
+  checkSources,
   generateLesson,
   joinPath,
   JobRegistry,
@@ -227,13 +228,17 @@ export class JobManager {
     const { summaries } = await loadAnalysis(this.deps.host, job.cacheDir);
     const { workDir, before, after } = await stepTags(this.deps.host, job, stepId);
     const diff = await this.deps.host.git(workDir, ["diff", before, after]);
+    const prepared = await loadStepChecks(this.deps.host, job, stepId);
+    // The checks' code is extra context: a lesson doesn't fail when the project's tests can't be read.
+    const testFiles = prepared?.checks.some((c) => c.origin === "repo") ? await this.testFiles(job).catch(() => new Map<string, string>()) : new Map<string, string>();
+    const checks = prepared ? checkSources(prepared.checks, prepared.files, testFiles) : [];
     const roles = this.deps.roles();
     const client = new AiClient({
       providers: [this.deps.provider(new AbortController().signal)],
       roles,
       cache: new FileCache(this.deps.host, analysisPaths(job.cacheDir).aiCache),
     });
-    return { client, roles, input: { projectName: job.input.name, path, stepId, summaries, diff } };
+    return { client, roles, input: { projectName: job.input.name, path, stepId, summaries, diff, checks } };
   }
 
   /** The run in progress, for tests and for waiting on a job. */
