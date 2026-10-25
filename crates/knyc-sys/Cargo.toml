@@ -1,6 +1,6 @@
 [package]
 name = "knyc-sys"
-version = "0.0.1"
+version = "0.1.0-alpha.1"
 license = "GPL-3.0-only"
 publish = false
 description = "KnYC system CLI: intake, scan, graph and run, as JSON (used by the TypeScript pipeline)."

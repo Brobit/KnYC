@@ -1,7 +1,8 @@
 name: Release
 
-# Push a tag like v0.0.1 (matching apps/desktop/package.json) to build installers for
-# macOS, Windows and Linux. The result is a DRAFT release: check it, then publish it on GitHub.
+# Push a tag like v0.1.0-alpha.1 (matching apps/desktop/package.json, with a section in
+# CHANGELOG.md) to build installers for macOS, Windows and Linux. The result is a DRAFT release:
+# check it, then publish it on GitHub.
 on:
   push:
     tags: ["v*"]
@@ -47,6 +48,19 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # The release notes: this version's section of CHANGELOG.md ("## [0.1.0-alpha.1] - …").
+      - name: Release notes
+        id: notes
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          notes=$(awk -v v="$version" '
+            index($0, "## [" v "]") == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md)
+          if [ -z "$notes" ]; then echo "::error::CHANGELOG.md has no section for $version"; exit 1; fi
+          { echo "body<<KNYC_NOTES"; echo "$notes"; echo "KNYC_NOTES"; } >> "$GITHUB_OUTPUT"
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -54,7 +68,7 @@ jobs:
           projectPath: apps/desktop
           tagName: ${{ github.ref_name }}
           releaseName: KnYC ${{ github.ref_name }}
-          releaseBody: See the changelog on the website.
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
