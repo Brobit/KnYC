@@ -60,9 +60,23 @@ function model(answer: (request: ProviderRequest) => unknown) {
   return { prompts, client: new AiClient({ providers: [provider], roles: { summaries: role, planning: role, lessons: role } }) };
 }
 
+/**
+ * The original of a file at a step: each symbol's line holds a declaration that takes
+ * `maxTitleLength`, with a body after it the goal must never see.
+ */
+function originalCode(file: string): string {
+  const node = graph.files.find((f) => f.path === file);
+  const lines: string[] = Array.from({ length: Math.max(0, ...(node?.symbols.map((s) => s.endLine) ?? [0])) }, () => "  secretBodyLine();");
+  for (const s of node?.symbols ?? []) lines[s.startLine - 1] = `export function ${s.name.replace(".", "_")}(store: Store, maxTitleLength: number) {`;
+  return lines.join("\n");
+}
+
 /** Step 1 is checked by one of the project's tests (a saved mapping: nothing runs). */
 async function stepOne(answer: (request: ProviderRequest) => unknown, options: { rewriteGoals?: boolean } = {}) {
-  const host = new MemoryHost({ files: { [`/sandbox/${TEST_FILE}`]: TEST_CODE } });
+  const host = new MemoryHost({
+    files: { [`/sandbox/${TEST_FILE}`]: TEST_CODE },
+    git: (_cwd, args) => (args[0] === "show" ? originalCode(args[1]!.split(":")[1]!) : ""),
+  });
   const { client, prompts } = model(answer);
   const preparation = await prepareChecks(PATH, TIMELINE, graph, SCAN, {
     host,
@@ -90,6 +104,10 @@ describe("goals rewritten from their checks (#84)", () => {
     expect(result.report.notes).toContain("goal rewritten from its checks");
     expect(result.report.aiCalls).toBe(1);
     expect(prompts[0]).toContain("caps titles at maxTitleLength");
+    // The original's declarations give the parameter names, without the bodies.
+    expect(prompts[0]).toContain("# How the original declares what this step introduces");
+    expect(prompts[0]).toContain("(store: Store, maxTitleLength: number)");
+    expect(prompts[0]).not.toContain("secretBodyLine");
   });
 
   it("keeps the planner's goal when the answer is never valid", async () => {

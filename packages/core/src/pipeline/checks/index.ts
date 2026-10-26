@@ -228,6 +228,30 @@ export async function prepareChecks(
     return accepted;
   }
 
+  /**
+   * How the original declares what a step introduces: each exported symbol's (and method's) first
+   * lines up to its opening brace, never its body. The checks often pass values positionally
+   * (`notesRouter(store, 100)`), so only these say what the parameters are called (#84).
+   */
+  async function declarationsAt(step: Step, tag: string): Promise<string[]> {
+    const declarations: string[] = [];
+    for (const unit of step.introduces) {
+      const [file, symbol] = unit.unit.split("#") as [string, string | undefined];
+      const node = graphFiles.get(file);
+      const code = node ? await git("show", `${tag}:${file}`).catch(() => null) : null;
+      if (!node || code === null) continue;
+      const lines = code.split("\n");
+      const wanted = node.symbols.filter((s) => (symbol ? s.name === symbol || s.name.startsWith(`${symbol}.`) : s.exported || s.kind === "method"));
+      for (const s of wanted) {
+        const head = lines.slice(s.startLine - 1, Math.min(s.endLine, s.startLine + 3)).join("\n");
+        if (!head.trim()) continue;
+        const cut = head.search(/\{\s*$|\{\s*\n|=>/m);
+        declarations.push(`${file}: ${(cut > 0 ? head.slice(0, cut) : head).replace(/\s+/g, " ").trim()}`);
+      }
+    }
+    return declarations.slice(0, 40);
+  }
+
   /** The project's own test files (for goals of steps its tests check), read once. */
   let tests: Promise<Map<string, string>> | null = null;
   const projectTests = () =>
@@ -282,7 +306,8 @@ export async function prepareChecks(
     const sources = options.rewriteGoals === false ? [] : checkSources(checks, files, existing.length > 0 ? await projectTests() : new Map());
     if (sources.length > 0) {
       try {
-        goal = await goalFromChecks(options.client, step, sources);
+        const tag = build?.tag ?? timeline.steps.find((s) => s.stepId === build?.mergedInto)?.tag;
+        goal = await goalFromChecks(options.client, step, sources, tag ? await declarationsAt(step, tag) : []);
         entry.aiCalls += 1;
         entry.notes.push("goal rewritten from its checks");
       } catch (error) {
