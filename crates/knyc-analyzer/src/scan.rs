@@ -50,6 +50,8 @@ pub struct Package {
     pub scripts: BTreeMap<String, String>,
     pub dependencies: BTreeMap<String, String>,
     pub dev_dependencies: BTreeMap<String, String>,
+    /// The root of an npm / yarn / pnpm workspace: one install here covers every package (#87).
+    pub workspaces: bool,
 }
 
 #[derive(Debug, Serialize, PartialEq)]
@@ -220,6 +222,9 @@ fn read_packages(walked: &Walk) -> anyhow::Result<Vec<Package>> {
             scripts: string_map(&json["scripts"]),
             dependencies: string_map(&json["dependencies"]),
             dev_dependencies,
+            workspaces: json["workspaces"].is_array()
+                || json["workspaces"].is_object()
+                || in_root("pnpm-workspace.yaml"),
             root,
         });
     }
@@ -594,6 +599,36 @@ mod tests {
             },
         )
         .unwrap()
+    }
+
+    #[test]
+    fn workspace_roots() {
+        let dir = tempfile::tempdir().unwrap();
+        let r = dir.path();
+        write(
+            r,
+            "package.json",
+            r#"{"private":true,"workspaces":["apps/*"],"scripts":{"build":"npm run build --workspaces"}}"#,
+        );
+        write(r, "apps/api/package.json", r#"{"name":"api"}"#);
+        let s = scan_dir(r);
+        let flags: Vec<_> = s
+            .packages
+            .iter()
+            .map(|p| (p.root.as_str(), p.workspaces))
+            .collect();
+        assert_eq!(flags, vec![(".", true), ("apps/api", false)]);
+
+        let pnpm = tempfile::tempdir().unwrap();
+        write(pnpm.path(), "package.json", r#"{"private":true}"#);
+        write(
+            pnpm.path(),
+            "pnpm-workspace.yaml",
+            "packages:
+  - apps/*
+",
+        );
+        assert!(scan_dir(pnpm.path()).packages[0].workspaces);
     }
 
     #[test]

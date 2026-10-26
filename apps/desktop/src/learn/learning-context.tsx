@@ -239,7 +239,7 @@ export function LearningProvider({
         pathId: path.id,
         files,
         run,
-        commands: project.commands[0],
+        commands: project.commands,
         testFiles: await storedTestFiles(files, path.id),
         onResult: (result) => {
           setResults((current) => new Map(current).set(result.checkId, result));

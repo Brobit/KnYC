@@ -5,10 +5,12 @@
 import { joinPath, type Host } from "../host/host.ts";
 import type { LearningPath } from "../schemas/learning-path.ts";
 import { intakeProject, runCommand, type Graph, type Scan } from "../sys/knyc-sys.ts";
+import { builds, installs, packageCommands } from "./packages.ts";
 import { placeUnits, type PlanAnswer } from "./plan.ts";
 import { withNodeTypes } from "./setup.ts";
 import { sliceSource, type SliceContext } from "./slice.ts";
 import type { Units } from "./units.ts";
+import { buildAll } from "./workspace.ts";
 
 
 /** Unit id → index of the step that introduces it, for a stored LearningPath. */
@@ -131,14 +133,16 @@ async function fixSetup(host: Host, workDir: string): Promise<string[]> {
 export async function buildTimeline(path: LearningPath, graph: Graph, scan: Scan, units: Units, options: TimelineOptions): Promise<Timeline> {
   const { host } = options;
   const stepOf = stepOfUnits(path, units);
-  const commands = scan.commands[0];
-  if (!commands?.build) throw new Error("the project has no build command; the timeline can't be checked");
+  const commands = packageCommands(scan);
+  if (builds(commands).length === 0) throw new Error("the project has no build command; the timeline can't be checked");
 
-  // A private copy of the project (no secrets, no node_modules), with its dependencies installed.
+  // A private copy of the project (no secrets, no node_modules), with its dependencies installed,
+  // package by package (once at a workspace's root, #87).
   await intakeProject(host, options.sourceRoot, options.workDir);
-  if (commands.install) {
-    const install = await runCommand(host, options.workDir, commands.install, { timeoutMs: options.installTimeoutMs ?? 10 * 60_000 });
-    if (install.status !== "pass") throw new Error(`installing dependencies failed:\n${tail(install.run?.stderr ?? install.error ?? "")}`);
+  for (const { root, command } of installs(commands)) {
+    const dir = root === "." ? options.workDir : joinPath(options.workDir, root);
+    const install = await runCommand(host, dir, command, { timeoutMs: options.installTimeoutMs ?? 10 * 60_000 });
+    if (install.status !== "pass") throw new Error(`installing dependencies${root === "." ? "" : ` in ${root}`} failed:\n${tail(install.run?.stderr ?? install.error ?? "")}`);
   }
 
   const git = (...args: string[]) => host.git(options.workDir, args);
@@ -169,7 +173,7 @@ export async function buildTimeline(path: LearningPath, graph: Graph, scan: Scan
   for (const [k, step] of path.steps.entries()) {
     const started = Date.now();
     await writeFiles(host, options.workDir, await filesAtStep(k, graph, units, stepOf, read));
-    const build = await runCommand(host, options.workDir, commands.build, { timeoutMs: options.buildTimeoutMs ?? 5 * 60_000 });
+    const build = await buildAll(host, options.workDir, commands, options.buildTimeoutMs ?? 5 * 60_000);
     const ok = build.status === "pass";
     const result: StepBuild = { stepId: step.id, ok, durationMs: Date.now() - started };
     const isLast = k === path.steps.length - 1;

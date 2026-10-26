@@ -27,7 +27,25 @@ export interface SuiteRun {
 
 export const testKey = (file: string, name: string) => `${file} › ${name}`;
 
-/** Checks out a step, builds it, puts the original tests back and runs the suite. */
+/** A package's test suite: where it runs and the command with a JSON report (#87). */
+export interface Suite {
+  root: string;
+  runner: string;
+  command: string;
+}
+
+/** The suites KnYC can read, one per package with a known test runner. */
+export function suitesOf(scan: Scan): Suite[] {
+  return scan.testRunners.flatMap((r) => {
+    const command = suiteCommand(r.runner);
+    return command ? [{ root: r.root, runner: r.runner, command }] : [];
+  });
+}
+
+/**
+ * Checks out a step, builds it, puts the original tests back and runs each package's suite. Test
+ * keys use paths from the project root, so a test is known with its package.
+ */
 export async function runSuiteAtStep(
   host: Host,
   workDir: string,
@@ -35,7 +53,7 @@ export async function runSuiteAtStep(
   scan: Scan,
   testFiles: string[],
   sourceRoot: string,
-  command: string,
+  suites: Suite[],
   timeoutMs = 5 * 60_000,
 ): Promise<SuiteRun> {
   const { build } = await checkoutStep(host, workDir, step.tag, scan, timeoutMs);
@@ -43,10 +61,14 @@ export async function runSuiteAtStep(
   if (build.status !== "pass") return { ...step, built: false, results };
 
   for (const file of testFiles) await host.copyFile(joinPath(sourceRoot, file), joinPath(workDir, file));
-  const outcome = await runCommand(host, workDir, command, { report: REPORT_FILE, timeoutMs });
-  for (const test of outcome.tests?.tests ?? []) {
-    // "(could not run)" entries stand for a whole file that can't load yet: its tests are red.
-    if (!test.name.endsWith("(could not run)")) results.set(testKey(test.file, test.name), test.status);
+  for (const suite of suites) {
+    const cwd = suite.root === "." ? workDir : joinPath(workDir, suite.root);
+    const outcome = await runCommand(host, cwd, suite.command, { report: REPORT_FILE, timeoutMs });
+    for (const test of outcome.tests?.tests ?? []) {
+      // "(could not run)" entries stand for a whole file that can't load yet: its tests are red.
+      const file = suite.root === "." ? test.file : `${suite.root}/${test.file}`;
+      if (!test.name.endsWith("(could not run)")) results.set(testKey(file, test.name), test.status);
+    }
   }
   return { ...step, built: true, results };
 }

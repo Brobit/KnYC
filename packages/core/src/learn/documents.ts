@@ -1,6 +1,7 @@
 // The learner's workspace metadata, `.knyc/` (design/03-data-model.md): where each document lives,
 // and the project and progress documents a new workspace starts with. Shared by the CLI and the app.
 
+import { packageCommands } from "../pipeline/packages.ts";
 import type { Units } from "../pipeline/units.ts";
 import type { TrackId } from "../schemas/common.ts";
 import type { LearningPath } from "../schemas/learning-path.ts";
@@ -50,7 +51,8 @@ export function projectDocument(source: { path: string; hash: string; name?: str
     toolchains: scan.toolchains
       .filter((t) => TOOLCHAINS.has(t.id))
       .map((t) => ({ id: t.id, required: t.required, ...(t.found ? { found: t.found } : {}) })),
-    commands: scan.commands.map((c) => Object.fromEntries(Object.entries(c).filter(([, v]) => v !== null))),
+    // Ready to run per package: a workspace root installs for all of them (#87).
+    commands: packageCommands(scan).map((c) => Object.fromEntries(Object.entries(c).filter(([, v]) => v !== null))),
     tracks: [
       {
         id: track,
