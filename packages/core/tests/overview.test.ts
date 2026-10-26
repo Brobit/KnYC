@@ -39,10 +39,21 @@ describe("projectTracks", () => {
     expect(backend.modules.slice(0, 2)).toEqual(expect.arrayContaining(["shared"]));
   });
 
-  it("leaves the backend track out when a frontend framework is found (M4)", () => {
+  it("offers the tracks the project has code for (#86): a React project's code is its frontend", () => {
     const { tracks, hasFrontend } = projectTracks(scanOf(notes, [{ profileId: "react", version: "19", root: "." }]), notes);
     expect(hasFrontend).toBe(true);
-    expect(tracks.map((t) => t.id)).toEqual(["full"]);
+    expect(tracks.map((t) => t.id)).toEqual(["frontend", "full"]);
+  });
+
+  it("offers a card per track of a full-stack project", () => {
+    const scan = scanOf(notes, [
+      { profileId: "react", version: "19", root: "web" },
+      { profileId: "express", version: "4", root: "." },
+    ]);
+    const graph = { ...notes, files: [...notes.files, { ...notes.files[0]!, path: "web/src/App.tsx", test: false }] };
+    const { tracks } = projectTracks(scan, graph);
+    expect(tracks.map((t) => t.id)).toEqual(["frontend", "backend", "full"]);
+    expect(tracks[0]).toMatchObject({ id: "frontend", files: 1 });
   });
 
   it("names folders the short way", () => {

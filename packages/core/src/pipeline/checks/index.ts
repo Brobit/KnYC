@@ -14,7 +14,7 @@ import type { Check } from "../../schemas/check.ts";
 import type { LearningPath, Step } from "../../schemas/learning-path.ts";
 import type { Graph, Scan } from "../../sys/knyc-sys.ts";
 import { stepOfUnits, type Timeline } from "../timeline.ts";
-import { buildUnits } from "../units.ts";
+import { buildUnits, type Units } from "../units.ts";
 import { buildOutDir, checkoutStep, compiledPath } from "../workspace.ts";
 import { mapTests, runSuiteAtStep, suiteCommand, type SuiteRun, type TestMapping } from "./existing.ts";
 import { fragileCheck } from "./audit.ts";
@@ -69,6 +69,8 @@ export interface ChecksOptions {
   mapping?: TestMapping;
   /** Rewrite each step's goal from its proven checks (#84). Default true. */
   rewriteGoals?: boolean;
+  /** The units the path teaches (a track's, #86); default: every unit of the graph. */
+  units?: Units;
 }
 
 export async function prepareChecks(
@@ -104,7 +106,7 @@ export async function prepareChecks(
   }
 
   // 2. Generated checks for the steps those tests don't cover.
-  const units = buildUnits(graph);
+  const units = options.units ?? buildUnits(graph);
   const stepOf = stepOfUnits(path, units);
   const graphFiles = new Map(graph.files.map((f) => [f.path, f]));
   const profile = profileFor(scan.frameworks.map((f) => f.profileId));

@@ -628,11 +628,14 @@
     "mapLabel_other": "Architecture map with {{count}} boxes",
     "tracksTitle": "Tracks",
     "tracks": {
+      "frontend": "Frontend",
       "backend": "Backend",
+      "database": "Database",
+      "deployment": "Deployment",
       "full": "Full project"
     },
-    "backendDescription_one": "{{count}} module: {{modules}}",
-    "backendDescription_other": "{{count}} modules: {{modules}}",
+    "trackDescription_one": "{{count}} module: {{modules}}",
+    "trackDescription_other": "{{count}} modules: {{modules}}",
     "fullDescription": "Everything, in a natural build order.",
     "lines": "{{count}} lines",
     "files_one": "{{count}} file",

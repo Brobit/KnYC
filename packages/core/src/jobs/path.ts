@@ -14,6 +14,7 @@ import { generatePlan, type PlanInput } from "../pipeline/plan.ts";
 import { projectFacts } from "../pipeline/sources.ts";
 import type { Summaries } from "../pipeline/summaries.ts";
 import { buildTimeline, type Timeline } from "../pipeline/timeline.ts";
+import { classifyLeftovers, extractContracts, splitByRules, unitsForTrack, type TrackSplit } from "../pipeline/tracks.ts";
 import { buildUnits, type Units } from "../pipeline/units.ts";
 import { profileFor } from "../profiles/index.ts";
 import type { Check } from "../schemas/check.ts";
@@ -72,7 +73,7 @@ export interface PathPipeline {
     timeline: Timeline,
     graph: Graph,
     scan: Scan,
-    options: { host: Host; sourceRoot: string; client: AiClient; mapping?: TestMapping },
+    options: { host: Host; sourceRoot: string; client: AiClient; mapping?: TestMapping; units?: Units },
   ): Promise<ChecksPreparation>;
 }
 
@@ -102,7 +103,9 @@ export function pathStages(job: Job, deps: AnalysisDependencies & { pipeline?: P
       readJson(host, analysis.scan).then((raw) => scanSchema.parse(raw) as Scan),
       readJson(host, analysis.graph).then((raw) => graphSchema.parse(raw) as Graph),
     ]);
-    return { scan, graph, units: buildUnits(graph) };
+    // The chosen track's units; a path planned before tracks existed (no tracks.json) has them all.
+    const split = await tryRead(analysis.tracks, (raw) => raw as TrackSplit);
+    return { scan, graph, units: unitsForTrack(buildUnits(graph), split, choice.track) };
   };
   const clientFor = (context: Parameters<StageDefinition["run"]>[0]) =>
     new AiClient({
@@ -121,12 +124,18 @@ export function pathStages(job: Job, deps: AnalysisDependencies & { pipeline?: P
       id: "plan",
       async run(context) {
         if (await loadPath()) return;
-        const { scan, graph, units } = await loadInputs();
+        const { scan, graph } = await loadInputs();
         const summaries = (await readJson(host, analysis.summaries)) as Summaries;
+        const client = clientFor(context);
+        const split = await trackSplitFor(host, job.cacheDir, { scan, graph, summaries, client });
+        const units = unitsForTrack(buildUnits(graph), split, choice.track);
+        if (units.atoms.length === 0) throw new Error(`this project has no ${choice.track} code to learn`);
         const facts = projectFacts(job.input.name, scan, graph);
+        // A track path learns against the others' original code: the planner sees what they offer.
+        const others = choice.track === "full" ? [] : split.contracts.filter((c) => c.track !== choice.track);
         const planned = await pipeline.plan(
-          clientFor(context),
-          { track: choice.track, size: choice.size, units, summaries, profile: profileFor(facts.frameworks), hasTests: scan.testRunners.length > 0 },
+          client,
+          { track: choice.track, size: choice.size, units, summaries, profile: profileFor(facts.frameworks), hasTests: scan.testRunners.length > 0, otherTracks: others },
           deps.roles.planning,
         );
         await save(paths.path, learningPath.parse({ ...planned, id: pathIdFor(choice), setupAsStep: choice.setupAsStep, status: "preparing" }));
@@ -163,13 +172,14 @@ export function pathStages(job: Job, deps: AnalysisDependencies & { pipeline?: P
         context.progress(ready(), total);
         if (ready() === total) return;
 
-        const { scan, graph } = await loadInputs();
+        const { scan, graph, units } = await loadInputs();
         const saved = await tryRead(paths.testMapping, (raw) => raw as { byStep: [string, string[]][]; discarded: TestMapping["discarded"] });
         const preparation = await pipeline.checks(path, timeline, graph, scan, {
           host,
           sourceRoot: analysis.sandbox,
           client: clientFor(context),
           mapping: saved ? { byStep: new Map(saved.byStep), discarded: saved.discarded } : undefined,
+          units,
         });
         if (!saved) await save(paths.testMapping, { byStep: [...preparation.mapping.byStep], discarded: preparation.mapping.discarded });
 
@@ -229,4 +239,39 @@ export async function stepTags(host: Host, job: Job, stepId: string): Promise<{ 
   const after = timeline.steps.slice(index).find((s) => s.tag)?.tag;
   if (!after) throw new Error(`step ${stepId} has no reference`);
   return { workDir: paths.workDir, before, after };
+}
+
+/**
+ * The project's track split (#86), saved in `cache/<hash>/tracks.json` the first time: the
+ * profiles' rules, the AI for leftovers when a client is given, then the contracts read from the
+ * sandbox. Without a client (the overview), leftovers keep their package's default track and
+ * nothing is saved.
+ */
+export async function trackSplitFor(
+  host: Host,
+  cacheDir: string,
+  inputs: { scan: Scan; graph: Graph; summaries?: Summaries; client?: AiClient },
+): Promise<TrackSplit> {
+  const paths = analysisPaths(cacheDir);
+  const saved = await readJson(host, paths.tracks).then(
+    (raw) => raw as TrackSplit,
+    () => undefined,
+  );
+  if (saved) return saved;
+  let split = splitByRules(inputs.scan, inputs.graph);
+  if (!inputs.client) return split;
+  if (inputs.summaries) split = await classifyLeftovers(inputs.client, split, inputs.summaries);
+  // Contracts come from the source files and the schema files (prisma, SQL) of the sandbox.
+  const sources = new Map<string, string>();
+  const files = [
+    ...inputs.graph.files.filter((f) => !f.test).map((f) => f.path),
+    ...inputs.scan.files.filter((f) => !f.notForAi && /\.(prisma|sql)$/.test(f.path)).map((f) => f.path),
+  ];
+  for (const file of files) {
+    const code = await host.readFile(joinPath(paths.sandbox, file)).catch(() => null);
+    if (code !== null) sources.set(file, code);
+  }
+  split = { ...split, leftovers: [], contracts: extractContracts(sources, split) };
+  await host.writeFile(paths.tracks, JSON.stringify(split, null, 2));
+  return split;
 }

@@ -32,6 +32,8 @@ export function analysisPaths(cacheDir: string) {
     scan: joinPath(cacheDir, "scan.json"),
     graph: joinPath(cacheDir, "graph.json"),
     summaries: joinPath(cacheDir, "summaries.json"),
+    /** Which track each file belongs to, and the contracts between tracks (#86). */
+    tracks: joinPath(cacheDir, "tracks.json"),
     /** Per-file summaries, so a paused summary stage goes on where it stopped. */
     summaryCache: joinPath(cacheDir, "summaries"),
     /** Every AI answer, by request. */

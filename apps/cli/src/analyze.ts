@@ -8,10 +8,12 @@ import {
   behaviorCount,
   buildChecks,
   buildTimeline,
+  classifyLeftovers,
   buildUnits,
   emptyUsage,
   estimateAnalysis,
   estimateTokens,
+  extractContracts,
   FileCache,
   generatePlan,
   graphProject,
@@ -19,7 +21,9 @@ import {
   profileFor,
   projectFacts,
   scanProject,
+  splitByRules,
   summarize,
+  unitsForTrack,
   type PathSize,
   type TrackId,
 } from "@knyc/core";
@@ -64,7 +68,9 @@ export async function analyze(options: AnalyzeOptions, io: AnalyzeIo) {
 
   // ①–③ Local, no AI.
   const [scan, graph] = await stage("Scan and code graph", () => Promise.all([scanProject(host, source), graphProject(host, source)]));
-  const units = buildUnits(graph);
+  // The chosen track's units (#86): its rules first; leftovers are placed after the summaries.
+  let split = splitByRules(scan, graph);
+  let units = unitsForTrack(buildUnits(graph), split, options.track);
   const files = await loadSourceFiles(host, source, scan, graph);
   const facts = projectFacts(scan.root.split(/[\\/]/).pop()!, scan, graph);
   io.log(
@@ -113,13 +119,20 @@ export async function analyze(options: AnalyzeOptions, io: AnalyzeIo) {
     aiCalls,
   );
 
+  // ④ The track split: the AI places what the rules couldn't, then the contracts between tracks.
+  split = await classifyLeftovers(client, split, summaries);
+  split = { ...split, leftovers: [], contracts: extractContracts(new Map(files.map((f) => [f.path, f.content])), split) };
+  units = unitsForTrack(buildUnits(graph), split, options.track);
+  if (units.atoms.length === 0) throw new Error(`this project has no ${options.track} code to learn`);
+  const otherTracks = options.track === "full" ? [] : split.contracts.filter((c) => c.track !== options.track);
+
   // ⑥ Plan.
   const { path } = await stage(
     "Learning path",
     () =>
       generatePlan(
         client,
-        { track: options.track, size: options.size, units, summaries, profile: profileFor(facts.frameworks), hasTests: scan.testRunners.length > 0 },
+        { track: options.track, size: options.size, units, summaries, profile: profileFor(facts.frameworks), hasTests: scan.testRunners.length > 0, otherTracks },
         { planning: role(options.models.planning), onRetry: (p) => io.log(`  retry: ${p.length} problems (${p[0]})`) },
       ),
     aiCalls,
@@ -141,7 +154,7 @@ export async function analyze(options: AnalyzeOptions, io: AnalyzeIo) {
   // ⑧ Checks.
   const checks = await stage(
     "Checks",
-    () => buildChecks(path, timeline, graph, scan, { host, sourceRoot: source, client, onProgress: (m) => io.log(`  ${m}`) }),
+    () => buildChecks(path, timeline, graph, scan, { host, sourceRoot: source, client, units, onProgress: (m) => io.log(`  ${m}`) }),
     aiCalls,
   );
 

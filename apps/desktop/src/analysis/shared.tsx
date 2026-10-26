@@ -1,6 +1,6 @@
 // Pieces shared by the live analysis and the project overview (#60): a job's saved results, the
 // track cards and the architecture map.
-import { Layers, Server } from "lucide-react";
+import { Container, Database, Layers, Monitor, Server, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { MAP_NODE, type ArchitectureMap, type Job, type ProjectTracks } from "@knyc/core";
@@ -29,22 +29,25 @@ export function useJobResults(job: Job | undefined): JobResults {
 
 export const formatLines = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k` : String(n));
 
+const TRACK_ICONS: Record<string, LucideIcon> = { frontend: Monitor, backend: Server, database: Database, deployment: Container, full: Layers };
+
 export function TrackCards({ tracks, selected, onSelect, row }: { tracks: ProjectTracks; selected?: string | null; onSelect?: (id: string) => void; row?: boolean }) {
   const { t } = useTranslation();
   return (
     <div className={row ? "grid gap-2.5 sm:grid-cols-2" : "flex flex-col gap-2.5"}>
       {tracks.tracks.map((track) => {
         const shown = track.modules.slice(0, 4).join(", ");
+        // Code tracks list their folders; the full project is everything.
         const description =
-          track.id === "backend"
-            ? t("overview.backendDescription", { count: track.modules.length, modules: track.modules.length > 4 ? `${shown}…` : shown })
-            : t("overview.fullDescription");
+          track.id === "full"
+            ? t("overview.fullDescription")
+            : t("overview.trackDescription", { count: track.modules.length, modules: track.modules.length > 4 ? `${shown}…` : shown });
         return (
           <TrackCard
             key={track.id}
             track={track.id}
             name={t(`overview.tracks.${track.id}`)}
-            icon={track.id === "backend" ? Server : Layers}
+            icon={TRACK_ICONS[track.id] ?? Layers}
             description={description}
             meta={[t("overview.lines", { count: formatLines(track.lines) }), t("overview.files", { count: track.files }), t("overview.hours", { count: track.hours })]}
             selected={selected === track.id}

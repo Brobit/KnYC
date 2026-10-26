@@ -1,20 +1,21 @@
 // The project overview (#60, design/04 §5): the tracks a learner can pick and the architecture map,
-// from the code graph (and the summaries when they are ready). M3 offers Backend and Full project
-// (design/06 H3); the other tracks come with their profiles in M4.
+// from the code graph (and the summaries when they are ready). The tracks offered are the ones the
+// project has code for (#86, the track split), plus the full project.
 
-import type { Graph, Scan } from "../sys/knyc-sys.ts";
 import { isFrontendFramework } from "../profiles/index.ts";
+import type { TrackId } from "../schemas/common.ts";
+import type { Graph, Scan } from "../sys/knyc-sys.ts";
 import { behaviorCount, stepRange } from "./plan.ts";
 import { moduleOf, type Summaries } from "./summaries.ts";
+import { splitByRules, tracksWithCode, unitsForTrack, type TrackSplit } from "./tracks.ts";
 import { buildUnits, type Units } from "./units.ts";
 import type { PathSize } from "../schemas/learning-path.ts";
 
 /** What a step takes a learner, for the "~6 h standard" on track cards (M1's golden repos). */
 export const LEARNER_MINUTES_PER_STEP = 25;
 
-
 export interface TrackSummary {
-  id: "backend" | "full";
+  id: TrackId;
   files: number;
   lines: number;
   /** Learner time at the standard size. */
@@ -47,27 +48,38 @@ export function moduleLabel(module: string): string {
   return parts.length > 0 ? parts.join("/") : "app";
 }
 
-export function projectTracks(scan: Scan, graph: Graph): ProjectTracks {
+/** Folders of some files, biggest first ("users", "auth"…). */
+function modulesOf(files: Graph["files"]): string[] {
+  const byModule = new Map<string, number>();
+  for (const file of files) byModule.set(moduleOf(file.path), (byModule.get(moduleOf(file.path)) ?? 0) + 1);
+  return [...byModule.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([m]) => moduleLabel(m));
+}
+
+/**
+ * A card per track the project has code for, then the full project. `split`: the saved track
+ * split once a path was prepared (the AI placed the leftovers); else the profiles' rules alone.
+ */
+export function projectTracks(scan: Scan, graph: Graph, split: TrackSplit = splitByRules(scan, graph)): ProjectTracks {
   const hasFrontend = scan.frameworks.some((f) => isFrontendFramework(f.profileId));
   const source = graph.files.filter((f) => !f.test);
-  const { hours } = pathEstimate(buildUnits(graph), "standard");
-  const byModule = new Map<string, number>();
-  for (const file of source) byModule.set(moduleOf(file.path), (byModule.get(moduleOf(file.path)) ?? 0) + 1);
-  const modules = [...byModule.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([m]) => moduleLabel(m));
+  const units = buildUnits(graph);
   const tests = new Set(graph.files.filter((f) => f.test).map((f) => f.path));
   // The whole project: its source plus the files that come with it (config, package.json…).
   const whole = scan.files.filter((f) => !f.notForAi && !tests.has(f.path));
 
   const tracks: TrackSummary[] = [];
-  if (!hasFrontend && source.length > 0) {
-    tracks.push({ id: "backend", files: source.length, lines: source.reduce((sum, f) => sum + f.loc, 0), hours, modules });
+  for (const track of tracksWithCode(split)) {
+    const files = source.filter((f) => split.files[f.path] === track);
+    if (files.length === 0) continue;
+    const { hours } = pathEstimate(unitsForTrack(units, split, track), "standard");
+    tracks.push({ id: track, files: files.length, lines: files.reduce((sum, f) => sum + f.loc, 0), hours, modules: modulesOf(files) });
   }
   tracks.push({
     id: "full",
     files: whole.length,
     lines: whole.reduce((sum, f) => sum + f.lines, 0),
-    hours,
-    modules,
+    hours: pathEstimate(units, "standard").hours,
+    modules: modulesOf(source),
   });
   return { tracks, hasFrontend };
 }
