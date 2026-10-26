@@ -266,6 +266,19 @@ pub struct CheckRunRequest {
     env: BTreeMap<String, String>,
     /// Jest/Vitest JSON report the command writes, relative to `root`.
     report: Option<String>,
+    /// Docker mode (#91): the toolchain image to run the command in, the workspace mounted.
+    docker_image: Option<String>,
+}
+
+/// The container a check runs in, in Docker mode: the image, the open workspace mounted.
+fn container_for(
+    scope: &Scope,
+    image: Option<String>,
+) -> Option<knyc_runner::container::Container> {
+    image.map(|image| knyc_runner::container::Container {
+        image,
+        mount: scope.root().to_path_buf(),
+    })
 }
 
 /// Runs one check command in the open workspace (#62): same runner as the pipeline (timeout,
@@ -284,6 +297,7 @@ pub async fn workspace_check_run(
     let mut spec = RunSpec::new(request.command, cwd);
     spec.timeout = Duration::from_millis(request.timeout_ms);
     spec.env = request.env;
+    spec.container = container_for(&scope, request.docker_image);
     tauri::async_runtime::spawn_blocking(move || {
         run_check(&spec, request.report.map(PathBuf::from))
     })
@@ -328,6 +342,8 @@ pub struct HttpCheckRequest {
     timeout_ms: u64,
     server: knyc_runner::http::ServerSpec,
     requests: Vec<knyc_runner::http::HttpRequestSpec>,
+    /// Docker mode (#91): the server runs in this image, the workspace mounted.
+    docker_image: Option<String>,
 }
 
 /// Runs an HTTP check in the open workspace (#88): the server starts in its package, answers the
@@ -337,13 +353,16 @@ pub async fn workspace_http_check(
     state: State<'_, WorkspaceState>,
     request: HttpCheckRequest,
 ) -> FsResult<knyc_runner::http::HttpCheckOutcome> {
-    let cwd = state.scope()?.resolve(&request.root)?;
+    let scope = state.scope()?;
+    let cwd = scope.resolve(&request.root)?;
+    let container = container_for(&scope, request.docker_image);
     tauri::async_runtime::spawn_blocking(move || {
-        knyc_runner::http::run_http_check(
+        knyc_runner::http::run_http_check_in(
             &request.server,
             &request.requests,
             &cwd,
             Duration::from_millis(request.timeout_ms),
+            container.as_ref(),
         )
     })
     .await

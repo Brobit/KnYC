@@ -31,7 +31,14 @@ export function workspaceFiles(fs: WorkspaceFs): WorkspaceFiles {
   };
 }
 
-export const tauriCheckRun: RunCheckCommand = (request) => invoke<CheckOutcome>("workspace_check_run", { request });
+/** The image checks run in, in Docker mode (#91, settings.runChecksIn). */
+export const DOCKER_NODE_IMAGE = "node:22-slim";
+
+/** `dockerImage`: Docker mode, the command runs in that image with the workspace mounted. */
+export const tauriCheckRun =
+  (dockerImage?: string): RunCheckCommand =>
+  (request) =>
+    invoke<CheckOutcome>("workspace_check_run", { request: { ...request, dockerImage } });
 
 /** The learner's files and other text as they may go to the AI: through the secret guard. */
 export type ReadForAi = (paths: string[], texts: string[]) => Promise<{ files: LearnerFiles; texts: string[] }>;
@@ -77,7 +84,7 @@ export function fakeCheckRun(fs: WorkspaceFs): RunCheckCommand {
   };
 }
 
-export const checkRunFor = (fs: WorkspaceFs): RunCheckCommand => (isTauri() || !import.meta.env.DEV ? tauriCheckRun : fakeCheckRun(fs));
+export const checkRunFor = (fs: WorkspaceFs, dockerImage?: string): RunCheckCommand => (isTauri() || !import.meta.env.DEV ? tauriCheckRun(dockerImage) : fakeCheckRun(fs));
 
 /** Saves the learner's code in `.knyc/snapshots.git` (src-tauri `workspace_snapshot`); returns the commit. */
 export type TakeSnapshot = (message: string) => Promise<string>;
@@ -95,7 +102,10 @@ export const snapshotFor = (): TakeSnapshot => (isTauri() || !import.meta.env.DE
 /** Runs an HTTP check in the open workspace (src-tauri `workspace_http_check`, #88). */
 export type RunHttpCheck = NonNullable<RunStepChecksInput["runHttp"]>;
 
-export const tauriHttpCheck: RunHttpCheck = (request) => invoke<HttpOutcome>("workspace_http_check", { request });
+export const tauriHttpCheck =
+  (dockerImage?: string): RunHttpCheck =>
+  (request) =>
+    invoke<HttpOutcome>("workspace_http_check", { request: { ...request, dockerImage } });
 
 /** The browser preview starts no server: every request answers as expected. */
 export const fakeHttpCheck: RunHttpCheck = async ({ requests }) => ({
@@ -106,7 +116,7 @@ export const fakeHttpCheck: RunHttpCheck = async ({ requests }) => ({
   durationMs: 300,
 });
 
-export const httpCheckFor = (): RunHttpCheck => (isTauri() || !import.meta.env.DEV ? tauriHttpCheck : fakeHttpCheck);
+export const httpCheckFor = (dockerImage?: string): RunHttpCheck => (isTauri() || !import.meta.env.DEV ? tauriHttpCheck(dockerImage) : fakeHttpCheck);
 
 /** Runs a Docker check in the open workspace (src-tauri `workspace_docker_check`, #90). */
 export type RunDockerCheck = NonNullable<RunStepChecksInput["runDocker"]>;

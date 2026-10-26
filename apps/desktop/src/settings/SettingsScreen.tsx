@@ -1,7 +1,7 @@
 // Settings (design/04 §8, knyc.pen "Screen · Settings"). Every change is saved to settings.json at
 // once; API keys go to the OS keychain instead (settings-backend.ts).
-import { Code, Languages, Palette, Sparkles, type LucideIcon } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { Code, Container, Languages, Palette, Sparkles, type LucideIcon } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { useSettings } from "@/lib/settings";
@@ -10,9 +10,10 @@ import { cn } from "@/lib/utils";
 import { AiSection, selectClass } from "./AiSection";
 import { settingsBackend, type SettingsBackend } from "./settings-backend";
 
-type SectionId = "ai" | "editor" | "appearance" | "language";
+type SectionId = "ai" | "checks" | "editor" | "appearance" | "language";
 const SECTIONS: { id: SectionId; icon: LucideIcon }[] = [
   { id: "ai", icon: Sparkles },
+  { id: "checks", icon: Container },
   { id: "editor", icon: Code },
   { id: "appearance", icon: Palette },
   { id: "language", icon: Languages },
@@ -97,6 +98,43 @@ function Choice<T extends string>({ label, options, value, onChange, name }: { l
   );
 }
 
+/** Where checks run (#91): on this computer, or in a Docker container with the workspace mounted. */
+function ChecksSection({ backend }: { backend: SettingsBackend }) {
+  const { t } = useTranslation();
+  const { settings, update } = useSettings();
+  const [docker, setDocker] = useState<"checking" | "running" | "stopped" | "missing">("checking");
+  useEffect(() => {
+    let live = true;
+    backend.toolchains().then(
+      (list) => {
+        const found = list.find((tc) => tc.id === "docker");
+        if (live) setDocker(!found?.version ? "missing" : found.running === false ? "stopped" : "running");
+      },
+      () => live && setDocker("missing"),
+    );
+    return () => {
+      live = false;
+    };
+  }, [backend]);
+  const mode = settings.runChecksIn;
+  return (
+    <Card>
+      <Field label={t("settings.checks.where")} hint={t(mode === "docker" ? "settings.checks.dockerHint" : "settings.checks.localHint")}>
+        <Choice
+          label={t("settings.checks.where")}
+          options={["local", "docker"] as const as ("local" | "docker")[]}
+          value={mode}
+          onChange={(runChecksIn) => update((s) => ({ ...s, runChecksIn }))}
+          name={(v) => t(`settings.checks.modes.${v}`)}
+        />
+      </Field>
+      <Field label={t("settings.checks.docker")} hint={mode === "docker" && docker !== "running" && docker !== "checking" ? t("settings.checks.dockerNeeded") : undefined}>
+        <span className={cn("text-xs", docker === "running" ? "text-success" : docker === "checking" ? "text-text-muted" : "text-warning")}>{t(`settings.checks.status.${docker}`)}</span>
+      </Field>
+    </Card>
+  );
+}
+
 function AppearanceSection() {
   const { t } = useTranslation();
   const { name, mode, setName, setMode } = useTheme();
@@ -166,6 +204,7 @@ export function SettingsScreen({ backend = settingsBackend }: { backend?: Settin
             <p className="text-[13px] text-text-secondary">{t(`settings.intro.${section}`)}</p>
           </header>
           {section === "ai" && <AiSection backend={backend} />}
+          {section === "checks" && <ChecksSection backend={backend} />}
           {section === "editor" && <EditorSection />}
           {section === "appearance" && <AppearanceSection />}
           {section === "language" && <LanguageSection />}

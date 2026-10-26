@@ -26,6 +26,8 @@ pub struct RunSpec {
     pub max_output: usize,
     /// Set from another thread to stop the run (a cancelled job): the process tree is killed.
     pub cancel: Option<Arc<AtomicBool>>,
+    /// Docker mode (#91): run the command inside this container instead of on the machine.
+    pub container: Option<crate::container::Container>,
 }
 
 impl RunSpec {
@@ -38,6 +40,7 @@ impl RunSpec {
             timeout: Duration::from_secs(60),
             max_output: DEFAULT_MAX_OUTPUT,
             cancel: None,
+            container: None,
         }
     }
 }
@@ -105,6 +108,19 @@ fn capture(
 
 /// Runs the command. An error means it couldn't start; a failing command is a normal result.
 pub fn run(spec: &RunSpec) -> anyhow::Result<RunResult> {
+    if let Some(container) = &spec.container {
+        let args = crate::container::docker_args(
+            container,
+            &spec.command,
+            &spec.cwd,
+            &spec.env,
+            &[],
+            None,
+        )?;
+        let mut command = Command::new("docker");
+        command.args(args);
+        return execute(command, spec, true);
+    }
     execute(shell(&spec.command), spec, false)
 }
 
