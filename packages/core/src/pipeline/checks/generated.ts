@@ -100,15 +100,34 @@ ${problems.map((p) => `- ${p}`).join("\n")}
 export interface CandidateCheck {
   label: string;
   code: string;
-  /** Path relative to the working copy, e.g. ".knyc-checks/s05-1.test.mjs". */
+  /** Path relative to the working copy, e.g. ".knyc-checks/s05-1.test.mjs" or "apps/api/.knyc-checks/…". */
   file: string;
+  /** The package it runs in (#87); "." by default. */
+  root?: string;
 }
 
-/** Writes a check into the working copy and runs it. */
+/** The command that runs a generated check, from its package folder. */
+export function checkCommand(check: Pick<CandidateCheck, "file" | "root">): string {
+  const root = check.root ?? ".";
+  return `node --test ${root === "." ? check.file : check.file.slice(root.length + 1)}`;
+}
+
+/** Writes a check into the working copy and runs it in its package. */
 export async function runCandidate(host: Host, workDir: string, check: CandidateCheck, timeoutMs = 60_000): Promise<CheckOutcome> {
   await host.writeFile(joinPath(workDir, check.file), check.code);
+  const cwd = !check.root || check.root === "." ? workDir : joinPath(workDir, check.root);
   // PORT=0: a server started by the project's own entry point gets a free port, never a busy one.
-  return runCommand(host, workDir, `node --test ${check.file}`, { timeoutMs, env: { PORT: "0" } });
+  return runCommand(host, cwd, checkCommand(check), { timeoutMs, env: { PORT: "0" } });
+}
+
+/** A path from folder `from` to file `to`, both relative to the project, for an ESM import. */
+export function relativeImport(from: string, to: string): string {
+  const a = from.split("/").filter((p) => p && p !== ".");
+  const b = to.split("/").filter((p) => p && p !== ".");
+  let common = 0;
+  while (common < a.length && common < b.length - 1 && a[common] === b[common]) common++;
+  const up = a.length - common;
+  return `${up === 0 ? "./" : "../".repeat(up)}${b.slice(common).join("/")}`;
 }
 
 const ERROR_LINE = /error|assert|expected|actual|received|not ok|cannot|does not|undefined|is not a function|ECONN|timed out/i;

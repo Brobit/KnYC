@@ -5,6 +5,7 @@
 
 import { REPORT_FILE } from "../pipeline/checks/existing.ts";
 import { failureExcerpt } from "../pipeline/checks/generated.ts";
+import { builds, installs, type PackageCommands } from "../pipeline/packages.ts";
 import type { Check, CheckRun } from "../schemas/check.ts";
 import type { PathProgress, Progress } from "../schemas/progress.ts";
 import type { CheckOutcome } from "../sys/knyc-sys.ts";
@@ -34,8 +35,8 @@ export interface RunStepChecksInput {
   files: WorkspaceFiles;
   /** Runs one command in the workspace (timeout, process-tree kill, optional report). */
   run: (request: CheckCommand) => Promise<CheckOutcome>;
-  /** project.json's commands: install when `node_modules` is missing, build before the checks. */
-  commands?: { install?: string; build?: string };
+  /** project.json's commands, per package: install where `node_modules` is missing, build before the checks. */
+  commands?: PackageCommands;
   /** The project's own test files, stored under `.knyc/checks/<pathId>/tests/`. */
   testFiles?: string[];
   onResult?: (run: CheckRun) => void;
@@ -75,18 +76,19 @@ export async function runStepChecks(input: RunStepChecksInput): Promise<CheckRun
     return done();
   };
 
-  // 1. Dependencies, once.
-  const install = input.commands?.install;
-  if (install && !(await files.exists("node_modules"))) {
-    const installed = await run({ command: install, root: ".", timeoutMs: INSTALL_TIMEOUT_MS });
-    if (installed.status !== "pass") return failRest("error", "Installing the dependencies failed.", installed);
+  // 1. Dependencies, once per package that installs (once at a workspace's root, #87).
+  const commands = input.commands ?? [];
+  for (const { root, command } of installs(commands)) {
+    if (await files.exists(root === "." ? "node_modules" : `${root}/node_modules`)) continue;
+    const installed = await run({ command, root, timeoutMs: INSTALL_TIMEOUT_MS });
+    if (installed.status !== "pass") return failRest("error", `Installing the dependencies${root === "." ? "" : ` of ${root}`} failed.`, installed);
   }
 
-  // 2. The build. Build checks are this build; the others need it to pass.
-  const build = input.commands?.build;
-  if (build) {
-    const built = await run({ command: build, root: ".", timeoutMs: BUILD_TIMEOUT_MS });
-    for (const check of checks) if (check.spec.kind === "build") record(check, built);
+  // 2. The build, package by package. A build check is its package's build; the others need
+  // every build to pass.
+  for (const { root, command } of builds(commands)) {
+    const built = await run({ command, root, timeoutMs: BUILD_TIMEOUT_MS });
+    for (const check of checks) if (check.spec.kind === "build" && check.spec.root === root) record(check, built);
     if (built.status !== "pass") return failRest("fail", "The project doesn't build yet, so this check can't run.", built);
   }
 

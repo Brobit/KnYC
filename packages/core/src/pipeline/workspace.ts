@@ -2,6 +2,7 @@
 
 import { joinPath, type Host } from "../host/host.ts";
 import { runCommand, type CheckOutcome, type Scan } from "../sys/knyc-sys.ts";
+import { builds, packageCommands, type PackageCommands } from "./packages.ts";
 
 /** Where the build writes compiled files ("dist" by default), from tsconfig.json. */
 export async function buildOutDir(host: Host, root: string): Promise<{ outDir: string; rootDir: string } | null> {
@@ -36,11 +37,24 @@ export interface StepCheckout {
 export async function checkoutStep(host: Host, workDir: string, tag: string, scan: Scan, timeoutMs = 5 * 60_000): Promise<StepCheckout> {
   await host.git(workDir, ["checkout", "-q", "-f", tag]);
   await host.git(workDir, ["clean", "-fdq"]);
-  const layout = await buildOutDir(host, workDir);
-  if (layout) await host.remove(joinPath(workDir, layout.outDir));
-  const command = scan.commands[0]?.build;
-  const build = command
-    ? await runCommand(host, workDir, command, { timeoutMs })
-    : ({ status: "pass" } as CheckOutcome);
-  return { tag, build };
+  const commands = packageCommands(scan);
+  for (const { root } of builds(commands)) {
+    const dir = root === "." ? workDir : joinPath(workDir, root);
+    const layout = await buildOutDir(host, dir);
+    if (layout) await host.remove(joinPath(dir, layout.outDir));
+  }
+  return { tag, build: await buildAll(host, workDir, commands, timeoutMs) };
+}
+
+/**
+ * Builds every package that has a build (#87), each in its folder, in order; stops at the first
+ * that fails. A project with nothing to build passes.
+ */
+export async function buildAll(host: Host, workDir: string, commands: PackageCommands, timeoutMs = 5 * 60_000): Promise<CheckOutcome> {
+  let outcome: CheckOutcome = { status: "pass" };
+  for (const { root, command } of builds(commands)) {
+    outcome = await runCommand(host, root === "." ? workDir : joinPath(workDir, root), command, { timeoutMs });
+    if (outcome.status !== "pass") return outcome;
+  }
+  return outcome;
 }

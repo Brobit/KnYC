@@ -132,7 +132,7 @@ describe("runStepChecks", () => {
       pathId: PATH_ID,
       files,
       run,
-      commands: { install: "npm install", build: "npm run build" },
+      commands: [{ root: ".", install: "npm install", build: "npm run build" }],
       testFiles: ["tests/notes.test.ts"],
       onResult: (r) => results.push(r),
       now: () => NOW,
@@ -160,7 +160,7 @@ describe("runStepChecks", () => {
       pathId: PATH_ID,
       files,
       run: async (r) => (calls.push(r.command), fail("src/app.ts(3,1): error TS2304: Cannot find name 'notes'.")),
-      commands: { install: "npm install", build: "npm run build" },
+      commands: [{ root: ".", install: "npm install", build: "npm run build" }],
       now: () => NOW,
     });
     expect(calls).toEqual(["npm run build"]);

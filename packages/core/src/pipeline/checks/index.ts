@@ -15,11 +15,12 @@ import type { LearningPath, Step } from "../../schemas/learning-path.ts";
 import type { Graph, Scan } from "../../sys/knyc-sys.ts";
 import { stepOfUnits, type Timeline } from "../timeline.ts";
 import { buildUnits, type Units } from "../units.ts";
+import { builds, inPackage, packageCommands, packageOf } from "../packages.ts";
 import { buildOutDir, checkoutStep, compiledPath } from "../workspace.ts";
-import { mapTests, runSuiteAtStep, suiteCommand, type SuiteRun, type TestMapping } from "./existing.ts";
+import { mapTests, runSuiteAtStep, suitesOf, type SuiteRun, type TestMapping } from "./existing.ts";
 import { fragileCheck } from "./audit.ts";
 import { goalFromChecks } from "./goal.ts";
-import { askForChecks, CHECKS_DIR, describeProblem, runCandidate, type CandidateCheck, type StepContext } from "./generated.ts";
+import { askForChecks, checkCommand, CHECKS_DIR, describeProblem, relativeImport, runCandidate, type CandidateCheck, type StepContext } from "./generated.ts";
 
 export interface StepChecks {
   stepId: string;
@@ -91,15 +92,20 @@ export async function prepareChecks(
     return i <= 0 ? setupTag : tagged[i - 1]!.tag!;
   };
 
-  // 1. The project's own tests.
-  const runner = scan.testRunners[0]?.runner;
-  const command = runner ? suiteCommand(runner) : null;
+  // 1. The project's own tests, each package's suite in its folder (#87).
+  const suites = suitesOf(scan);
+  /** The suite a test (keyed from the project root) belongs to. */
+  const suiteOf = (test: string) => {
+    const file = test.split(" › ")[0]!;
+    const root = packageOf(suites.map((s) => s.root), file);
+    return suites.find((s) => s.root === root) ?? suites[0]!;
+  };
   let mapping: TestMapping = options.mapping ?? { byStep: new Map(), discarded: [] };
-  if (runner && command && !options.mapping) {
+  if (suites.length > 0 && !options.mapping) {
     const testFiles = graph.files.filter((f) => f.test).map((f) => f.path);
     const runs: SuiteRun[] = [];
     for (const step of [{ stepId: null, tag: setupTag }, ...tagged.map((s) => ({ stepId: s.stepId, tag: s.tag! }))]) {
-      runs.push(await runSuiteAtStep(host, workDir, step, scan, testFiles, options.sourceRoot, command));
+      runs.push(await runSuiteAtStep(host, workDir, step, scan, testFiles, options.sourceRoot, suites));
       log(`suite at ${step.stepId ?? "s00"}`);
     }
     mapping = mapTests(runs);
@@ -146,8 +152,17 @@ export async function prepareChecks(
     return context;
   };
 
-  const layout = await buildOutDir(host, workDir);
-  const dependencies = Object.keys(scan.packages[0]?.dependencies ?? {});
+  // Packages (#87): a generated check lives and runs in its step's package, so that package's
+  // dependencies resolve; it imports each module from the build output of the module's package.
+  const roots = scan.packages.length > 0 ? scan.packages.map((p) => p.root) : ["."];
+  const layouts = new Map<string, Awaited<ReturnType<typeof buildOutDir>>>();
+  for (const root of roots) layouts.set(root, await buildOutDir(host, root === "." ? workDir : joinPath(workDir, root)));
+  const compiledFromRoot = (src: string) => {
+    const root = packageOf(roots, src);
+    const compiled = compiledPath(inPackage(root, src), layouts.get(root) ?? null);
+    return root === "." ? compiled : `${root}/${compiled}`;
+  };
+  const stepPackage = (step: Step) => packageOf(roots, step.introduces[0]?.unit.split("#")[0] ?? ".");
   // No .at(): the desktop webview targets ES2020 (older macOS WebKit).
   const last = tagged[tagged.length - 1];
 
@@ -155,11 +170,14 @@ export async function prepareChecks(
   async function generatedFor(step: Step, tag: string, entry: StepChecks): Promise<CandidateCheck[]> {
     const before = previousTag(step.id);
     const sources = (await git("ls-tree", "-r", "--name-only", tag)).split("\n").filter((f) => graph.files.some((g) => g.path === f && !g.test));
+    const root = stepPackage(step);
+    const checksDir = root === "." ? CHECKS_DIR : `${root}/${CHECKS_DIR}`;
+    const pkg = scan.packages.find((p) => p.root === root) ?? scan.packages[0];
     const ctx: StepContext = {
       step,
       diff: await git("diff", before, tag, "--", ...sources),
-      importPaths: new Map(sources.map((src) => [src, `../${compiledPath(src, layout)}`])),
-      dependencies,
+      importPaths: new Map(sources.map((src) => [src, relativeImport(checksDir, compiledFromRoot(src))])),
+      dependencies: Object.keys(pkg?.dependencies ?? {}),
       exports: exportsAt(path.steps.indexOf(step), sources),
       context: await contextFor(tag, before, sources),
       profile,
@@ -188,7 +206,7 @@ export async function prepareChecks(
       problems = [];
       // Fragile checks are refused before running: they could pass here and fail for the learner.
       const candidates = answer.checks
-        .map((c, i) => ({ ...c, file: `${CHECKS_DIR}/${step.id}-${attempt + 1}-${i + 1}.test.mjs` }))
+        .map((c, i) => ({ ...c, root, file: `${checksDir}/${step.id}-${attempt + 1}-${i + 1}.test.mjs` }))
         .filter((c) => {
           const fragile = fragileCheck(c.code);
           for (const problem of fragile) problems.push(`"${c.label}": ${problem}`);
@@ -294,16 +312,22 @@ export async function prepareChecks(
 
     for (const test of existing) {
       const name = test.split(" › ").slice(1).join(" › ");
-      add({ label: name, origin: "repo", timeoutMs: 120_000, validation: proven, spec: { kind: "test", root: ".", runner: runner as "vitest", command: command!, filter: [name], files: [] } });
+      const suite = suiteOf(test);
+      add({ label: name, origin: "repo", timeoutMs: 120_000, validation: proven, spec: { kind: "test", root: suite.root, runner: suite.runner as "vitest", command: suite.command, filter: [name], files: [] } });
     }
     for (const check of generated) {
       files.set(check.file, check.code);
-      add({ label: check.label, origin: "generated", timeoutMs: 60_000, validation: proven, spec: { kind: "test", root: ".", runner: "other", command: `node --test ${check.file}`, filter: [], files: [check.file] } });
+      add({ label: check.label, origin: "generated", timeoutMs: 60_000, validation: proven, spec: { kind: "test", root: check.root ?? ".", runner: "other", command: checkCommand(check), filter: [], files: [check.file] } });
     }
     entry.generated = generated.length;
     if (entry.strength !== "merged") entry.strength = checks.length > 0 ? "strong" : "weak";
-    if (entry.strength === "weak" && scan.commands[0]?.build) {
-      add({ label: "The project builds", origin: "generated", timeoutMs: 300_000, spec: { kind: "build", root: ".", command: scan.commands[0].build } });
+    if (entry.strength === "weak") {
+      // One build check per package that builds (#87).
+      const packages = builds(packageCommands(scan));
+      for (const { root, command } of packages) {
+        const label = packages.length === 1 ? "The project builds" : `${root === "." ? "The project root" : root} builds`;
+        add({ label, origin: "generated", timeoutMs: 300_000, spec: { kind: "build", root, command } });
+      }
     }
 
     // The goal, rewritten from the proven checks so it names their contracts (#84).
