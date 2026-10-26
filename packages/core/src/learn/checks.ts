@@ -3,12 +3,13 @@
 // proven on built code (design/02 ⑧). Test files the learner shouldn't edit (generated checks, the
 // project's own tests) are copied in only while the checks run.
 
+import type { HttpRequest, HttpServer } from "../host/host.ts";
 import { REPORT_FILE } from "../pipeline/checks/existing.ts";
 import { failureExcerpt } from "../pipeline/checks/generated.ts";
 import { builds, installs, type PackageCommands } from "../pipeline/packages.ts";
 import type { Check, CheckRun } from "../schemas/check.ts";
 import type { PathProgress, Progress } from "../schemas/progress.ts";
-import type { CheckOutcome } from "../sys/knyc-sys.ts";
+import type { CheckOutcome, HttpOutcome } from "../sys/knyc-sys.ts";
 import { knycPaths } from "./documents.ts";
 
 /** The workspace folder, relative paths with "/". `write` creates missing folders. */
@@ -40,7 +41,20 @@ export interface RunStepChecksInput {
   /** The project's own test files, stored under `.knyc/checks/<pathId>/tests/`. */
   testFiles?: string[];
   onResult?: (run: CheckRun) => void;
+  /** Runs an HTTP check against the project's server (src-tauri `workspace_http_check`, #88). */
+  runHttp?: (request: { root: string; timeoutMs: number; server: HttpServer; requests: HttpRequest[] }) => Promise<HttpOutcome>;
   now?: () => Date;
+}
+
+/** An HTTP check's outcome as a CheckRun: each request's answer, then what the server printed. */
+export function httpRun(checkId: string, outcome: HttpOutcome, at: string): CheckRun {
+  const lines = outcome.requests.map((r) => `${r.method} ${r.path} → ${r.status ?? "no answer"}${r.problem ? `: ${r.problem}` : ""}`);
+  const output = [...lines, ...(outcome.error ? [outcome.error] : []), ...(outcome.output.trim() ? ["", "Server output:", outcome.output.trim()] : [])].join("\n");
+  const failures = [
+    ...(outcome.error && outcome.status !== "pass" ? [{ message: `${outcome.error}${outcome.output.trim() ? `\n${outcome.output.trim().split("\n").slice(-15).join("\n")}` : ""}` }] : []),
+    ...outcome.requests.filter((r) => r.problem).map((r) => ({ message: `${r.method} ${r.path}: ${r.problem}`, actual: r.body || undefined })),
+  ];
+  return { checkId, at, status: outcome.status, durationMs: outcome.durationMs, output: output.length > MAX_OUTPUT ? output.slice(-MAX_OUTPUT) : output, failures };
 }
 
 const MAX_OUTPUT = 64 * 1024;
@@ -136,6 +150,12 @@ export async function runStepChecks(input: RunStepChecksInput): Promise<CheckRun
         record(check, await run({ command: spec.command, root: spec.root, timeoutMs: check.timeoutMs, env: { PORT: "0" } }));
       } else if (spec.kind === "build") {
         record(check, await run({ command: spec.command, root: spec.root, timeoutMs: check.timeoutMs }));
+      } else if (spec.kind === "http" && input.runHttp) {
+        // The server starts in its package for this check, and is stopped after it (#88).
+        const outcome = await input.runHttp({ root: spec.server.root, timeoutMs: check.timeoutMs, server: spec.server, requests: spec.requests });
+        const result = httpRun(check.id, outcome, at());
+        results.set(check.id, result);
+        input.onResult?.(result);
       } else {
         record(check, { status: "error", error: `"${spec.kind}" checks can't run in the app yet.` });
       }

@@ -58,6 +58,23 @@ enum Commands {
         #[arg(last = true, required = true)]
         command: Vec<String>,
     },
+    /// Run an HTTP check: start the server, wait for its ready path, send the requests, stop it.
+    /// `--spec` is the check spec as JSON: {"server": {...}, "requests": [...]}.
+    Http {
+        /// Working directory (the package that starts the server).
+        #[arg(long)]
+        cwd: PathBuf,
+        #[arg(long, default_value_t = 30_000)]
+        timeout_ms: u64,
+        #[arg(long)]
+        spec: String,
+    },
+}
+
+#[derive(serde::Deserialize)]
+struct HttpSpec {
+    server: knyc_runner::http::ServerSpec,
+    requests: Vec<knyc_runner::http::HttpRequestSpec>,
 }
 
 fn parse_env(raw: &str) -> Result<(String, String), String> {
@@ -108,6 +125,22 @@ fn main() -> Result<()> {
             spec.env = env.into_iter().collect();
             spec.stdin = stdin;
             print(&run_check(&spec, report), cli.pretty)
+        }
+        Commands::Http {
+            cwd,
+            timeout_ms,
+            spec,
+        } => {
+            let spec: HttpSpec = serde_json::from_str(&spec)?;
+            print(
+                &knyc_runner::http::run_http_check(
+                    &spec.server,
+                    &spec.requests,
+                    &cwd,
+                    Duration::from_millis(timeout_ms),
+                ),
+                cli.pretty,
+            )
         }
     }
 }

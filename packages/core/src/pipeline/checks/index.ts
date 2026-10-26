@@ -7,12 +7,15 @@
 
 import type { AiClient } from "../../ai/client.ts";
 import { AiError } from "../../ai/types.ts";
-import { joinPath, type Host } from "../../host/host.ts";
+import { joinPath, type Host, type HttpRequest } from "../../host/host.ts";
 import { checkSources } from "../../learn/lesson.ts";
 import { profileFor } from "../../profiles/index.ts";
 import type { Check } from "../../schemas/check.ts";
+
+/** The server an HTTP check starts (check schema `server`). */
+type HttpCheckServer = Extract<Check["spec"], { kind: "http" }>["server"];
 import type { LearningPath, Step } from "../../schemas/learning-path.ts";
-import type { Graph, Scan } from "../../sys/knyc-sys.ts";
+import { runHttpCheck, type Graph, type HttpOutcome, type Scan } from "../../sys/knyc-sys.ts";
 import { stepOfUnits, type Timeline } from "../timeline.ts";
 import { buildUnits, type Units } from "../units.ts";
 import { builds, inPackage, packageCommands, packageOf } from "../packages.ts";
@@ -20,6 +23,7 @@ import { buildOutDir, checkoutStep, compiledPath } from "../workspace.ts";
 import { mapTests, runSuiteAtStep, suitesOf, type SuiteRun, type TestMapping } from "./existing.ts";
 import { fragileCheck } from "./audit.ts";
 import { goalFromChecks } from "./goal.ts";
+import { askForHttpChecks, describeHttpProblem, type HttpCandidate } from "./http.ts";
 import { askForChecks, checkCommand, CHECKS_DIR, describeProblem, relativeImport, runCandidate, type CandidateCheck, type StepContext } from "./generated.ts";
 
 export interface StepChecks {
@@ -166,8 +170,8 @@ export async function prepareChecks(
   // No .at(): the desktop webview targets ES2020 (older macOS WebKit).
   const last = tagged[tagged.length - 1];
 
-  /** Generated checks proven red → green for one step, and still green at the last step. */
-  async function generatedFor(step: Step, tag: string, entry: StepChecks): Promise<CandidateCheck[]> {
+  /** What the check writers get for a step: its diff, what exists, how to import it. */
+  async function stepContextAt(step: Step, tag: string) {
     const before = previousTag(step.id);
     const sources = (await git("ls-tree", "-r", "--name-only", tag)).split("\n").filter((f) => graph.files.some((g) => g.path === f && !g.test));
     const root = stepPackage(step);
@@ -182,6 +186,79 @@ export async function prepareChecks(
       context: await contextFor(tag, before, sources),
       profile,
     };
+    return { ctx, before, root, checksDir };
+  }
+
+  /**
+   * HTTP checks for a step the planner marked "http" (#88), when the project's server starts at
+   * that step: proven red → green against it, and still green at the last step. Null when the
+   * step should get generated tests instead.
+   */
+  async function httpChecksFor(step: Step, tag: string, entry: StepChecks): Promise<{ server: HttpCheckServer; candidates: HttpCandidate[] } | null> {
+    const root = stepPackage(step);
+    const start = packageCommands(scan).find((c) => c.root === root)?.run ?? undefined;
+    if (step.checkStrategy !== "http" || !profile.run || !start) return null;
+    // Ready once any path answers: the profile's ready path may only exist from a later step.
+    const server: HttpCheckServer = { start, root, port: 3000, readyPath: profile.run.readyPaths[0] ?? "/", portEnv: profile.run.portEnv ?? "PORT" };
+    const cwd = root === "." ? workDir : joinPath(workDir, root);
+    const send = (requests: HttpRequest[]) => runHttpCheck(host, cwd, server, requests, 30_000);
+
+    await checkoutStep(host, workDir, tag, scan);
+    const probe = await send([]);
+    if (probe.status !== "pass") {
+      entry.notes.push(`the server doesn't start at ${step.id} (${probe.error ?? probe.status}); generated tests instead`);
+      return null;
+    }
+
+    const { ctx, before } = await stepContextAt(step, tag);
+    let problems: string[] = [];
+    let accepted: HttpCandidate[] = [];
+    for (let attempt = 0; attempt <= (options.retries ?? 2) && accepted.length === 0; attempt++) {
+      let answer;
+      try {
+        answer = await askForHttpChecks(options.client, ctx, problems);
+      } catch (error) {
+        if (!(error instanceof AiError) || error.kind === "auth" || error.kind === "limit") throw error;
+        entry.aiCalls += 1;
+        entry.notes.push(`http attempt ${attempt + 1}: ${error.message}`);
+        continue;
+      }
+      entry.aiCalls += 1;
+      if (answer.checks.length === 0) break;
+      const candidates: HttpCandidate[] = answer.checks.map((c) => ({ label: c.label, requests: c.requests as HttpRequest[] }));
+      await checkoutStep(host, workDir, tag, scan);
+      const atStep: HttpOutcome[] = [];
+      for (const c of candidates) atStep.push(await send(c.requests));
+      await checkoutStep(host, workDir, before, scan);
+      const beforeStep: (HttpOutcome | null)[] = [];
+      for (const [i, c] of candidates.entries()) beforeStep.push(atStep[i]!.status === "pass" ? await send(c.requests) : null);
+      problems = [];
+      candidates.forEach((c, i) => {
+        const problem = describeHttpProblem(c.label, atStep[i]!, beforeStep[i] ?? null);
+        if (problem) problems.push(problem);
+        else accepted.push(c);
+      });
+      log(`${step.id} http attempt ${attempt + 1}: ${accepted.length}/${candidates.length} checks proven`);
+    }
+    if (accepted.length > 0 && last && last.tag !== tag) {
+      await checkoutStep(host, workDir, last.tag!, scan);
+      const kept: HttpCandidate[] = [];
+      for (const c of accepted) {
+        if ((await send(c.requests)).status === "pass") kept.push(c);
+        else entry.notes.push(`"${c.label}" breaks at the last step; dropped`);
+      }
+      accepted = kept;
+    }
+    if (accepted.length === 0) {
+      entry.notes.push("no HTTP check proven; generated tests instead");
+      return null;
+    }
+    return { server, candidates: accepted };
+  }
+
+  /** Generated checks proven red → green for one step, and still green at the last step. */
+  async function generatedFor(step: Step, tag: string, entry: StepChecks): Promise<CandidateCheck[]> {
+    const { ctx, before, root, checksDir } = await stepContextAt(step, tag);
 
     let problems: string[] = [];
     let accepted: CandidateCheck[] = [];
@@ -295,11 +372,13 @@ export async function prepareChecks(
     const existing = mapping.byStep.get(stepId) ?? [];
     const entry: StepChecks = { stepId, strength: "weak", existing: existing.length, generated: 0, aiCalls: 0, notes: [] };
     let generated: CandidateCheck[] = [];
+    let http: Awaited<ReturnType<typeof httpChecksFor>> = null;
     if (build?.mergedInto) {
       entry.strength = "merged";
       entry.notes.push(`doesn't build alone; merged into ${build.mergedInto}`);
     } else if (build?.tag && existing.length === 0) {
-      generated = await generatedFor(step, build.tag, entry);
+      http = await httpChecksFor(step, build.tag, entry);
+      if (!http) generated = await generatedFor(step, build.tag, entry);
     }
 
     // Check documents and the updated step.
@@ -319,7 +398,10 @@ export async function prepareChecks(
       files.set(check.file, check.code);
       add({ label: check.label, origin: "generated", timeoutMs: 60_000, validation: proven, spec: { kind: "test", root: check.root ?? ".", runner: "other", command: checkCommand(check), filter: [], files: [check.file] } });
     }
-    entry.generated = generated.length;
+    for (const candidate of http?.candidates ?? []) {
+      add({ label: candidate.label, origin: "generated", timeoutMs: 60_000, validation: proven, spec: { kind: "http", server: http!.server, requests: candidate.requests as Extract<Check["spec"], { kind: "http" }>["requests"] } });
+    }
+    entry.generated = generated.length + (http?.candidates.length ?? 0);
     if (entry.strength !== "merged") entry.strength = checks.length > 0 ? "strong" : "weak";
     if (entry.strength === "weak") {
       // One build check per package that builds (#87).
@@ -332,7 +414,9 @@ export async function prepareChecks(
 
     // The goal, rewritten from the proven checks so it names their contracts (#84).
     let goal = step.goal;
-    const sources = options.rewriteGoals === false ? [] : checkSources(checks, files, existing.length > 0 ? await projectTests() : new Map());
+    // HTTP checks have no code: their requests are what the goal must name.
+    const httpSources = (http?.candidates ?? []).map((c) => ({ label: c.label, file: "(HTTP requests)", code: JSON.stringify(c.requests, null, 2) }));
+    const sources = options.rewriteGoals === false ? [] : [...checkSources(checks, files, existing.length > 0 ? await projectTests() : new Map()), ...httpSources];
     if (sources.length > 0) {
       try {
         const tag = build?.tag ?? timeline.steps.find((s) => s.stepId === build?.mergedInto)?.tag;

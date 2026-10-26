@@ -48,7 +48,7 @@ import {
 } from "@knyc/core";
 import { useOptionalJobs } from "@/jobs/jobs-context";
 import { useWorkspace } from "@/workspace/workspace-context";
-import { checkRunFor, readForAiFor, snapshotFor, workspaceFiles, type ReadForAi, type RunCheckCommand, type TakeSnapshot } from "./learn-backend";
+import { checkRunFor, httpCheckFor, readForAiFor, snapshotFor, workspaceFiles, type ReadForAi, type RunCheckCommand, type TakeSnapshot } from "./learn-backend";
 
 /** Time on a step is added in these ticks. */
 const TIME_TICK_MS = 60_000;
@@ -241,6 +241,7 @@ export function LearningProvider({
         run,
         commands: project.commands,
         testFiles: await storedTestFiles(files, path.id),
+        runHttp: httpCheckFor(),
         onResult: (result) => {
           setResults((current) => new Map(current).set(result.checkId, result));
           setRunning((current) => {

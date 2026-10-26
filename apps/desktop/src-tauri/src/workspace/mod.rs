@@ -291,6 +291,36 @@ pub async fn workspace_check_run(
     .map_err(|e| FsError::Io(e.to_string()))
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HttpCheckRequest {
+    /// Package folder that starts the server, relative to the workspace.
+    root: String,
+    timeout_ms: u64,
+    server: knyc_runner::http::ServerSpec,
+    requests: Vec<knyc_runner::http::HttpRequestSpec>,
+}
+
+/// Runs an HTTP check in the open workspace (#88): the server starts in its package, answers the
+/// requests, and is stopped with everything it started.
+#[tauri::command]
+pub async fn workspace_http_check(
+    state: State<'_, WorkspaceState>,
+    request: HttpCheckRequest,
+) -> FsResult<knyc_runner::http::HttpCheckOutcome> {
+    let cwd = state.scope()?.resolve(&request.root)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        knyc_runner::http::run_http_check(
+            &request.server,
+            &request.requests,
+            &cwd,
+            Duration::from_millis(request.timeout_ms),
+        )
+    })
+    .await
+    .map_err(|e| FsError::Io(e.to_string()))
+}
+
 #[tauri::command]
 pub fn workspace_close(app: AppHandle, state: State<'_, WorkspaceState>) -> FsResult<()> {
     app.state::<TerminalState>().close_all();
