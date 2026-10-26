@@ -44,8 +44,10 @@ export function uiTestModule(label: string, body: string): string {
     .split("\n")
     .map((line) => (line.trim() ? `  ${line}` : ""))
     .join("\n");
+  // The specifier is text of the generated module (it runs on the learner's Node.js), not an import
+  // of core, which stays browser-safe.
   return `// KnYC UI check: ${label.replace(/\n/g, " ")}
-import assert from "node:assert/strict";
+import assert from ${JSON.stringify("node:assert/strict")};
 
 export default async function ({ page }) {
 ${indented}

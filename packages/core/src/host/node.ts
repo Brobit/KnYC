@@ -53,6 +53,7 @@ export function sysArgs(request: SysRequest): string[] {
         ...(request.container ? ["--docker-image", request.container.image, "--mount", request.container.mount] : []),
       ];
     case "ui":
+      if (!request.browsers) throw new Error("UI checks need the folder Chromium is in");
       return [
         "ui",
         "--cwd",
@@ -66,6 +67,7 @@ export function sysArgs(request: SysRequest): string[] {
         ...(request.container ? ["--docker-image", request.container.image, "--mount", request.container.mount] : []),
       ];
     case "browser":
+      if (!request.browsers) throw new Error("say which folder Chromium is in");
       return ["browser", request.action, "--browsers", request.browsers];
   }
 }

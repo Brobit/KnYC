@@ -58,6 +58,23 @@ pub enum SysRequest {
         server: knyc_runner::http::ServerSpec,
         requests: Vec<knyc_runner::http::HttpRequestSpec>,
     },
+    /// UI tests in Chromium against the frontend of a sandboxed project (#89). Chromium is the
+    /// app's own (`browsers` from the page is ignored).
+    Ui {
+        cwd: String,
+        timeout_ms: u64,
+        server: knyc_runner::http::ServerSpec,
+        tests: Vec<String>,
+        #[allow(dead_code)]
+        browsers: Option<String>,
+    },
+    /// Chromium for the UI checks (#89): status or size; the download goes through
+    /// `browser_install`, after the learner agreed.
+    Browser {
+        action: String,
+        #[allow(dead_code)]
+        browsers: Option<String>,
+    },
 }
 
 fn io_error(path: &Path, error: std::io::Error) -> String {
@@ -225,6 +242,38 @@ pub fn sys(scope: &PipelineScope, request: SysRequest) -> Result<serde_json::Val
                 &cwd,
                 Duration::from_millis(timeout_ms),
             )))
+        }
+        SysRequest::Ui {
+            cwd,
+            timeout_ms,
+            server,
+            tests,
+            browsers: _,
+        } => {
+            let cwd = scoped(scope.writable(&cwd))?;
+            let tests = tests
+                .iter()
+                .map(|t| scoped(scope.writable(t)))
+                .collect::<Result<Vec<_>, _>>()?;
+            let runner = crate::browser::ui_runner(scope.data())?;
+            json(serde_json::to_value(knyc_runner::ui::run_ui_check(
+                &server,
+                &tests,
+                &cwd,
+                &runner,
+                Duration::from_millis(timeout_ms),
+                None,
+            )))
+        }
+        SysRequest::Browser {
+            action,
+            browsers: _,
+        } => {
+            if action != "status" && action != "size" {
+                return Err(format!("knyc-sys browser {action} isn't allowed here"));
+            }
+            let runner = crate::browser::ui_runner(scope.data())?;
+            knyc_runner::ui::browser(&runner, &action).map_err(|e| failed("browser", e))
         }
     }
 }

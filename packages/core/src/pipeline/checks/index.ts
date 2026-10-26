@@ -77,9 +77,9 @@ export interface ChecksOptions {
   rewriteGoals?: boolean;
   /** The units the path teaches (a track's, #86); default: every unit of the graph. */
   units?: Units;
-  /** UI checks (#89): the folder Chromium is downloaded into. Without it, or without Chromium in
-   * it, steps marked "ui" get generated tests. */
-  ui?: { browsers: string };
+  /** UI checks (#89): the folder Chromium is downloaded into (the app uses its own: none). Without
+   * this option, or without Chromium, steps marked "ui" get generated tests. */
+  ui?: { browsers?: string };
 }
 
 export async function prepareChecks(
@@ -274,7 +274,7 @@ export async function prepareChecks(
       return null;
     }
     const browsers = options.ui?.browsers;
-    if (!browsers || !(await browserStatus(host, browsers).then((s) => s.installed, () => false))) {
+    if (!options.ui || !(await browserStatus(host, browsers).then((s) => s.installed, () => false))) {
       entry.notes.push("Chromium isn't downloaded; generated tests instead");
       return null;
     }

@@ -2,7 +2,7 @@
 // WorkspaceFiles, and a check runner (src-tauri `workspace_check_run`). A plain browser (`pnpm dev`)
 // gets a pretend runner: a demo check passes once the file it names has code.
 import { invoke } from "@tauri-apps/api/core";
-import type { CheckCommand, CheckOutcome, DockerOutcome, HttpOutcome, LearnerFiles, RunStepChecksInput, WorkspaceFiles } from "@knyc/core";
+import type { CheckCommand, CheckOutcome, DockerOutcome, HttpOutcome, LearnerFiles, RunStepChecksInput, UiOutcome, WorkspaceFiles } from "@knyc/core";
 import { DEMO_REQUIRES } from "@/jobs/demo-jobs";
 import { isTauri } from "@/lib/settings";
 import { WorkspaceFsError, type WorkspaceFs } from "@/lib/workspace-fs";
@@ -117,6 +117,25 @@ export const fakeHttpCheck: RunHttpCheck = async ({ requests }) => ({
 });
 
 export const httpCheckFor = (dockerImage?: string): RunHttpCheck => (isTauri() || !import.meta.env.DEV ? tauriHttpCheck(dockerImage) : fakeHttpCheck);
+
+/** Runs a UI check in the open workspace (src-tauri `workspace_ui_check`, #89). */
+export type RunUiCheck = NonNullable<RunStepChecksInput["runUi"]>;
+
+export const tauriUiCheck =
+  (dockerImage?: string): RunUiCheck =>
+  (request) =>
+    invoke<UiOutcome>("workspace_ui_check", { request: { ...request, dockerImage } });
+
+/** The browser preview has no Chromium: every UI test passes. */
+export const fakeUiCheck: RunUiCheck = async ({ files }) => ({
+  status: "pass",
+  port: 5173,
+  tests: files.map((file) => ({ file, status: "pass", durationMs: 800, pageErrors: [] })),
+  output: "frontend started (browser preview)",
+  durationMs: 1200,
+});
+
+export const uiCheckFor = (dockerImage?: string): RunUiCheck => (isTauri() || !import.meta.env.DEV ? tauriUiCheck(dockerImage) : fakeUiCheck);
 
 /** Runs a Docker check in the open workspace (src-tauri `workspace_docker_check`, #90). */
 export type RunDockerCheck = NonNullable<RunStepChecksInput["runDocker"]>;

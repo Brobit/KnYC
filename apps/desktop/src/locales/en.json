@@ -247,7 +247,8 @@
     "skipBody": "It is marked skipped, and its original code is written into your project so the next steps build. Your code is saved in a snapshot first.",
     "skipConfirm": "Skip",
     "skipFailed": "Couldn’t skip: {{reason}}",
-    "underAMinute": "< 1 min"
+    "underAMinute": "< 1 min",
+    "screenshot": "The page when the check failed"
   },
   "reveal": {
     "title": "The original for this step",
@@ -703,6 +704,18 @@
     "calls_other": "≈ {{count}} AI calls",
     "generate": "Generate my path",
     "note": "You can start step 1 while the later steps are still being prepared. It uses part of your Claude plan.",
-    "back": "Back to the overview"
+    "back": "Back to the overview",
+    "browser": {
+      "title": "Frontend checks in a real browser",
+      "missing": "Frontend steps are checked in Chromium, downloaded once into KnYC's own folder ({{size}}). Without it, they get other checks.",
+      "size": "about {{mb}} MB",
+      "sizeUnknown": "size unknown",
+      "download": "Download Chromium",
+      "downloading": "Downloading Chromium… {{size}}",
+      "downloadingLabel": "Downloading",
+      "ready": "Chromium is ready: frontend steps are checked in it.",
+      "failed": "The download failed.",
+      "retry": "Try again"
+    }
   }
 }

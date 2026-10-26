@@ -1,9 +1,10 @@
 // Choose path (design/04 §6, knyc.pen "Screen · Choose path", #61): the track, the size and the
 // setup toggle, with what the path will be on the right. "Generate my path" goes on with the same
 // job (plan, timeline, checks) and back to the live view, where step 1 opens as soon as it is ready.
-// M3 has one code track, so the "shared code" and "other tracks" options of the design come with M4.
+// The "shared code" and "other tracks" options of the design come with M4; a frontend path offers
+// the Chromium download for its UI checks (#89).
 import { Route } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { buildUnits, pathEstimate, projectTracks, splitByRules, unitsForTrack, type Job, type PathSize, type TrackId } from "@knyc/core";
 import { TrackBadge } from "@/components/knyc/badges";
@@ -11,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useJobs } from "@/jobs/jobs-context";
 import { cn } from "@/lib/utils";
+import { BrowserDownload } from "./BrowserDownload";
+import { browserBackendFor, type BrowserBackend } from "./browser-backend";
 import { TrackCards, useJobResults } from "./shared";
 
 const SIZES: PathSize[] = ["overview", "standard", "deep"];
@@ -42,7 +45,20 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function ChoosePathScreen({ jobId, track: initialTrack, onBack, onStarted }: { jobId: string; track: TrackId | null; onBack: () => void; onStarted: (job: Job) => void }) {
+export function ChoosePathScreen({
+  jobId,
+  track: initialTrack,
+  onBack,
+  onStarted,
+  browser,
+}: {
+  jobId: string;
+  track: TrackId | null;
+  onBack: () => void;
+  onStarted: (job: Job) => void;
+  /** Chromium for the UI checks (#89); default: the app's. */
+  browser?: BrowserBackend;
+}) {
   const { t } = useTranslation();
   const jobs = useJobs();
   const job = jobs.jobs.find((j) => j.id === jobId);
@@ -52,6 +68,7 @@ export function ChoosePathScreen({ jobId, track: initialTrack, onBack, onStarted
   const [setupAsStep, setSetupAsStep] = useState(job?.choice?.setupAsStep ?? false);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const browserBackend = useMemo(() => browser ?? browserBackendFor(), [browser]);
 
   if (!job) {
     return (
@@ -67,6 +84,7 @@ export function ChoosePathScreen({ jobId, track: initialTrack, onBack, onStarted
 
   const tracks = projectTracks(scan, graph);
   const chosen = tracks.tracks.find((tr) => tr.id === track) ?? tracks.tracks[0]!;
+  const hasFrontend = tracks.tracks.some((tr) => tr.id === "frontend");
   // The chosen track's units: a frontend path is sized on the frontend only (#86).
   const units = unitsForTrack(buildUnits(graph), splitByRules(scan, graph), chosen.id);
   const estimates = Object.fromEntries(SIZES.map((s) => [s, pathEstimate(units, s)])) as Record<PathSize, ReturnType<typeof pathEstimate>>;
@@ -132,6 +150,8 @@ export function ChoosePathScreen({ jobId, track: initialTrack, onBack, onStarted
             </label>
             <Switch id="setup-as-step" checked={setupAsStep} onCheckedChange={setSetupAsStep} />
           </div>
+          {/* A path with frontend code: its steps are checked in Chromium, downloaded on request (#89). */}
+          {hasFrontend && (chosen.id === "frontend" || chosen.id === "full") && <BrowserDownload backend={browserBackend} />}
         </Section>
       </div>
 

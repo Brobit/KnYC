@@ -369,6 +369,54 @@ pub async fn workspace_http_check(
     .map_err(|e| FsError::Io(e.to_string()))
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UiCheckRequest {
+    /// Package folder that starts the frontend, relative to the workspace.
+    root: String,
+    timeout_ms: u64,
+    server: knyc_runner::http::ServerSpec,
+    /// The UI test modules, relative to the workspace.
+    files: Vec<String>,
+    /// Docker mode (#91): the frontend runs in this image; Chromium stays on this computer.
+    docker_image: Option<String>,
+}
+
+/// Runs a UI check in the open workspace (#89): the frontend starts in its package, the tests run
+/// in KnYC's Chromium, and the server is stopped with everything it started.
+#[tauri::command]
+pub async fn workspace_ui_check(
+    app: AppHandle,
+    state: State<'_, WorkspaceState>,
+    request: UiCheckRequest,
+) -> FsResult<knyc_runner::ui::UiCheckOutcome> {
+    let scope = state.scope()?;
+    let cwd = scope.resolve(&request.root)?;
+    let tests = request
+        .files
+        .iter()
+        .map(|f| scope.resolve(f))
+        .collect::<Result<Vec<_>, _>>()?;
+    let container = container_for(&scope, request.docker_image);
+    let data = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| FsError::Io(e.to_string()))?;
+    let runner = crate::browser::ui_runner(&data).map_err(FsError::Io)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        knyc_runner::ui::run_ui_check(
+            &request.server,
+            &tests,
+            &cwd,
+            &runner,
+            Duration::from_millis(request.timeout_ms),
+            container.as_ref(),
+        )
+    })
+    .await
+    .map_err(|e| FsError::Io(e.to_string()))
+}
+
 #[tauri::command]
 pub fn workspace_close(app: AppHandle, state: State<'_, WorkspaceState>) -> FsResult<()> {
     app.state::<TerminalState>().close_all();

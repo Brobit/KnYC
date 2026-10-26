@@ -48,6 +48,8 @@ export function JobsProvider({ children, manager: given }: { children: ReactNode
       dataDir: pipelineDataDir,
       roles: () => roles.current,
       provider: (signal) => new AppClaudeProvider(undefined, { signal }),
+      // UI checks run in the app's own Chromium, once the learner downloaded it (#89).
+      ui: {},
     });
   });
 

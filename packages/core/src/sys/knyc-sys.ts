@@ -202,7 +202,7 @@ export const uiOutcomeSchema = z.object({
 export type UiOutcome = z.infer<typeof uiOutcomeSchema>;
 
 /** Runs UI tests in headless Chromium through knyc-sys (#89), against the frontend started in `cwd`. */
-export function runUiCheck(host: Host, cwd: string, server: HttpServer, tests: string[], browsers: string, timeoutMs = 60_000, container?: Container) {
+export function runUiCheck(host: Host, cwd: string, server: HttpServer, tests: string[], browsers: string | undefined, timeoutMs = 60_000, container?: Container) {
   return knycSys(host, { op: "ui", cwd, timeoutMs, server, tests, browsers, ...(container ? { container } : {}) }, uiOutcomeSchema);
 }
 
@@ -211,11 +211,11 @@ export const browserSizeSchema = z.object({ bytes: z.number(), urls: z.array(z.s
 export const browserInstallSchema = z.object({ installed: z.boolean(), error: z.string().optional() });
 
 /** Whether Chromium is in `browsers` (KnYC's data folder), for the UI checks (#89). */
-export const browserStatus = (host: Host, browsers: string) => knycSys(host, { op: "browser", action: "status", browsers }, browserStatusSchema);
+export const browserStatus = (host: Host, browsers?: string) => knycSys(host, { op: "browser", action: "status", browsers }, browserStatusSchema);
 /** How much downloading Chromium takes, in bytes. */
-export const browserSize = (host: Host, browsers: string) => knycSys(host, { op: "browser", action: "size", browsers }, browserSizeSchema);
+export const browserSize = (host: Host, browsers?: string) => knycSys(host, { op: "browser", action: "size", browsers }, browserSizeSchema);
 /** Downloads Chromium into `browsers`. */
-export const installBrowser = (host: Host, browsers: string) => knycSys(host, { op: "browser", action: "install", browsers }, browserInstallSchema);
+export const installBrowser = (host: Host, browsers?: string) => knycSys(host, { op: "browser", action: "install", browsers }, browserInstallSchema);
 
 export const dockerOutcomeSchema = z.object({
   /** "unavailable": Docker isn't installed or its daemon isn't running. */

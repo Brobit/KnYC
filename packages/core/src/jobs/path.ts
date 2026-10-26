@@ -73,7 +73,7 @@ export interface PathPipeline {
     timeline: Timeline,
     graph: Graph,
     scan: Scan,
-    options: { host: Host; sourceRoot: string; client: AiClient; mapping?: TestMapping; units?: Units },
+    options: { host: Host; sourceRoot: string; client: AiClient; mapping?: TestMapping; units?: Units; ui?: { browsers?: string } },
   ): Promise<ChecksPreparation>;
 }
 
@@ -180,6 +180,7 @@ export function pathStages(job: Job, deps: AnalysisDependencies & { pipeline?: P
           client: clientFor(context),
           mapping: saved ? { byStep: new Map(saved.byStep), discarded: saved.discarded } : undefined,
           units,
+          ...(deps.ui ? { ui: deps.ui } : {}),
         });
         if (!saved) await save(paths.testMapping, { byStep: [...preparation.mapping.byStep], discarded: preparation.mapping.discarded });
 

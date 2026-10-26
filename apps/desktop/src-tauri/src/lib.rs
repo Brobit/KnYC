@@ -1,4 +1,5 @@
 mod ai;
+mod browser;
 mod keychain;
 mod pipeline;
 mod providers;
@@ -23,6 +24,10 @@ pub fn run() {
         .manage(run::RunState::default())
         .manage(pipeline::PipelineState::default())
         .manage(ai::AiState::default())
+        .setup(|app| {
+            browser::set_resources(app.handle());
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             settings::settings_read,
             settings::settings_write,
@@ -44,6 +49,10 @@ pub fn run() {
             workspace::workspace_snapshot,
             workspace::workspace_http_check,
             workspace::workspace_docker_check,
+            workspace::workspace_ui_check,
+            browser::browser_status,
+            browser::browser_size,
+            browser::browser_install,
             workspace::workspace_close,
             workspace::workspace_tree,
             workspace::workspace_list,

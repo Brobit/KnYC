@@ -17,6 +17,8 @@ import {
 } from "@knyc/core";
 import { defaultSettings } from "@knyc/core/schemas";
 import { AnalysisScreen } from "@/analysis/AnalysisScreen";
+import { BrowserDownload } from "@/analysis/BrowserDownload";
+import type { BrowserBackend } from "@/analysis/browser-backend";
 import { ChoosePathScreen } from "@/analysis/ChoosePathScreen";
 import { OverviewScreen } from "@/analysis/OverviewScreen";
 import { createFakeImportBackend } from "@/import/import-backend";
@@ -225,6 +227,48 @@ describe("ChoosePathScreen", () => {
     expect(started!.choice).toEqual({ track: "full", size: "deep", setupAsStep: true });
     expect(started!.stages.map((s) => s.id).slice(4)).toEqual(["plan", "timeline", "checks"]);
     expect((await jobs.whenSettled(job.id))?.status).toBe("done");
+  });
+
+  it("doesn't offer Chromium for a project without a frontend (#89)", async () => {
+    const { jobs } = manager();
+    const job = await jobs.startAnalysis(INPUT);
+    await jobs.whenSettled(job.id);
+    const user = userEvent.setup();
+    const asked: string[] = [];
+    const browser: BrowserBackend = { status: async () => (asked.push("status"), { installed: false }), size: async () => ({ bytes: 1 }), install: async () => ({ installed: true }) };
+    renderWith(jobs, <ChoosePathScreen jobId={job.id} track="backend" onBack={() => {}} onStarted={() => {}} browser={browser} />);
+
+    expect(await screen.findByRole("heading", { name: "Choose your path" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Full project/ }));
+    expect(screen.queryByRole("group", { name: "Frontend checks in a real browser" })).not.toBeInTheDocument();
+    expect(asked).toEqual([]);
+  });
+});
+
+describe("BrowserDownload", () => {
+  it("shows Chromium's size and downloads it only when asked, again after a failure (#89)", async () => {
+    const user = userEvent.setup();
+    const calls: string[] = [];
+    let attempts = 0;
+    const browser: BrowserBackend = {
+      status: async () => (calls.push("status"), { installed: false }),
+      size: async () => (calls.push("size"), { bytes: 112_400_000 }),
+      install: async () => {
+        calls.push("install");
+        return ++attempts === 1 ? { installed: false, error: "no network" } : { installed: true };
+      },
+    };
+    render(<BrowserDownload backend={browser} />);
+
+    const card = await screen.findByRole("group", { name: "Frontend checks in a real browser" });
+    await waitFor(() => expect(card).toHaveTextContent("downloaded once into KnYC's own folder (about 112 MB)"));
+    expect(calls).toEqual(["status", "size"]);
+
+    await user.click(within(card).getByRole("button", { name: /Download Chromium/ }));
+    expect(await within(card).findByRole("alert")).toHaveTextContent("no network");
+    await user.click(within(card).getByRole("button", { name: /Try again/ }));
+    await waitFor(() => expect(card).toHaveTextContent("Chromium is ready"));
+    expect(calls).toEqual(["status", "size", "install", "install"]);
   });
 });
 
