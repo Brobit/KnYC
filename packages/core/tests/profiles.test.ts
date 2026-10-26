@@ -57,6 +57,11 @@ describe("track rules", () => {
     expect(globToRegExp("**/prisma/**").test("apps/api/prisma/schema.prisma")).toBe(true);
     expect(globToRegExp("{a,b}.json").test("b.json")).toBe(true);
     expect(globToRegExp("tsconfig*.json").test("tsconfig.build.json")).toBe(true);
+    // Wildcards inside alternatives (#96: vitest.config.ts and tsconfig.build.json were "backend").
+    expect(globToRegExp("{vitest.config.*,tsconfig*.json}").test("vitest.config.ts")).toBe(true);
+    expect(globToRegExp("{vitest.config.*,tsconfig*.json}").test("tsconfig.build.json")).toBe(true);
+    expect(globToRegExp("{a?.json,b}").test("ab.json")).toBe(true);
+    expect(globToRegExp("{vitest.config.*}").test("src/vitest.config.ts")).toBe(false);
   });
 
   it("put an Express project's files in their tracks", () => {
@@ -87,6 +92,25 @@ describe("track rules", () => {
       ".github/workflows/ci.yml": "deployment",
       "src/types/note.ts": "shared",
       "src/notes/note.types.ts": "shared",
+    });
+  });
+
+  it("put a NestJS project's files in their tracks (#96)", () => {
+    const nest = profileFor(["nestjs 12.2.0"]);
+    expect(nest).toMatchObject({ id: "nestjs", label: "NestJS", kind: "backend", run: { scripts: ["start", "start:prod"], portEnv: "PORT", readyPaths: ["/health", "/"] } });
+    const tracks = Object.fromEntries(
+      ["src/main.ts", "src/tasks/tasks.module.ts", "src/tasks/task.entity.ts", "src/auth/api-key.guard.ts", "nest-cli.json", "vitest.config.ts", "prisma/schema.prisma", "Dockerfile"].map((path) => [path, trackOf(nest, path)]),
+    );
+    expect(tracks).toEqual({
+      "src/main.ts": "backend",
+      "src/tasks/tasks.module.ts": "backend",
+      // Plain types without an ORM: the TypeORM profile (#99) decides about entities.
+      "src/tasks/task.entity.ts": "backend",
+      "src/auth/api-key.guard.ts": "backend",
+      "nest-cli.json": "setup",
+      "vitest.config.ts": "setup",
+      "prisma/schema.prisma": "database",
+      Dockerfile: "deployment",
     });
   });
 });

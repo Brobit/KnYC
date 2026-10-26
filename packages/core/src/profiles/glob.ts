@@ -18,7 +18,11 @@ export function globToRegExp(glob: string): RegExp {
     else if (c === "?") source += "[^/]";
     else if (c === "{") {
       const end = glob.indexOf("}", i);
-      const options = glob.slice(i + 1, end).split(",").map((o) => o.replace(/[.+^$()|[\]\\]/g, "\\$&"));
+      // Wildcards work inside an option too ("{vitest.config.*,tsconfig*.json}").
+      const options = glob
+        .slice(i + 1, end)
+        .split(",")
+        .map((o) => o.replace(/[.+^$()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*").replace(/\?/g, "[^/]"));
       source += `(?:${options.join("|")})`;
       i = end;
     } else source += c.replace(/[.+^$()|[\]\\]/g, "\\$&");
