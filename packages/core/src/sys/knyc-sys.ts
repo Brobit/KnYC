@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Host, SysRequest } from "../host/host.ts";
+import type { Host, HttpRequest, HttpServer, SysRequest } from "../host/host.ts";
 import { formatIssues } from "../schemas/documents.ts";
 
 // Shapes of the JSON the knyc-sys steps return (crates/knyc-sys, or the same crates called by the
@@ -148,4 +148,29 @@ export interface RunOptions {
 export function runCommand(host: Host, cwd: string, command: string, options: RunOptions = {}) {
   const request: SysRequest = { op: "run", cwd, command, timeoutMs: options.timeoutMs ?? 120_000, env: options.env ?? {}, report: options.report };
   return knycSys(host, request, checkOutcomeSchema);
+}
+
+export const httpOutcomeSchema = z.object({
+  status: z.enum(["pass", "fail", "timeout", "error"]),
+  /** The port the server answered on. */
+  port: z.number().optional(),
+  requests: z.array(
+    z.object({
+      method: z.string(),
+      path: z.string(),
+      status: z.number().nullable().optional(),
+      body: z.string(),
+      problem: z.string().optional(),
+    }),
+  ),
+  /** What the server printed, truncated. */
+  output: z.string(),
+  error: z.string().optional(),
+  durationMs: z.number(),
+});
+export type HttpOutcome = z.infer<typeof httpOutcomeSchema>;
+
+/** Runs an HTTP check through knyc-sys (#88): the server is started in `cwd` and always stopped. */
+export function runHttpCheck(host: Host, cwd: string, server: HttpServer, requests: HttpRequest[], timeoutMs = 30_000) {
+  return knycSys(host, { op: "http", cwd, timeoutMs, server, requests }, httpOutcomeSchema);
 }

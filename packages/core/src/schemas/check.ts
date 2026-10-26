@@ -7,6 +7,8 @@ export const server = z.object({
   port: z.number().int().min(1).max(65535),
   readyPath: z.string().startsWith("/"),
   env: z.record(z.string(), z.string()).optional(),
+  /** Environment variable the server reads its port from (the profile's; default PORT). */
+  portEnv: z.string().optional(),
 });
 
 export const httpExpectation = z.object({

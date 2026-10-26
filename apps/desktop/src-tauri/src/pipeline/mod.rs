@@ -45,6 +45,13 @@ pub enum SysRequest {
         env: BTreeMap<String, String>,
         report: Option<String>,
     },
+    /// An HTTP check against the server of a sandboxed project (#88).
+    Http {
+        cwd: String,
+        timeout_ms: u64,
+        server: knyc_runner::http::ServerSpec,
+        requests: Vec<knyc_runner::http::HttpRequestSpec>,
+    },
 }
 
 fn io_error(path: &Path, error: std::io::Error) -> String {
@@ -185,6 +192,20 @@ pub fn sys(scope: &PipelineScope, request: SysRequest) -> Result<serde_json::Val
             json(serde_json::to_value(run_check(
                 &spec,
                 report.map(PathBuf::from),
+            )))
+        }
+        SysRequest::Http {
+            cwd,
+            timeout_ms,
+            server,
+            requests,
+        } => {
+            let cwd = scoped(scope.writable(&cwd))?;
+            json(serde_json::to_value(knyc_runner::http::run_http_check(
+                &server,
+                &requests,
+                &cwd,
+                Duration::from_millis(timeout_ms),
             )))
         }
     }

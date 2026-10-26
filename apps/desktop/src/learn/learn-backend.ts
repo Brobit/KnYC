@@ -2,7 +2,7 @@
 // WorkspaceFiles, and a check runner (src-tauri `workspace_check_run`). A plain browser (`pnpm dev`)
 // gets a pretend runner: a demo check passes once the file it names has code.
 import { invoke } from "@tauri-apps/api/core";
-import type { CheckCommand, CheckOutcome, LearnerFiles, WorkspaceFiles } from "@knyc/core";
+import type { CheckCommand, CheckOutcome, HttpOutcome, LearnerFiles, RunStepChecksInput, WorkspaceFiles } from "@knyc/core";
 import { DEMO_REQUIRES } from "@/jobs/demo-jobs";
 import { isTauri } from "@/lib/settings";
 import { WorkspaceFsError, type WorkspaceFs } from "@/lib/workspace-fs";
@@ -91,3 +91,19 @@ export function fakeSnapshot(): TakeSnapshot {
 }
 
 export const snapshotFor = (): TakeSnapshot => (isTauri() || !import.meta.env.DEV ? tauriSnapshot : fakeSnapshot());
+
+/** Runs an HTTP check in the open workspace (src-tauri `workspace_http_check`, #88). */
+export type RunHttpCheck = NonNullable<RunStepChecksInput["runHttp"]>;
+
+export const tauriHttpCheck: RunHttpCheck = (request) => invoke<HttpOutcome>("workspace_http_check", { request });
+
+/** The browser preview starts no server: every request answers as expected. */
+export const fakeHttpCheck: RunHttpCheck = async ({ requests }) => ({
+  status: "pass",
+  port: 4321,
+  requests: requests.map((r) => ({ method: r.method, path: r.path, status: r.expect.status, body: "(browser preview)" })),
+  output: "server started (browser preview)",
+  durationMs: 300,
+});
+
+export const httpCheckFor = (): RunHttpCheck => (isTauri() || !import.meta.env.DEV ? tauriHttpCheck : fakeHttpCheck);

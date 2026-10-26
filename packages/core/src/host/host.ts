@@ -19,7 +19,35 @@ export type SysRequest =
       env: Record<string, string>;
       /** Jest/Vitest JSON report the command writes, relative to cwd. */
       report?: string;
+    }
+  | {
+      /** An HTTP check (#88): start the server in cwd, wait for it, send the requests, stop it. */
+      op: "http";
+      cwd: string;
+      timeoutMs: number;
+      server: HttpServer;
+      requests: HttpRequest[];
     };
+
+/** How to start a project's server for an HTTP check (knyc-runner `http.rs`). */
+export interface HttpServer {
+  /** Shell command line: "npm run start". */
+  start: string;
+  /** The port the original listens on when it doesn't read `portEnv`. */
+  port: number;
+  readyPath: string;
+  env?: Record<string, string>;
+  /** Default "PORT". */
+  portEnv?: string;
+}
+
+export interface HttpRequest {
+  method: string;
+  path: string;
+  headers?: Record<string, string>;
+  body?: unknown;
+  expect: { status: number; jsonSubset?: unknown; bodyIncludes?: string[] };
+}
 
 export interface Host {
   /** UTF-8 text; rejects when the file doesn't exist. */
