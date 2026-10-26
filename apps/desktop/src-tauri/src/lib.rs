@@ -43,6 +43,7 @@ pub fn run() {
             workspace::workspace_read_for_ai,
             workspace::workspace_snapshot,
             workspace::workspace_http_check,
+            workspace::workspace_docker_check,
             workspace::workspace_close,
             workspace::workspace_tree,
             workspace::workspace_list,

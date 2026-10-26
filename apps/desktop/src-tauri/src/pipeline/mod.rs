@@ -45,6 +45,12 @@ pub enum SysRequest {
         env: BTreeMap<String, String>,
         report: Option<String>,
     },
+    /// A Docker check on a sandboxed project (#90).
+    Docker {
+        cwd: String,
+        timeout_ms: u64,
+        spec: knyc_runner::docker::DockerSpec,
+    },
     /// An HTTP check against the server of a sandboxed project (#88).
     Http {
         cwd: String,
@@ -192,6 +198,18 @@ pub fn sys(scope: &PipelineScope, request: SysRequest) -> Result<serde_json::Val
             json(serde_json::to_value(run_check(
                 &spec,
                 report.map(PathBuf::from),
+            )))
+        }
+        SysRequest::Docker {
+            cwd,
+            timeout_ms,
+            spec,
+        } => {
+            let cwd = scoped(scope.writable(&cwd))?;
+            json(serde_json::to_value(knyc_runner::docker::run_docker_check(
+                &spec,
+                &cwd,
+                Duration::from_millis(timeout_ms),
             )))
         }
         SysRequest::Http {

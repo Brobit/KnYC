@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Host, HttpRequest, HttpServer, SysRequest } from "../host/host.ts";
+import type { DockerSpec, Host, HttpRequest, HttpServer, SysRequest } from "../host/host.ts";
 import { formatIssues } from "../schemas/documents.ts";
 
 // Shapes of the JSON the knyc-sys steps return (crates/knyc-sys, or the same crates called by the
@@ -173,4 +173,21 @@ export type HttpOutcome = z.infer<typeof httpOutcomeSchema>;
 /** Runs an HTTP check through knyc-sys (#88): the server is started in `cwd` and always stopped. */
 export function runHttpCheck(host: Host, cwd: string, server: HttpServer, requests: HttpRequest[], timeoutMs = 30_000) {
   return knycSys(host, { op: "http", cwd, timeoutMs, server, requests }, httpOutcomeSchema);
+}
+
+export const dockerOutcomeSchema = z.object({
+  /** "unavailable": Docker isn't installed or its daemon isn't running. */
+  status: z.enum(["pass", "fail", "timeout", "error", "unavailable"]),
+  /** How far it got: "build", "run", "health". */
+  stage: z.string(),
+  /** The build's output, then the container's logs; truncated. */
+  output: z.string(),
+  error: z.string().optional(),
+  durationMs: z.number(),
+});
+export type DockerOutcome = z.infer<typeof dockerOutcomeSchema>;
+
+/** Runs a Docker check through knyc-sys (#90); what it makes is always removed. */
+export function runDockerCheck(host: Host, cwd: string, spec: DockerSpec, timeoutMs = 300_000) {
+  return knycSys(host, { op: "docker", cwd, timeoutMs, spec }, dockerOutcomeSchema);
 }

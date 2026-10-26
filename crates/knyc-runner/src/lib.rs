@@ -1,6 +1,7 @@
 //! Runs commands and checks for KnYC (design/02-analysis-pipeline.md ⑧, design/03 CheckRun).
 
 pub mod check;
+pub mod docker;
 pub mod http;
 pub mod pty;
 pub mod report;

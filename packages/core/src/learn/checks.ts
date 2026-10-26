@@ -3,13 +3,13 @@
 // proven on built code (design/02 ⑧). Test files the learner shouldn't edit (generated checks, the
 // project's own tests) are copied in only while the checks run.
 
-import type { HttpRequest, HttpServer } from "../host/host.ts";
+import type { DockerSpec, HttpRequest, HttpServer } from "../host/host.ts";
 import { REPORT_FILE } from "../pipeline/checks/existing.ts";
 import { failureExcerpt } from "../pipeline/checks/generated.ts";
 import { builds, installs, type PackageCommands } from "../pipeline/packages.ts";
 import type { Check, CheckRun } from "../schemas/check.ts";
 import type { PathProgress, Progress } from "../schemas/progress.ts";
-import type { CheckOutcome, HttpOutcome } from "../sys/knyc-sys.ts";
+import type { CheckOutcome, DockerOutcome, HttpOutcome } from "../sys/knyc-sys.ts";
 import { knycPaths } from "./documents.ts";
 
 /** The workspace folder, relative paths with "/". `write` creates missing folders. */
@@ -41,9 +41,19 @@ export interface RunStepChecksInput {
   /** The project's own test files, stored under `.knyc/checks/<pathId>/tests/`. */
   testFiles?: string[];
   onResult?: (run: CheckRun) => void;
+  /** Runs a Docker check in the workspace (src-tauri `workspace_docker_check`, #90). */
+  runDocker?: (request: { timeoutMs: number; spec: DockerSpec }) => Promise<DockerOutcome>;
   /** Runs an HTTP check against the project's server (src-tauri `workspace_http_check`, #88). */
   runHttp?: (request: { root: string; timeoutMs: number; server: HttpServer; requests: HttpRequest[] }) => Promise<HttpOutcome>;
   now?: () => Date;
+}
+
+/** A Docker check's outcome as a CheckRun; without Docker, an error that says so. */
+export function dockerRun(checkId: string, outcome: DockerOutcome, at: string): CheckRun {
+  const status = outcome.status === "unavailable" ? "error" : outcome.status;
+  const message = outcome.status === "unavailable" ? "This check needs Docker, installed and running." : outcome.error;
+  const output = outcome.output.length > MAX_OUTPUT ? outcome.output.slice(-MAX_OUTPUT) : outcome.output;
+  return { checkId, at, status, durationMs: outcome.durationMs, output, failures: status === "pass" ? [] : [{ message: `${message ?? "The Docker check failed."}${outcome.output.trim() ? `\n${outcome.output.trim().split("\n").slice(-15).join("\n")}` : ""}` }] };
 }
 
 /** An HTTP check's outcome as a CheckRun: each request's answer, then what the server printed. */
@@ -150,6 +160,11 @@ export async function runStepChecks(input: RunStepChecksInput): Promise<CheckRun
         record(check, await run({ command: spec.command, root: spec.root, timeoutMs: check.timeoutMs, env: { PORT: "0" } }));
       } else if (spec.kind === "build") {
         record(check, await run({ command: spec.command, root: spec.root, timeoutMs: check.timeoutMs }));
+      } else if (spec.kind === "docker" && input.runDocker) {
+        const outcome = await input.runDocker({ timeoutMs: check.timeoutMs, spec: { context: spec.context, dockerfile: spec.dockerfile, ...(spec.run ? { run: spec.run } : {}) } });
+        const result = dockerRun(check.id, outcome, at());
+        results.set(check.id, result);
+        input.onResult?.(result);
       } else if (spec.kind === "http" && input.runHttp) {
         // The server starts in its package for this check, and is stopped after it (#88).
         const outcome = await input.runHttp({ root: spec.server.root, timeoutMs: check.timeoutMs, server: spec.server, requests: spec.requests });

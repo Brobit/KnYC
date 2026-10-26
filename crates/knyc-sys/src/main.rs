@@ -60,6 +60,16 @@ enum Commands {
     },
     /// Run an HTTP check: start the server, wait for its ready path, send the requests, stop it.
     /// `--spec` is the check spec as JSON: {"server": {...}, "requests": [...]}.
+    /// Run a Docker check: build the image, run it and wait for its health path when asked, then
+    /// remove what it made. `--spec` is the check spec as JSON: {"context", "dockerfile", "run"?}.
+    Docker {
+        #[arg(long)]
+        cwd: PathBuf,
+        #[arg(long, default_value_t = 300_000)]
+        timeout_ms: u64,
+        #[arg(long)]
+        spec: String,
+    },
     Http {
         /// Working directory (the package that starts the server).
         #[arg(long)]
@@ -125,6 +135,21 @@ fn main() -> Result<()> {
             spec.env = env.into_iter().collect();
             spec.stdin = stdin;
             print(&run_check(&spec, report), cli.pretty)
+        }
+        Commands::Docker {
+            cwd,
+            timeout_ms,
+            spec,
+        } => {
+            let spec: knyc_runner::docker::DockerSpec = serde_json::from_str(&spec)?;
+            print(
+                &knyc_runner::docker::run_docker_check(
+                    &spec,
+                    &cwd,
+                    Duration::from_millis(timeout_ms),
+                ),
+                cli.pretty,
+            )
         }
         Commands::Http {
             cwd,

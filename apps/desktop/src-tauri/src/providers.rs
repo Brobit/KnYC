@@ -99,6 +99,9 @@ pub struct ToolchainStatus {
     pub id: &'static str,
     /// None when not found.
     pub version: Option<String>,
+    /// For Docker: whether its daemon answers (installed isn't enough to build images, #90).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub running: Option<bool>,
 }
 
 /// Every toolchain's installed version, checked in parallel (each is one short process).
@@ -111,9 +114,15 @@ pub fn check_toolchains() -> Vec<ToolchainStatus> {
         TOOLCHAINS
             .iter()
             .zip(checks)
-            .map(|(id, check)| ToolchainStatus {
-                id,
-                version: check.join().ok().flatten(),
+            .map(|(id, check)| {
+                let version = check.join().ok().flatten();
+                let running = (*id == "docker" && version.is_some())
+                    .then(knyc_runner::docker::docker_running);
+                ToolchainStatus {
+                    id,
+                    version,
+                    running,
+                }
             })
             .collect()
     })

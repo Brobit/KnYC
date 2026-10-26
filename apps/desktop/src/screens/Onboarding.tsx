@@ -280,14 +280,14 @@ const TOOLCHAINS: { id: ToolchainStatus["id"]; name: string; icon: LucideIcon; u
 
 function Toolchains({ backend }: { backend: SettingsBackend }) {
   const { t } = useTranslation();
-  const [found, setFound] = useState<Map<string, string | null> | null>(null);
+  const [found, setFound] = useState<Map<string, ToolchainStatus> | null>(null);
   const [check, setCheck] = useState(0);
 
   useEffect(() => {
     let live = true;
     setFound(null);
     backend.toolchains().then(
-      (list) => live && setFound(new Map(list.map((tc) => [tc.id, tc.version]))),
+      (list) => live && setFound(new Map(list.map((tc) => [tc.id, tc]))),
       () => live && setFound(new Map()),
     );
     return () => {
@@ -296,13 +296,18 @@ function Toolchains({ backend }: { backend: SettingsBackend }) {
   }, [backend, check]);
 
   const row = ({ id, name, icon: Icon, url, later }: (typeof TOOLCHAINS)[number]) => {
-    const version = found?.get(id) ?? null;
+    const status = found?.get(id);
+    const version = status?.version ?? null;
+    // Docker installed but its daemon stopped: Docker checks can't run (#90).
+    const stopped = status?.running === false;
     return (
       <li key={id} aria-label={name} className={cn("flex h-11 items-center gap-3 px-3.5", later && "opacity-70")}>
         <Icon className="size-4 shrink-0 text-text-secondary" aria-hidden />
         <span className="flex-1 text-[13px] text-text-primary">{name}</span>
         {!found ? (
           <span className="text-xs text-text-muted">{t("onboarding.toolchains.checking")}</span>
+        ) : version && stopped ? (
+          <span className="text-xs text-warning">{t("onboarding.toolchains.notRunning", { version })}</span>
         ) : version ? (
           <span className="flex items-center gap-1.5 font-mono text-xs text-success">
             <CircleCheck className="size-3.5" aria-hidden />
