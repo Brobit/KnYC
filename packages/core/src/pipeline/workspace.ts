@@ -4,14 +4,38 @@ import { joinPath, type Host } from "../host/host.ts";
 import { runCommand, type CheckOutcome, type Scan } from "../sys/knyc-sys.ts";
 import { builds, packageCommands, type PackageCommands } from "./packages.ts";
 
-/** Where the build writes compiled files ("dist" by default), from tsconfig.json. */
+/** tsconfig allows comments and trailing commas. */
+const parseTsconfig = (raw: string) => JSON.parse(raw.replace(/\/\*[\s\S]*?\*\/|^\s*\/\/.*$/gm, "").replace(/,(\s*[}\]])/g, "$1")) as { extends?: string; compilerOptions?: Record<string, unknown> };
+
+/**
+ * The tsconfig the package's build uses: `tsc -p <file>` / `--project <file>` in its build script,
+ * tsconfig.build.json for `nest build` (#96: NestJS builds from src/ into dist/), else tsconfig.json.
+ */
+async function buildTsconfig(host: Host, root: string): Promise<string> {
+  const scripts = await host
+    .readFile(joinPath(root, "package.json"))
+    .then((raw) => (JSON.parse(raw) as { scripts?: Record<string, string> }).scripts ?? {})
+    .catch(() => ({}) as Record<string, string>);
+  const build = scripts.build ?? "";
+  const project = build.match(/\btsc\b[^&|;]*?(?:-p|--project)\s+("?)([^\s"]+)\1/)?.[2];
+  if (project) return project.endsWith(".json") ? project : `${project.replace(/\/$/, "")}/tsconfig.json`;
+  if (/\bnest\s+build\b/.test(build) && (await host.readFile(joinPath(root, "tsconfig.build.json")).then(() => true, () => false))) return "tsconfig.build.json";
+  return "tsconfig.json";
+}
+
+/** Where the build writes compiled files ("dist" by default), from the tsconfig the build uses. */
 export async function buildOutDir(host: Host, root: string): Promise<{ outDir: string; rootDir: string } | null> {
   try {
-    // tsconfig allows comments and trailing commas.
-    const raw = await host.readFile(joinPath(root, "tsconfig.json"));
-    const json = JSON.parse(raw.replace(/\/\*[\s\S]*?\*\/|^\s*\/\/.*$/gm, "").replace(/,(\s*[}\]])/g, "$1"));
-    const options = json.compilerOptions ?? {};
-    return { outDir: String(options.outDir ?? "dist").replace(/^\.\//, ""), rootDir: String(options.rootDir ?? ".").replace(/^\.\//, "") };
+    // compilerOptions merged along `extends` (local files only), the build's own config winning.
+    let file: string | undefined = await buildTsconfig(host, root);
+    const options: Record<string, unknown> = {};
+    for (let depth = 0; file && depth < 5; depth++) {
+      const json = parseTsconfig(await host.readFile(joinPath(root, file)));
+      for (const [key, value] of Object.entries(json.compilerOptions ?? {})) if (!(key in options)) options[key] = value;
+      file = json.extends?.startsWith(".") ? json.extends.replace(/^\.\//, "") : undefined;
+      if (file && !file.endsWith(".json")) file = `${file}.json`;
+    }
+    return { outDir: String(options.outDir ?? "dist").replace(/^\.\//, "").replace(/\/$/, ""), rootDir: String(options.rootDir ?? ".").replace(/^\.\//, "").replace(/\/$/, "") || "." };
   } catch {
     return null;
   }
