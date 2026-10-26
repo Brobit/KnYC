@@ -109,6 +109,7 @@ fn capture(
 /// Runs the command. An error means it couldn't start; a failing command is a normal result.
 pub fn run(spec: &RunSpec) -> anyhow::Result<RunResult> {
     if let Some(container) = &spec.container {
+        crate::container::prepare(container);
         let args = crate::container::docker_args(
             container,
             &spec.command,
@@ -117,9 +118,26 @@ pub fn run(spec: &RunSpec) -> anyhow::Result<RunResult> {
             &[],
             None,
         )?;
-        let mut command = Command::new("docker");
-        command.args(args);
-        return execute(command, spec, true);
+        // Docker Desktop now and then fails to mount a volume right after the last container
+        // (exit 125, "error mounting"): the command never ran, so it gets one more try.
+        let mut result = None;
+        for attempt in 0..2 {
+            if attempt > 0 {
+                std::thread::sleep(std::time::Duration::from_secs(1));
+            }
+            let mut command = Command::new("docker");
+            command.args(&args);
+            let done = execute(command, spec, true);
+            let mount_failed = done
+                .as_ref()
+                .is_ok_and(|r| r.exit_code == Some(125) && r.stderr.contains("error mounting"));
+            result = Some(done);
+            if !mount_failed {
+                break;
+            }
+        }
+        crate::container::tidy(container);
+        return result.expect("at least one attempt");
     }
     execute(shell(&spec.command), spec, false)
 }

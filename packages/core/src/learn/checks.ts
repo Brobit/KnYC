@@ -38,6 +38,9 @@ export interface RunStepChecksInput {
   run: (request: CheckCommand) => Promise<CheckOutcome>;
   /** project.json's commands, per package: install where `node_modules` is missing, build before the checks. */
   commands?: PackageCommands;
+  /** Whether a package's dependencies are installed; by default, its `node_modules` exists. Docker
+   * mode (#91) asks the container, where they live in a volume. */
+  installed?: (root: string) => Promise<boolean>;
   /** The project's own test files, stored under `.knyc/checks/<pathId>/tests/`. */
   testFiles?: string[];
   onResult?: (run: CheckRun) => void;
@@ -47,6 +50,13 @@ export interface RunStepChecksInput {
   runHttp?: (request: { root: string; timeoutMs: number; server: HttpServer; requests: HttpRequest[] }) => Promise<HttpOutcome>;
   now?: () => Date;
 }
+
+/** Docker mode (#91): `installed` for runStepChecks, asking the container whether the package's
+ * node_modules volume has anything in it. */
+export const installedInContainer =
+  (run: RunStepChecksInput["run"]) =>
+  async (root: string): Promise<boolean> =>
+    (await run({ command: 'test -n "$(ls -A node_modules 2>/dev/null)"', root, timeoutMs: 120_000 })).status === "pass";
 
 /** A Docker check's outcome as a CheckRun; without Docker, an error that says so. */
 export function dockerRun(checkId: string, outcome: DockerOutcome, at: string): CheckRun {
@@ -103,7 +113,8 @@ export async function runStepChecks(input: RunStepChecksInput): Promise<CheckRun
   // 1. Dependencies, once per package that installs (once at a workspace's root, #87).
   const commands = input.commands ?? [];
   for (const { root, command } of installs(commands)) {
-    if (await files.exists(root === "." ? "node_modules" : `${root}/node_modules`)) continue;
+    const ready = input.installed ? await input.installed(root) : await files.exists(root === "." ? "node_modules" : `${root}/node_modules`);
+    if (ready) continue;
     const installed = await run({ command, root, timeoutMs: INSTALL_TIMEOUT_MS });
     if (installed.status !== "pass") return failRest("error", `Installing the dependencies${root === "." ? "" : ` of ${root}`} failed.`, installed);
   }

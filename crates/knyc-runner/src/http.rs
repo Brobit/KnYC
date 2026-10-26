@@ -250,11 +250,11 @@ pub fn run_http_check(
 }
 
 /// Removes the server's container when the check ends, whatever happened (#91).
-struct ContainerGuard(Option<String>);
+struct ContainerGuard(Option<(String, Container)>);
 
 impl Drop for ContainerGuard {
     fn drop(&mut self) {
-        if let Some(name) = &self.0 {
+        if let Some((name, container)) = &self.0 {
             let mut command = std::process::Command::new("docker");
             command
                 .args(["rm", "-f", name])
@@ -266,6 +266,7 @@ impl Drop for ContainerGuard {
                 command.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
             }
             let _ = command.status();
+            crate::container::tidy(container);
         }
     }
 }
@@ -329,7 +330,7 @@ pub fn run_http_check_in(
     let sink = Arc::clone(&output);
     let exit = Arc::clone(&finished);
     let name = container.map(|_| format!("knyc-server-{}-{port}", std::process::id()));
-    let _guard = ContainerGuard(name.clone());
+    let _guard = ContainerGuard(name.clone().zip(container.cloned()));
     let callbacks = StreamCallbacks {
         on_output: Box::new(move |_, text| {
             if let Ok(mut out) = sink.lock()
@@ -345,17 +346,20 @@ pub fn run_http_check_in(
         }),
     };
     let launched = match container {
-        Some(container) => crate::container::docker_args(
-            container,
-            &server.start,
-            cwd,
-            &env,
-            &[(port, port)],
-            name.as_deref(),
-        )
-        .and_then(|args| {
-            RunningCommand::start_program("docker", &args, cwd, &BTreeMap::new(), callbacks)
-        }),
+        Some(container) => {
+            crate::container::prepare(container);
+            crate::container::docker_args(
+                container,
+                &server.start,
+                cwd,
+                &env,
+                &[(port, port)],
+                name.as_deref(),
+            )
+            .and_then(|args| {
+                RunningCommand::start_program("docker", &args, cwd, &BTreeMap::new(), callbacks)
+            })
+        }
         None => RunningCommand::start(&server.start, cwd, &env, callbacks),
     };
     let running = match launched {

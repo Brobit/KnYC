@@ -32,6 +32,7 @@ import {
   withHint,
   withHintUsed,
   withReveal,
+  installedInContainer,
   workspaceStepChecks,
   writeProgress,
   type Check,
@@ -245,6 +246,7 @@ export function LearningProvider({
         run,
         commands: project.commands,
         testFiles: await storedTestFiles(files, path.id),
+        installed: dockerImage ? installedInContainer(run) : undefined,
         runHttp: httpCheckFor(dockerImage),
         runDocker: dockerCheckFor(),
         onResult: (result) => {
