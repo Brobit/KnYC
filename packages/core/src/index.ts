@@ -58,3 +58,4 @@ export * from "./pipeline/checks/goal.ts";
 export * from "./pipeline/tracks.ts";
 export * from "./pipeline/packages.ts";
 export * from "./pipeline/checks/http.ts";
+export * from "./pipeline/checks/ui.ts";

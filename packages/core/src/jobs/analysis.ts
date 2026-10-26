@@ -75,6 +75,8 @@ export interface AnalysisDependencies {
   provider: (signal: AbortSignal) => AiProvider;
   /** settings.roles at the time the job runs. */
   roles: Settings["roles"];
+  /** UI checks (#89): where Chromium is (the app: its own folder). Without it, none. */
+  ui?: { browsers?: string };
 }
 
 export const readJson = async (host: Host, path: string) => JSON.parse(await host.readFile(path)) as unknown;

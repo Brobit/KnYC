@@ -70,6 +70,10 @@ export function checkSources(checks: Check[], generated: Map<string, string>, te
     sources.push({ label, file, code });
   };
   for (const check of checks) {
+    if (check.spec.kind === "ui") {
+      for (const file of check.spec.files) add(check.label, file, generated.get(file));
+      continue;
+    }
     if (check.spec.kind !== "test") continue;
     if (check.origin === "generated") {
       for (const file of check.spec.files) add(check.label, file, generated.get(file));

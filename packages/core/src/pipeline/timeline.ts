@@ -26,7 +26,8 @@ export function stepOfUnits(path: LearningPath, units: Units): Map<string, numbe
           goal: step.goal,
           concepts: step.concepts,
           introduces: step.introduces.map((u) => u.unit),
-          checkStrategy: step.checkStrategy ?? "build",
+          // Placing units doesn't read the strategy; "ui" isn't one the planner offers (#89).
+          checkStrategy: !step.checkStrategy || step.checkStrategy === "ui" ? "build" : step.checkStrategy,
           estimatedMinutes: step.estimatedMinutes,
         };
       }),

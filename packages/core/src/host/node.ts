@@ -52,6 +52,23 @@ export function sysArgs(request: SysRequest): string[] {
         JSON.stringify({ server: request.server, requests: request.requests }),
         ...(request.container ? ["--docker-image", request.container.image, "--mount", request.container.mount] : []),
       ];
+    case "ui":
+      if (!request.browsers) throw new Error("UI checks need the folder Chromium is in");
+      return [
+        "ui",
+        "--cwd",
+        request.cwd,
+        "--timeout-ms",
+        String(request.timeoutMs),
+        "--spec",
+        JSON.stringify({ server: request.server, tests: request.tests }),
+        "--browsers",
+        request.browsers,
+        ...(request.container ? ["--docker-image", request.container.image, "--mount", request.container.mount] : []),
+      ];
+    case "browser":
+      if (!request.browsers) throw new Error("say which folder Chromium is in");
+      return ["browser", request.action, "--browsers", request.browsers];
   }
 }
 

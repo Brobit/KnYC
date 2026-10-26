@@ -173,6 +173,8 @@ export function LessonPanel({ empty }: { empty: ReactNode }) {
                           <pre className="mt-1 max-h-48 overflow-auto rounded bg-surface-2 p-2 font-mono text-[11px] whitespace-pre-wrap text-text-secondary">
                             {result.failures[0]?.message || result.output || t("lesson.noOutput")}
                           </pre>
+                          {/* A UI check's page when it failed (#89). */}
+                          {result.screenshot && <img src={result.screenshot} alt={t("lesson.screenshot")} className="mt-1 w-full rounded border border-border" />}
                         </details>
                         <button
                           type="button"

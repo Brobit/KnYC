@@ -37,6 +37,24 @@ export type SysRequest =
       server: HttpServer;
       requests: HttpRequest[];
       container?: Container;
+    }
+  | {
+      /** A UI check (#89): start the frontend in cwd, run the UI tests in Chromium, stop it. */
+      op: "ui";
+      cwd: string;
+      timeoutMs: number;
+      server: HttpServer;
+      /** Absolute paths of the UI test modules. */
+      tests: string[];
+      /** KnYC's Chromium folder; the app always uses its own and ignores this. */
+      browsers?: string;
+      container?: Container;
+    }
+  | {
+      /** Chromium for the UI checks (#89). */
+      op: "browser";
+      action: "status" | "size" | "install";
+      browsers?: string;
     };
 
 /** Docker mode (#91): the toolchain image and the folder mounted at /work. */

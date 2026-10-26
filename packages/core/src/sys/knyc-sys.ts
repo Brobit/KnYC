@@ -177,6 +177,46 @@ export function runHttpCheck(host: Host, cwd: string, server: HttpServer, reques
   return knycSys(host, { op: "http", cwd, timeoutMs, server, requests, ...(container ? { container } : {}) }, httpOutcomeSchema);
 }
 
+export const uiOutcomeSchema = z.object({
+  status: z.enum(["pass", "fail", "timeout", "error", "unavailable"]),
+  port: z.number().optional(),
+  tests: z.array(
+    z.object({
+      file: z.string(),
+      status: z.string(),
+      durationMs: z.number().default(0),
+      error: z.string().optional(),
+      url: z.string().optional(),
+      pageErrors: z.array(z.string()).default([]),
+      /** The page's accessibility tree when the test failed. */
+      snapshot: z.string().optional(),
+      /** A JPEG of the page when the test failed, base64. */
+      screenshot: z.string().optional(),
+    }),
+  ),
+  /** What the server printed, then what the tests printed. */
+  output: z.string(),
+  error: z.string().optional(),
+  durationMs: z.number(),
+});
+export type UiOutcome = z.infer<typeof uiOutcomeSchema>;
+
+/** Runs UI tests in headless Chromium through knyc-sys (#89), against the frontend started in `cwd`. */
+export function runUiCheck(host: Host, cwd: string, server: HttpServer, tests: string[], browsers: string | undefined, timeoutMs = 60_000, container?: Container) {
+  return knycSys(host, { op: "ui", cwd, timeoutMs, server, tests, browsers, ...(container ? { container } : {}) }, uiOutcomeSchema);
+}
+
+export const browserStatusSchema = z.object({ installed: z.boolean(), revision: z.string().optional() });
+export const browserSizeSchema = z.object({ bytes: z.number(), urls: z.array(z.string()).default([]) });
+export const browserInstallSchema = z.object({ installed: z.boolean(), error: z.string().optional() });
+
+/** Whether Chromium is in `browsers` (KnYC's data folder), for the UI checks (#89). */
+export const browserStatus = (host: Host, browsers?: string) => knycSys(host, { op: "browser", action: "status", browsers }, browserStatusSchema);
+/** How much downloading Chromium takes, in bytes. */
+export const browserSize = (host: Host, browsers?: string) => knycSys(host, { op: "browser", action: "size", browsers }, browserSizeSchema);
+/** Downloads Chromium into `browsers`. */
+export const installBrowser = (host: Host, browsers?: string) => knycSys(host, { op: "browser", action: "install", browsers }, browserInstallSchema);
+
 export const dockerOutcomeSchema = z.object({
   /** "unavailable": Docker isn't installed or its daemon isn't running. */
   status: z.enum(["pass", "fail", "timeout", "error", "unavailable"]),

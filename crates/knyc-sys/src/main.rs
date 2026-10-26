@@ -90,6 +90,53 @@ enum Commands {
         #[arg(long)]
         mount: Option<PathBuf>,
     },
+    /// Run UI tests in headless Chromium against the project's frontend server (#89).
+    Ui {
+        /// Working directory (the package that starts the server).
+        #[arg(long)]
+        cwd: PathBuf,
+        #[arg(long, default_value_t = 60_000)]
+        timeout_ms: u64,
+        /// {"server": …, "tests": [absolute paths of the UI test modules]}
+        #[arg(long)]
+        spec: String,
+        /// Where Chromium is downloaded (KnYC's data folder).
+        #[arg(long)]
+        browsers: PathBuf,
+        /// KnYC's runner (default: packages/ui-runner/run.mjs of this checkout).
+        #[arg(long)]
+        runner: Option<PathBuf>,
+        #[arg(long, requires = "mount")]
+        docker_image: Option<String>,
+        #[arg(long)]
+        mount: Option<PathBuf>,
+    },
+    /// Chromium for the UI checks: status, size (bytes to download) or install (#89).
+    Browser {
+        #[arg(value_parser = ["status", "size", "install"])]
+        action: String,
+        #[arg(long)]
+        browsers: PathBuf,
+        #[arg(long)]
+        runner: Option<PathBuf>,
+    },
+}
+
+#[derive(serde::Deserialize)]
+struct UiSpec {
+    server: knyc_runner::http::ServerSpec,
+    tests: Vec<PathBuf>,
+}
+
+/// The UI runner given, or the one of this checkout (next to the knyc-sys executable's repo).
+fn ui_runner(runner: Option<PathBuf>, browsers: PathBuf) -> Result<knyc_runner::ui::UiRunner> {
+    let near = std::env::current_exe()?;
+    let script = runner
+        .or_else(|| knyc_runner::ui::find_runner(None, &near))
+        .ok_or_else(|| {
+            anyhow::anyhow!("KnYC's UI runner wasn't found (packages/ui-runner/run.mjs)")
+        })?;
+    Ok(knyc_runner::ui::UiRunner { script, browsers })
 }
 
 #[derive(serde::Deserialize)]
@@ -195,5 +242,35 @@ fn main() -> Result<()> {
                 cli.pretty,
             )
         }
+        Commands::Ui {
+            cwd,
+            timeout_ms,
+            spec,
+            browsers,
+            runner,
+            docker_image,
+            mount,
+        } => {
+            let spec: UiSpec = serde_json::from_str(&spec)?;
+            print(
+                &knyc_runner::ui::run_ui_check(
+                    &spec.server,
+                    &spec.tests,
+                    &cwd,
+                    &ui_runner(runner, browsers)?,
+                    Duration::from_millis(timeout_ms),
+                    container(docker_image, mount).as_ref(),
+                ),
+                cli.pretty,
+            )
+        }
+        Commands::Browser {
+            action,
+            browsers,
+            runner,
+        } => print(
+            &knyc_runner::ui::browser(&ui_runner(runner, browsers)?, &action)?,
+            cli.pretty,
+        ),
     }
 }

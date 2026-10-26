@@ -50,7 +50,7 @@ import {
 import { useOptionalJobs } from "@/jobs/jobs-context";
 import { useSettings } from "@/lib/settings";
 import { useWorkspace } from "@/workspace/workspace-context";
-import { checkRunFor, DOCKER_NODE_IMAGE, dockerCheckFor, httpCheckFor, readForAiFor, snapshotFor, workspaceFiles, type ReadForAi, type RunCheckCommand, type TakeSnapshot } from "./learn-backend";
+import { checkRunFor, DOCKER_NODE_IMAGE, dockerCheckFor, httpCheckFor, uiCheckFor, readForAiFor, snapshotFor, workspaceFiles, type ReadForAi, type RunCheckCommand, type TakeSnapshot } from "./learn-backend";
 
 /** Time on a step is added in these ticks. */
 const TIME_TICK_MS = 60_000;
@@ -248,6 +248,7 @@ export function LearningProvider({
         testFiles: await storedTestFiles(files, path.id),
         installed: dockerImage ? installedInContainer(run) : undefined,
         runHttp: httpCheckFor(dockerImage),
+        runUi: uiCheckFor(dockerImage),
         runDocker: dockerCheckFor(),
         onResult: (result) => {
           setResults((current) => new Map(current).set(result.checkId, result));

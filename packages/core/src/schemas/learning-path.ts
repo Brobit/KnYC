@@ -4,7 +4,7 @@ import { id, isoDate, modelRef, trackId, unitId } from "./common.ts";
 export const pathSize = z.enum(["overview", "standard", "deep"]);
 export type PathSize = z.infer<typeof pathSize>;
 
-export const checkStrategy = z.enum(["existing-tests", "unit-test", "http", "command", "build"]);
+export const checkStrategy = z.enum(["existing-tests", "unit-test", "http", "ui", "command", "build"]);
 export type CheckStrategy = z.infer<typeof checkStrategy>;
 
 export const unitChange = z.object({

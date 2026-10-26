@@ -66,6 +66,11 @@ impl PipelineScope {
         Ok(real)
     }
 
+    /// The app's data folder.
+    pub fn data(&self) -> &Path {
+        &self.data
+    }
+
     /// A path the pipeline may write, run git or commands in: inside the data folder.
     pub fn writable(&self, path: &str) -> Result<PathBuf, ScopeError> {
         resolve(path, std::slice::from_ref(&self.data))

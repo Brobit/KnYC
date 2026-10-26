@@ -8,3 +8,4 @@ pub mod pty;
 pub mod report;
 pub mod run;
 pub mod stream;
+pub mod ui;

@@ -57,6 +57,8 @@ export interface JobManagerDependencies {
   roles: () => Settings["roles"];
   /** The AI provider for one run; aborting `signal` must stop its calls. */
   provider: (signal: AbortSignal) => AiProvider;
+  /** UI checks (#89): the app passes {} (its own Chromium folder); without it, none. */
+  ui?: { browsers?: string };
   /** For tests: other stages than the analysis and path ones. */
   stages?: (job: Job, signal: AbortSignal) => StageDefinition[];
   now?: () => Date;
@@ -266,7 +268,7 @@ export class JobManager {
     const controller = new AbortController();
     const signal = controller.signal;
     const stages =
-      this.deps.stages?.(job, signal) ?? jobStages(job, { host: this.deps.host, provider: this.deps.provider, roles: this.deps.roles() });
+      this.deps.stages?.(job, signal) ?? jobStages(job, { host: this.deps.host, provider: this.deps.provider, roles: this.deps.roles(), ...(this.deps.ui ? { ui: this.deps.ui } : {}) });
     const done = runJob(job, {
       host: this.deps.host,
       statePath: this.registry!.statePath(job.id),
