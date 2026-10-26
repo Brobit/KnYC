@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { DockerSpec, Host, HttpRequest, HttpServer, SysRequest } from "../host/host.ts";
+import type { Container, DockerSpec, Host, HttpRequest, HttpServer, SysRequest } from "../host/host.ts";
 import { formatIssues } from "../schemas/documents.ts";
 
 // Shapes of the JSON the knyc-sys steps return (crates/knyc-sys, or the same crates called by the
@@ -142,11 +142,13 @@ export interface RunOptions {
   env?: Record<string, string>;
   /** Jest/Vitest JSON report the command writes, relative to cwd. */
   report?: string;
+  /** Docker mode (#91): run in a container instead of on the machine. */
+  container?: Container;
 }
 
 /** Runs a shell command line through the knyc-sys run step (timeout + process-tree kill). */
 export function runCommand(host: Host, cwd: string, command: string, options: RunOptions = {}) {
-  const request: SysRequest = { op: "run", cwd, command, timeoutMs: options.timeoutMs ?? 120_000, env: options.env ?? {}, report: options.report };
+  const request: SysRequest = { op: "run", cwd, command, timeoutMs: options.timeoutMs ?? 120_000, env: options.env ?? {}, report: options.report, ...(options.container ? { container: options.container } : {}) };
   return knycSys(host, request, checkOutcomeSchema);
 }
 
@@ -171,8 +173,8 @@ export const httpOutcomeSchema = z.object({
 export type HttpOutcome = z.infer<typeof httpOutcomeSchema>;
 
 /** Runs an HTTP check through knyc-sys (#88): the server is started in `cwd` and always stopped. */
-export function runHttpCheck(host: Host, cwd: string, server: HttpServer, requests: HttpRequest[], timeoutMs = 30_000) {
-  return knycSys(host, { op: "http", cwd, timeoutMs, server, requests }, httpOutcomeSchema);
+export function runHttpCheck(host: Host, cwd: string, server: HttpServer, requests: HttpRequest[], timeoutMs = 30_000, container?: Container) {
+  return knycSys(host, { op: "http", cwd, timeoutMs, server, requests, ...(container ? { container } : {}) }, httpOutcomeSchema);
 }
 
 export const dockerOutcomeSchema = z.object({

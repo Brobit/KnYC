@@ -54,6 +54,12 @@ enum Commands {
         /// Jest/Vitest JSON report the command writes, relative to --cwd.
         #[arg(long)]
         report: Option<PathBuf>,
+        /// Docker mode (#91): run inside this image, with --mount mounted at /work.
+        #[arg(long, requires = "mount")]
+        docker_image: Option<String>,
+        /// The folder mounted in Docker mode (--cwd must be inside it).
+        #[arg(long)]
+        mount: Option<PathBuf>,
         /// The command line, after `--`.
         #[arg(last = true, required = true)]
         command: Vec<String>,
@@ -78,6 +84,11 @@ enum Commands {
         timeout_ms: u64,
         #[arg(long)]
         spec: String,
+        /// Docker mode (#91): the server runs in this image, with --mount mounted at /work.
+        #[arg(long, requires = "mount")]
+        docker_image: Option<String>,
+        #[arg(long)]
+        mount: Option<PathBuf>,
     },
 }
 
@@ -85,6 +96,17 @@ enum Commands {
 struct HttpSpec {
     server: knyc_runner::http::ServerSpec,
     requests: Vec<knyc_runner::http::HttpRequestSpec>,
+}
+
+/// Docker mode's container, when both the image and the mounted folder are given.
+fn container(
+    image: Option<String>,
+    mount: Option<PathBuf>,
+) -> Option<knyc_runner::container::Container> {
+    Some(knyc_runner::container::Container {
+        image: image?,
+        mount: mount?,
+    })
 }
 
 fn parse_env(raw: &str) -> Result<(String, String), String> {
@@ -128,12 +150,15 @@ fn main() -> Result<()> {
             env,
             stdin,
             report,
+            docker_image,
+            mount,
             command,
         } => {
             let mut spec = RunSpec::new(command.join(" "), cwd);
             spec.timeout = Duration::from_millis(timeout_ms);
             spec.env = env.into_iter().collect();
             spec.stdin = stdin;
+            spec.container = container(docker_image, mount);
             print(&run_check(&spec, report), cli.pretty)
         }
         Commands::Docker {
@@ -155,14 +180,17 @@ fn main() -> Result<()> {
             cwd,
             timeout_ms,
             spec,
+            docker_image,
+            mount,
         } => {
             let spec: HttpSpec = serde_json::from_str(&spec)?;
             print(
-                &knyc_runner::http::run_http_check(
+                &knyc_runner::http::run_http_check_in(
                     &spec.server,
                     &spec.requests,
                     &cwd,
                     Duration::from_millis(timeout_ms),
+                    container(docker_image, mount).as_ref(),
                 ),
                 cli.pretty,
             )
