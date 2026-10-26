@@ -5,6 +5,7 @@
 import { z } from "zod";
 import type { AiClient } from "../../ai/client.ts";
 import { joinPath, type Host } from "../../host/host.ts";
+import type { Profile } from "../../profiles/index.ts";
 import type { Step } from "../../schemas/learning-path.ts";
 import { runCommand, type CheckOutcome } from "../../sys/knyc-sys.ts";
 
@@ -43,6 +44,8 @@ export interface StepContext {
   exports: Map<string, string[]>;
   /** Full source, at this step, of the local files the step's changed files import. */
   context: Map<string, string>;
+  /** The project's framework profile: how its steps are usually checked (#85). */
+  profile?: Profile;
 }
 
 export function checksPrompt(ctx: StepContext, problems: string[] = []): string {
@@ -59,6 +62,14 @@ ${[...ctx.exports].map(([src, names]) => `- ${src}: ${names.join("; ") || "nothi
 ${[...ctx.context]
   .map(([src, code]) => `\nSource of ${src}, which the new code uses:\n\`\`\`ts\n${code}\n\`\`\``)
   .join("")}
+${
+  ctx.profile && ctx.profile.check.hints.length > 0
+    ? `
+How steps of ${ctx.profile.kind === "generic" ? "projects like this one" : `${ctx.profile.label} projects`} are usually checked:
+${ctx.profile.check.hints.map((h) => `- ${h}`).join("\n")}
+`
+    : ""
+}
 Rules for each check file:
 - ESM JavaScript, run with \`node --test <file>\` from the project root after the project is built.
 - Use only node:test, node:assert/strict, global fetch, and these packages if useful: ${ctx.dependencies.join(", ") || "none"}.

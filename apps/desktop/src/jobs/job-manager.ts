@@ -15,6 +15,7 @@ import {
   JobRegistry,
   loadAnalysis,
   loadStepChecks,
+  profileFor,
   projectDocument,
   referenceFiles,
   stepChanges,
@@ -225,7 +226,7 @@ export class JobManager {
   private async teaching(job: Job, stepId: string) {
     const path = await loadPathSoFar(this.deps.host, job);
     if (!path) throw new Error("the path isn't prepared yet");
-    const { summaries } = await loadAnalysis(this.deps.host, job.cacheDir);
+    const { summaries, scan } = await loadAnalysis(this.deps.host, job.cacheDir);
     const { workDir, before, after } = await stepTags(this.deps.host, job, stepId);
     const diff = await this.deps.host.git(workDir, ["diff", before, after]);
     const prepared = await loadStepChecks(this.deps.host, job, stepId);
@@ -238,7 +239,8 @@ export class JobManager {
       roles,
       cache: new FileCache(this.deps.host, analysisPaths(job.cacheDir).aiCache),
     });
-    return { client, roles, input: { projectName: job.input.name, path, stepId, summaries, diff, checks } };
+    const profile = profileFor(scan.frameworks.map((f) => f.profileId));
+    return { client, roles, input: { projectName: job.input.name, path, stepId, summaries, diff, checks, profile } };
   }
 
   /** The run in progress, for tests and for waiting on a job. */

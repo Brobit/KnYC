@@ -176,11 +176,11 @@ ${summaries.files.map((f) => `- ${f.path}: ${f.role}`).join("\n")}
 ${
   profile
     ? `
-# ${profile.label} projects
+# ${profile.kind === "generic" ? "Projects in general" : `${profile.label} projects`}
 Natural build order:
 ${profile.buildOrder.map((s, i) => `${i + 1}. ${s}`).join("\n")}
 How steps are usually checked:
-${profile.checkHints.map((h) => `- ${h}`).join("\n")}
+${profile.check.hints.map((h) => `- ${h}`).join("\n")}
 `
     : ""
 }
