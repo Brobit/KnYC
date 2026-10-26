@@ -5,7 +5,7 @@
 import { Route } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { buildUnits, pathEstimate, projectTracks, type Job, type PathSize, type TrackId } from "@knyc/core";
+import { buildUnits, pathEstimate, projectTracks, splitByRules, unitsForTrack, type Job, type PathSize, type TrackId } from "@knyc/core";
 import { TrackBadge } from "@/components/knyc/badges";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -67,7 +67,8 @@ export function ChoosePathScreen({ jobId, track: initialTrack, onBack, onStarted
 
   const tracks = projectTracks(scan, graph);
   const chosen = tracks.tracks.find((tr) => tr.id === track) ?? tracks.tracks[0]!;
-  const units = buildUnits(graph);
+  // The chosen track's units: a frontend path is sized on the frontend only (#86).
+  const units = unitsForTrack(buildUnits(graph), splitByRules(scan, graph), chosen.id);
   const estimates = Object.fromEntries(SIZES.map((s) => [s, pathEstimate(units, s)])) as Record<PathSize, ReturnType<typeof pathEstimate>>;
   const estimate = estimates[size];
   const steps = Math.round((estimate.steps.min + estimate.steps.max) / 2);

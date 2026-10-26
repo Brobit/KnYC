@@ -7,6 +7,7 @@ import type { Profile } from "../profiles/index.ts";
 import type { ModelRef, TrackId } from "../schemas/common.ts";
 import { checkStrategy, learningPath, type LearningPath, type PathSize, type UnitChange } from "../schemas/learning-path.ts";
 import type { Summaries } from "./summaries.ts";
+import type { TrackContract } from "./tracks.ts";
 import { describeUnits, hasBehavior, type Units } from "./units.ts";
 
 /**
@@ -150,6 +151,22 @@ export interface PlanInput {
   profile?: Profile;
   /** The project has its own tests (they can check steps). */
   hasTests: boolean;
+  /** On a track path: what the other tracks provide as the original code (#86). */
+  otherTracks?: TrackContract[];
+}
+
+/** One line per contract another track provides, for the planner. */
+function describeContracts(contracts: TrackContract[]): string {
+  return contracts
+    .slice(0, 60)
+    .map(({ track, contract }) =>
+      contract.kind === "http"
+        ? `- ${track} serves ${contract.method} ${contract.path}`
+        : contract.kind === "env"
+          ? `- ${track} reads the environment variable ${contract.name}`
+          : `- ${track} defines the table ${contract.name}${contract.columns.length ? ` (${contract.columns.join(", ")})` : ""}`,
+    )
+    .join("\n");
 }
 
 export function planPrompt(input: PlanInput): string {
@@ -184,7 +201,15 @@ ${profile.check.hints.map((h) => `- ${h}`).join("\n")}
 `
     : ""
 }
-# Checks
+${
+  input.otherTracks && input.otherTracks.length > 0
+    ? `# The other tracks
+They stay the original code while the learner rebuilds this track; the units below can use them:
+${describeContracts(input.otherTracks)}
+
+`
+    : ""
+}# Checks
 ${input.hasTests ? "The project has its own test suite: prefer \"existing-tests\" where its tests cover the step." : "The project has no tests: use \"http\", \"unit-test\", \"command\" or \"build\"."}
 
 # Units (${units.atoms.length}), leaves first. "needs" lists what each unit uses.

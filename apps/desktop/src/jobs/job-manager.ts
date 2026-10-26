@@ -20,6 +20,8 @@ import {
   referenceFiles,
   stepChanges,
   stepTags,
+  trackSplitFor,
+  unitsForTrack,
   jobStages,
   loadAnalysisSoFar,
   loadPathSoFar,
@@ -171,7 +173,14 @@ export class JobManager {
     if (!scan || !graph) throw new Error("the analysis results are missing");
     const { workDir, before } = await stepTags(this.deps.host, job, path.steps[0]!.id);
     return {
-      project: projectDocument({ path: job.input.source, hash: job.input.sourceHash, name: job.input.name }, scan, buildUnits(graph), job.choice.track, this.now()),
+      project: projectDocument(
+        { path: job.input.source, hash: job.input.sourceHash, name: job.input.name },
+        scan,
+        // The track's own units (#86): the saved split, or the profiles' rules for an older path.
+        unitsForTrack(buildUnits(graph), await trackSplitFor(this.deps.host, job.cacheDir, { scan, graph }), job.choice.track),
+        job.choice.track,
+        this.now(),
+      ),
       path,
       setup: await referenceFiles(this.deps.host, workDir, before),
       now: this.now(),
