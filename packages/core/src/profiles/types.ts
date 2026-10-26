@@ -38,6 +38,8 @@ export interface Profile {
     portEnv?: string;
     /** Paths that answer once the server is up, tried in order. */
     readyPaths: string[];
+    /** The port the server listens on when it ignores `portEnv` (Vite: 5173). Default 3000. */
+    port?: number;
   };
   /** Architecture notes lessons can use ("a router is mounted on a path prefix…"). */
   lessonHints: string[];

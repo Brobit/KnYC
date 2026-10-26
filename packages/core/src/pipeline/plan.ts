@@ -33,7 +33,8 @@ const planStep = z.object({
     .array(z.string())
     .min(1)
     .describe("Unit ids from the unit list. A file path introduces the whole file; a class id also brings its methods unless they are listed in other steps"),
-  checkStrategy: checkStrategy.describe("existing-tests | unit-test | http | command | build"),
+  // "ui" comes to the planner with the frontend profiles (#92).
+  checkStrategy: checkStrategy.exclude(["ui"]).describe("existing-tests | unit-test | http | command | build"),
   estimatedMinutes: z.number().int().min(5).max(120),
 });
 

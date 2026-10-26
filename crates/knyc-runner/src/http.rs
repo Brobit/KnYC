@@ -108,8 +108,11 @@ pub fn request(
     body: Option<&Value>,
     timeout: Duration,
 ) -> Result<(u16, String), String> {
-    let address = SocketAddr::from(([127, 0, 0, 1], port));
-    let mut stream = TcpStream::connect_timeout(&address, timeout)
+    // 127.0.0.1 first, then ::1: a dev server on "localhost" may listen on IPv6 only (Vite).
+    let v4 = SocketAddr::from(([127, 0, 0, 1], port));
+    let v6 = SocketAddr::from((std::net::Ipv6Addr::LOCALHOST, port));
+    let mut stream = TcpStream::connect_timeout(&v4, timeout)
+        .or_else(|e| TcpStream::connect_timeout(&v6, timeout).map_err(|_| e))
         .map_err(|e| format!("no answer on port {port}: {e}"))?;
     stream.set_read_timeout(Some(timeout)).ok();
     stream.set_write_timeout(Some(timeout)).ok();
@@ -271,46 +274,31 @@ impl Drop for ContainerGuard {
     }
 }
 
-/// Like [`run_http_check`]; with a container (Docker mode, #91) the server runs inside it, its
-/// port published on 127.0.0.1, and the container is removed afterwards.
-pub fn run_http_check_in(
+/// A check's server, up and answering.
+pub(crate) struct Served {
+    /// The port it answers on.
+    pub port: u16,
+    /// Set when it ignores the port variable and answers on the original's port.
+    pub note: Option<String>,
+}
+
+/// Starts the server on a free port (inside `container` in Docker mode), waits until its ready
+/// path answers, runs `with` while it's up, then stops it. `output` collects what it prints.
+/// Err: the status and the reason when it never answered.
+pub(crate) fn serve<T>(
     server: &ServerSpec,
-    requests: &[HttpRequestSpec],
     cwd: &Path,
     timeout: Duration,
     container: Option<&Container>,
-) -> HttpCheckOutcome {
+    output: &Arc<Mutex<String>>,
+    with: impl FnOnce(&Served) -> T,
+) -> Result<(Served, T), (HttpStatus, String)> {
     let started = Instant::now();
-    let output = Arc::new(Mutex::new(String::new()));
+    // The long path: Vite refuses to serve files under a Windows short name (ALANNM~1) as
+    // outside its root.
+    let cwd = &dunce::canonicalize(cwd).unwrap_or_else(|_| cwd.to_path_buf());
     let finished: Arc<Mutex<Option<Finished>>> = Arc::new(Mutex::new(None));
-    let done = |status: HttpStatus,
-                port: Option<u16>,
-                results: Vec<RequestResult>,
-                error: Option<String>,
-                output: &Arc<Mutex<String>>| HttpCheckOutcome {
-        status,
-        port,
-        requests: results,
-        output: cut(
-            &output.lock().map(|o| o.clone()).unwrap_or_default(),
-            MAX_OUTPUT,
-        ),
-        error,
-        duration_ms: started.elapsed().as_millis() as u64,
-    };
-
-    let port = match free_port() {
-        Ok(port) => port,
-        Err(e) => {
-            return done(
-                HttpStatus::Error,
-                None,
-                vec![],
-                Some(format!("no free port: {e}")),
-                &output,
-            );
-        }
-    };
+    let port = free_port().map_err(|e| (HttpStatus::Error, format!("no free port: {e}")))?;
     // Something already answering on the original's port isn't our server.
     let quick = Duration::from_millis(300);
     let busy = container.is_none()
@@ -327,7 +315,7 @@ pub fn run_http_check_in(
 
     let mut env = server.env.clone();
     env.insert(server.port_env.clone(), port.to_string());
-    let sink = Arc::clone(&output);
+    let sink = Arc::clone(output);
     let exit = Arc::clone(&finished);
     let name = container.map(|_| format!("knyc-server-{}-{port}", std::process::id()));
     let _guard = ContainerGuard(name.clone().zip(container.cloned()));
@@ -362,18 +350,12 @@ pub fn run_http_check_in(
         }
         None => RunningCommand::start(&server.start, cwd, &env, callbacks),
     };
-    let running = match launched {
-        Ok(running) => running,
-        Err(e) => {
-            return done(
-                HttpStatus::Error,
-                None,
-                vec![],
-                Some(format!("the server couldn't start: {e:#}")),
-                &output,
-            );
-        }
-    };
+    let running = launched.map_err(|e| {
+        (
+            HttpStatus::Error,
+            format!("the server couldn't start: {e:#}"),
+        )
+    })?;
 
     // Ready once the ready path answers (any status) on our port, or on the original's port when
     // the server doesn't read the port variable.
@@ -384,13 +366,10 @@ pub fn run_http_check_in(
             let code = f
                 .exit_code
                 .map_or("a signal".to_string(), |c| format!("exit code {c}"));
-            return done(
+            return Err((
                 HttpStatus::Error,
-                None,
-                vec![],
-                Some(format!("the server stopped before answering ({code})")),
-                &output,
-            );
+                format!("the server stopped before answering ({code})"),
+            ));
         }
         if request(
             port,
@@ -430,59 +409,98 @@ pub fn run_http_check_in(
         } else {
             String::new()
         };
-        return done(
+        return Err((
             HttpStatus::Timeout,
-            None,
-            vec![],
-            Some(format!(
+            format!(
                 "the server didn't answer {} on port {port} within {} s{busy_note}",
                 server.ready_path,
                 timeout.as_secs()
-            )),
-            &output,
-        );
+            ),
+        ));
     };
-
-    let mut results = Vec::new();
-    for spec in requests {
-        let answer = request(
-            answering,
-            &spec.method,
-            &spec.path,
-            &spec.headers,
-            spec.body.as_ref(),
-            Duration::from_secs(10),
-        );
-        results.push(match answer {
-            Ok((status, body)) => RequestResult {
-                method: spec.method.clone(),
-                path: spec.path.clone(),
-                status: Some(status),
-                problem: check_answer(spec, status, &body),
-                body: cut(&body, MAX_BODY),
-            },
-            Err(problem) => RequestResult {
-                method: spec.method.clone(),
-                path: spec.path.clone(),
-                status: None,
-                body: String::new(),
-                problem: Some(problem),
-            },
-        });
-    }
+    let served = Served {
+        port: answering,
+        note: (answering != port).then(|| {
+            format!(
+                "the server ignores {} and listens on {answering}",
+                server.port_env
+            )
+        }),
+    };
+    let value = with(&served);
     drop(running);
-    let status = if results.iter().all(|r| r.problem.is_none()) {
-        HttpStatus::Pass
-    } else {
-        HttpStatus::Fail
+    Ok((served, value))
+}
+
+/// Like [`run_http_check`]; with a container (Docker mode, #91) the server runs inside it, its
+/// port published on 127.0.0.1, and the container is removed afterwards.
+pub fn run_http_check_in(
+    server: &ServerSpec,
+    requests: &[HttpRequestSpec],
+    cwd: &Path,
+    timeout: Duration,
+    container: Option<&Container>,
+) -> HttpCheckOutcome {
+    let started = Instant::now();
+    let output = Arc::new(Mutex::new(String::new()));
+    let send = |served: &Served| {
+        requests
+            .iter()
+            .map(|spec| {
+                match request(
+                    served.port,
+                    &spec.method,
+                    &spec.path,
+                    &spec.headers,
+                    spec.body.as_ref(),
+                    Duration::from_secs(10),
+                ) {
+                    Ok((status, body)) => RequestResult {
+                        method: spec.method.clone(),
+                        path: spec.path.clone(),
+                        status: Some(status),
+                        problem: check_answer(spec, status, &body),
+                        body: cut(&body, MAX_BODY),
+                    },
+                    Err(problem) => RequestResult {
+                        method: spec.method.clone(),
+                        path: spec.path.clone(),
+                        status: None,
+                        body: String::new(),
+                        problem: Some(problem),
+                    },
+                }
+            })
+            .collect::<Vec<_>>()
     };
-    let note = (answering != port).then(|| {
-        format!(
-            "the server ignores {} and listens on {answering}",
-            server.port_env
-        )
-    });
-    done(status, Some(answering), results, note, &output)
+    let served = serve(server, cwd, timeout, container, &output, send);
+    let printed = cut(
+        &output.lock().map(|o| o.clone()).unwrap_or_default(),
+        MAX_OUTPUT,
+    );
+    let duration_ms = started.elapsed().as_millis() as u64;
+    match served {
+        Ok((served, results)) => HttpCheckOutcome {
+            status: if results.iter().all(|r| r.problem.is_none()) {
+                HttpStatus::Pass
+            } else {
+                HttpStatus::Fail
+            },
+            port: Some(served.port),
+            requests: results,
+            output: printed,
+            error: served.note,
+            duration_ms,
+        },
+        Err((status, error)) => HttpCheckOutcome {
+            status,
+            port: None,
+            requests: vec![],
+            output: printed,
+            error: Some(error),
+            duration_ms,
+        },
+    }
 }
 
 #[cfg(test)]

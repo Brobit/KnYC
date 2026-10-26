@@ -15,7 +15,7 @@ import type { Check } from "../../schemas/check.ts";
 /** The server an HTTP check starts (check schema `server`). */
 type HttpCheckServer = Extract<Check["spec"], { kind: "http" }>["server"];
 import type { LearningPath, Step } from "../../schemas/learning-path.ts";
-import { runHttpCheck, type Graph, type HttpOutcome, type Scan } from "../../sys/knyc-sys.ts";
+import { browserStatus, runHttpCheck, runUiCheck, type Graph, type HttpOutcome, type Scan, type UiOutcome } from "../../sys/knyc-sys.ts";
 import { stepOfUnits, type Timeline } from "../timeline.ts";
 import { buildUnits, type Units } from "../units.ts";
 import { builds, inPackage, packageCommands, packageOf } from "../packages.ts";
@@ -24,6 +24,7 @@ import { mapTests, runSuiteAtStep, suitesOf, type SuiteRun, type TestMapping } f
 import { fragileCheck } from "./audit.ts";
 import { goalFromChecks } from "./goal.ts";
 import { askForHttpChecks, describeHttpProblem, type HttpCandidate } from "./http.ts";
+import { askForUiChecks, describeUiProblem, uiTestModule, type UiCandidate } from "./ui.ts";
 import { askForChecks, checkCommand, CHECKS_DIR, describeProblem, relativeImport, runCandidate, type CandidateCheck, type StepContext } from "./generated.ts";
 
 export interface StepChecks {
@@ -76,6 +77,9 @@ export interface ChecksOptions {
   rewriteGoals?: boolean;
   /** The units the path teaches (a track's, #86); default: every unit of the graph. */
   units?: Units;
+  /** UI checks (#89): the folder Chromium is downloaded into. Without it, or without Chromium in
+   * it, steps marked "ui" get generated tests. */
+  ui?: { browsers: string };
 }
 
 export async function prepareChecks(
@@ -199,7 +203,7 @@ export async function prepareChecks(
     const start = packageCommands(scan).find((c) => c.root === root)?.run ?? undefined;
     if (step.checkStrategy !== "http" || !profile.run || !start) return null;
     // Ready once any path answers: the profile's ready path may only exist from a later step.
-    const server: HttpCheckServer = { start, root, port: 3000, readyPath: profile.run.readyPaths[0] ?? "/", portEnv: profile.run.portEnv ?? "PORT" };
+    const server: HttpCheckServer = { start, root, port: profile.run.port ?? 3000, readyPath: profile.run.readyPaths[0] ?? "/", portEnv: profile.run.portEnv ?? "PORT" };
     const cwd = root === "." ? workDir : joinPath(workDir, root);
     const send = (requests: HttpRequest[]) => runHttpCheck(host, cwd, server, requests, 30_000);
 
@@ -251,6 +255,88 @@ export async function prepareChecks(
     }
     if (accepted.length === 0) {
       entry.notes.push("no HTTP check proven; generated tests instead");
+      return null;
+    }
+    return { server, candidates: accepted };
+  }
+
+  /**
+   * UI checks for a step the plan marked "ui" (#89), when the project's frontend starts at that
+   * step and Chromium is downloaded: Playwright tests proven red → green against it in headless
+   * Chromium, and still green at the last step. Null when the step should get generated tests.
+   */
+  async function uiChecksFor(step: Step, tag: string, entry: StepChecks): Promise<{ server: HttpCheckServer; candidates: UiCandidate[] } | null> {
+    if (step.checkStrategy !== "ui") return null;
+    const root = stepPackage(step);
+    const start = packageCommands(scan).find((c) => c.root === root)?.run ?? undefined;
+    if (!profile.run || !start) {
+      entry.notes.push("the frontend has no start script; generated tests instead");
+      return null;
+    }
+    const browsers = options.ui?.browsers;
+    if (!browsers || !(await browserStatus(host, browsers).then((s) => s.installed, () => false))) {
+      entry.notes.push("Chromium isn't downloaded; generated tests instead");
+      return null;
+    }
+    const server: HttpCheckServer = { start, root, port: profile.run.port ?? 3000, readyPath: profile.run.readyPaths[0] ?? "/", portEnv: profile.run.portEnv ?? "PORT" };
+    const cwd = root === "." ? workDir : joinPath(workDir, root);
+    const checksDir = root === "." ? CHECKS_DIR : `${root}/${CHECKS_DIR}`;
+    const test = async (candidate: UiCandidate) => {
+      const file = joinPath(workDir, candidate.file);
+      await host.writeFile(file, candidate.code);
+      try {
+        return await runUiCheck(host, cwd, server, [file], browsers, 60_000);
+      } finally {
+        await host.remove(file);
+      }
+    };
+
+    const { ctx, before } = await stepContextAt(step, tag);
+    let problems: string[] = [];
+    let accepted: UiCandidate[] = [];
+    for (let attempt = 0; attempt <= (options.retries ?? 2) && accepted.length === 0; attempt++) {
+      let answer;
+      try {
+        answer = await askForUiChecks(options.client, ctx, problems);
+      } catch (error) {
+        if (!(error instanceof AiError) || error.kind === "auth" || error.kind === "limit") throw error;
+        entry.aiCalls += 1;
+        entry.notes.push(`ui attempt ${attempt + 1}: ${error.message}`);
+        continue;
+      }
+      entry.aiCalls += 1;
+      if (answer.checks.length === 0) break;
+      const candidates: UiCandidate[] = answer.checks.map((c, i) => ({ label: c.label, file: `${checksDir}/${step.id}-ui-${attempt + 1}-${i + 1}.ui.mjs`, code: uiTestModule(c.label, c.body) }));
+      await checkoutStep(host, workDir, tag, scan);
+      const atStep: UiOutcome[] = [];
+      for (const c of candidates) atStep.push(await test(c));
+      // Chromium or Node.js missing isn't the model's doing: no retry.
+      if (atStep.some((o) => o.status === "unavailable")) {
+        entry.notes.push(`UI checks can't run: ${atStep.find((o) => o.status === "unavailable")!.error}; generated tests instead`);
+        return null;
+      }
+      await checkoutStep(host, workDir, before, scan);
+      const beforeStep: (UiOutcome | null)[] = [];
+      for (const [i, c] of candidates.entries()) beforeStep.push(atStep[i]!.status === "pass" ? await test(c) : null);
+      problems = [];
+      candidates.forEach((c, i) => {
+        const problem = describeUiProblem(c.label, atStep[i]!, beforeStep[i] ?? null);
+        if (problem) problems.push(problem);
+        else accepted.push(c);
+      });
+      log(`${step.id} ui attempt ${attempt + 1}: ${accepted.length}/${candidates.length} checks proven`);
+    }
+    if (accepted.length > 0 && last && last.tag !== tag) {
+      await checkoutStep(host, workDir, last.tag!, scan);
+      const kept: UiCandidate[] = [];
+      for (const c of accepted) {
+        if ((await test(c)).status === "pass") kept.push(c);
+        else entry.notes.push(`"${c.label}" breaks at the last step; dropped`);
+      }
+      accepted = kept;
+    }
+    if (accepted.length === 0) {
+      entry.notes.push("no UI check proven; generated tests instead");
       return null;
     }
     return { server, candidates: accepted };
@@ -373,12 +459,14 @@ export async function prepareChecks(
     const entry: StepChecks = { stepId, strength: "weak", existing: existing.length, generated: 0, aiCalls: 0, notes: [] };
     let generated: CandidateCheck[] = [];
     let http: Awaited<ReturnType<typeof httpChecksFor>> = null;
+    let ui: Awaited<ReturnType<typeof uiChecksFor>> = null;
     if (build?.mergedInto) {
       entry.strength = "merged";
       entry.notes.push(`doesn't build alone; merged into ${build.mergedInto}`);
     } else if (build?.tag && existing.length === 0) {
       http = await httpChecksFor(step, build.tag, entry);
-      if (!http) generated = await generatedFor(step, build.tag, entry);
+      if (!http) ui = await uiChecksFor(step, build.tag, entry);
+      if (!http && !ui) generated = await generatedFor(step, build.tag, entry);
     }
 
     // Check documents and the updated step.
@@ -401,7 +489,11 @@ export async function prepareChecks(
     for (const candidate of http?.candidates ?? []) {
       add({ label: candidate.label, origin: "generated", timeoutMs: 60_000, validation: proven, spec: { kind: "http", server: http!.server, requests: candidate.requests as Extract<Check["spec"], { kind: "http" }>["requests"] } });
     }
-    entry.generated = generated.length + (http?.candidates.length ?? 0);
+    for (const candidate of ui?.candidates ?? []) {
+      files.set(candidate.file, candidate.code);
+      add({ label: candidate.label, origin: "generated", timeoutMs: 90_000, validation: proven, spec: { kind: "ui", server: ui!.server, files: [candidate.file] } });
+    }
+    entry.generated = generated.length + (http?.candidates.length ?? 0) + (ui?.candidates.length ?? 0);
     if (entry.strength !== "merged") entry.strength = checks.length > 0 ? "strong" : "weak";
     if (entry.strength === "weak") {
       // One build check per package that builds (#87).

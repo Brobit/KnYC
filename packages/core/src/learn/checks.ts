@@ -9,7 +9,7 @@ import { failureExcerpt } from "../pipeline/checks/generated.ts";
 import { builds, installs, type PackageCommands } from "../pipeline/packages.ts";
 import type { Check, CheckRun } from "../schemas/check.ts";
 import type { PathProgress, Progress } from "../schemas/progress.ts";
-import type { CheckOutcome, DockerOutcome, HttpOutcome } from "../sys/knyc-sys.ts";
+import type { CheckOutcome, DockerOutcome, HttpOutcome, UiOutcome } from "../sys/knyc-sys.ts";
 import { knycPaths } from "./documents.ts";
 
 /** The workspace folder, relative paths with "/". `write` creates missing folders. */
@@ -48,6 +48,9 @@ export interface RunStepChecksInput {
   runDocker?: (request: { timeoutMs: number; spec: DockerSpec }) => Promise<DockerOutcome>;
   /** Runs an HTTP check against the project's server (src-tauri `workspace_http_check`, #88). */
   runHttp?: (request: { root: string; timeoutMs: number; server: HttpServer; requests: HttpRequest[] }) => Promise<HttpOutcome>;
+  /** Runs UI tests in Chromium against the project's frontend (src-tauri `workspace_ui_check`, #89);
+   * `files` are relative to the workspace. */
+  runUi?: (request: { root: string; timeoutMs: number; server: HttpServer; files: string[] }) => Promise<UiOutcome>;
   now?: () => Date;
 }
 
@@ -75,6 +78,38 @@ export function httpRun(checkId: string, outcome: HttpOutcome, at: string): Chec
     ...outcome.requests.filter((r) => r.problem).map((r) => ({ message: `${r.method} ${r.path}: ${r.problem}`, actual: r.body || undefined })),
   ];
   return { checkId, at, status: outcome.status, durationMs: outcome.durationMs, output: output.length > MAX_OUTPUT ? output.slice(-MAX_OUTPUT) : output, failures };
+}
+
+/** A UI check's outcome as a CheckRun (#89): each failed test's error, what the page logged, and
+ * what it showed (its accessibility tree, for "Explain this failure"), plus a screenshot. */
+export function uiRun(checkId: string, outcome: UiOutcome, at: string): CheckRun {
+  const status = outcome.status === "unavailable" ? "error" : outcome.status;
+  const failed = outcome.tests.filter((t) => t.status !== "pass");
+  const failures =
+    status === "pass"
+      ? []
+      : failed.length > 0
+        ? failed.map((t) => ({
+            message: [
+              t.error ?? "The UI test failed.",
+              ...(t.pageErrors.length > 0 ? ["", "The page logged:", ...t.pageErrors.map((e) => `- ${e}`)] : []),
+              ...(t.snapshot ? ["", `The page${t.url ? ` (${t.url})` : ""} showed:`, t.snapshot] : []),
+            ].join("\n"),
+            file: t.file,
+          }))
+        : [{ message: `${outcome.status === "unavailable" ? "This check runs in Chromium, which isn't ready: " : ""}${outcome.error ?? "The UI check failed."}${outcome.output.trim() ? `\n${outcome.output.trim().split("\n").slice(-15).join("\n")}` : ""}` }];
+  const lines = outcome.tests.map((t) => `${t.status === "pass" ? "✓" : "✗"} ${t.file} (${t.durationMs} ms)`);
+  const output = [...lines, ...(outcome.output.trim() ? ["", "Output:", outcome.output.trim()] : [])].join("\n");
+  const shot = failed.find((t) => t.screenshot)?.screenshot;
+  return {
+    checkId,
+    at,
+    status,
+    durationMs: outcome.durationMs,
+    output: output.length > MAX_OUTPUT ? output.slice(-MAX_OUTPUT) : output,
+    failures,
+    ...(shot ? { screenshot: `data:image/jpeg;base64,${shot}` } : {}),
+  };
 }
 
 const MAX_OUTPUT = 64 * 1024;
@@ -182,6 +217,13 @@ export async function runStepChecks(input: RunStepChecksInput): Promise<CheckRun
         const result = httpRun(check.id, outcome, at());
         results.set(check.id, result);
         input.onResult?.(result);
+      } else if (spec.kind === "ui" && input.runUi) {
+        // The UI tests are in the workspace only while they run (#89), like generated tests.
+        for (const file of spec.files) await copy(paths.checkFile(file), file);
+        const outcome = await input.runUi({ root: spec.server.root, timeoutMs: check.timeoutMs, server: spec.server, files: spec.files });
+        const result = uiRun(check.id, outcome, at());
+        results.set(check.id, result);
+        input.onResult?.(result);
       } else {
         record(check, { status: "error", error: `"${spec.kind}" checks can't run in the app yet.` });
       }
@@ -197,7 +239,8 @@ export async function runStepChecks(input: RunStepChecksInput): Promise<CheckRun
 export async function appendRuns(files: WorkspaceFiles, pathId: string, stepId: string, runs: CheckRun[], keep = 50): Promise<void> {
   const file = knycPaths(pathId).runs(stepId);
   const before = (await files.exists(file)) ? (await files.read(file)).split("\n").filter(Boolean) : [];
-  const lines = [...before, ...runs.map((r) => JSON.stringify(r))].slice(-keep);
+  // Screenshots stay in memory: 50 runs of them would make the file heavy.
+  const lines = [...before, ...runs.map(({ screenshot: _, ...r }) => JSON.stringify(r))].slice(-keep);
   await files.write(file, `${lines.join("\n")}\n`);
 }
 

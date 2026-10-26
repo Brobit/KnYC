@@ -1,0 +1,10 @@
+{
+  "name": "@knyc/ui-runner",
+  "version": "0.1.0-alpha.1",
+  "private": true,
+  "description": "Runs KnYC's generated UI checks in headless Chromium (#89). Ships next to the app; never added to the learner's project.",
+  "type": "module",
+  "dependencies": {
+    "playwright-core": "1.63.0"
+  }
+}

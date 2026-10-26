@@ -36,6 +36,9 @@ export const checkSpec = z.discriminatedUnion("kind", [
     files: z.array(z.string()).default([]),
   }),
   z.object({ kind: z.literal("http"), server, requests: z.array(httpExpectation).min(1) }),
+  /** UI tests in headless Chromium against the running frontend (#89); like a generated test's
+   * files, they are copied into the workspace only while they run. */
+  z.object({ kind: z.literal("ui"), server, files: z.array(z.string()).min(1) }),
   z.object({
     kind: z.literal("command"),
     command: z.string().min(1),
@@ -94,6 +97,8 @@ export const checkRun = z.object({
       }),
     )
     .default([]),
+  /** A UI check's page when it failed, as a JPEG data URL (#89); not kept in the runs file. */
+  screenshot: z.string().optional(),
 });
 export type CheckRun = z.infer<typeof checkRun>;
 
