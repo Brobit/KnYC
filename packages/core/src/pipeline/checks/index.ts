@@ -9,6 +9,7 @@ import type { AiClient } from "../../ai/client.ts";
 import { AiError } from "../../ai/types.ts";
 import { joinPath, type Host } from "../../host/host.ts";
 import { checkSources } from "../../learn/lesson.ts";
+import { profileFor } from "../../profiles/index.ts";
 import type { Check } from "../../schemas/check.ts";
 import type { LearningPath, Step } from "../../schemas/learning-path.ts";
 import type { Graph, Scan } from "../../sys/knyc-sys.ts";
@@ -106,6 +107,7 @@ export async function prepareChecks(
   const units = buildUnits(graph);
   const stepOf = stepOfUnits(path, units);
   const graphFiles = new Map(graph.files.map((f) => [f.path, f]));
+  const profile = profileFor(scan.frameworks.map((f) => f.profileId));
 
   /** What each existing module exports at step k: names the model must use. */
   const exportsAt = (k: number, sources: string[]) =>
@@ -158,6 +160,7 @@ export async function prepareChecks(
       dependencies,
       exports: exportsAt(path.steps.indexOf(step), sources),
       context: await contextFor(tag, before, sources),
+      profile,
     };
 
     let problems: string[] = [];

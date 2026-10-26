@@ -2,7 +2,7 @@
 // the quick scan, what is excluded and why, and an estimate of the analysis. With the Claude Code
 // CLI there is no per-call price: the estimate is AI calls and time (design/06 H3).
 
-import { profiles } from "../profiles/index.ts";
+import { frameworkLabel } from "../profiles/index.ts";
 import type { PathSize } from "../schemas/learning-path.ts";
 import type { Graph, Scan } from "../sys/knyc-sys.ts";
 import { behaviorCount, stepRange } from "./plan.ts";
@@ -77,7 +77,7 @@ export function importReport(scan: Scan, graph: Graph, size: PathSize = "standar
   for (const entry of scan.excluded) add(entry.reason === "secret" ? "secret" : "ignored", entry.path);
   for (const file of scan.files) if (file.notForAi) add(file.notForAi as ExclusionReason, file.path);
 
-  const label = (id: string) => profiles[id]?.label ?? id.charAt(0).toUpperCase() + id.slice(1);
+  const label = frameworkLabel;
   const languageLabel = (id: string) => ({ typescript: "TypeScript", javascript: "JavaScript", csharp: "C#" })[id] ?? label(id);
   return {
     files: scan.files.length,

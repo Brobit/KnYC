@@ -3,6 +3,7 @@
 // (design/06 H3); the other tracks come with their profiles in M4.
 
 import type { Graph, Scan } from "../sys/knyc-sys.ts";
+import { isFrontendFramework } from "../profiles/index.ts";
 import { behaviorCount, stepRange } from "./plan.ts";
 import { moduleOf, type Summaries } from "./summaries.ts";
 import { buildUnits, type Units } from "./units.ts";
@@ -11,8 +12,6 @@ import type { PathSize } from "../schemas/learning-path.ts";
 /** What a step takes a learner, for the "~6 h standard" on track cards (M1's golden repos). */
 export const LEARNER_MINUTES_PER_STEP = 25;
 
-/** Frameworks that make a project something else than a backend (their tracks come in M4). */
-const FRONTEND_PROFILES = new Set(["react", "next", "vue", "nuxt", "angular", "svelte", "sveltekit", "astro", "vite"]);
 
 export interface TrackSummary {
   id: "backend" | "full";
@@ -49,7 +48,7 @@ export function moduleLabel(module: string): string {
 }
 
 export function projectTracks(scan: Scan, graph: Graph): ProjectTracks {
-  const hasFrontend = scan.frameworks.some((f) => FRONTEND_PROFILES.has(f.profileId));
+  const hasFrontend = scan.frameworks.some((f) => isFrontendFramework(f.profileId));
   const source = graph.files.filter((f) => !f.test);
   const { hours } = pathEstimate(buildUnits(graph), "standard");
   const byModule = new Map<string, number>();

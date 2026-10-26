@@ -7,6 +7,7 @@
 import { z } from "zod";
 import type { AiClient } from "../ai/client.ts";
 import type { Summaries } from "../pipeline/summaries.ts";
+import type { Profile } from "../profiles/index.ts";
 import type { Check } from "../schemas/check.ts";
 import type { ModelRef } from "../schemas/common.ts";
 import type { LearningPath } from "../schemas/learning-path.ts";
@@ -49,6 +50,8 @@ export interface LessonInput {
    * line that only the checks named.
    */
   checks?: CheckSource[];
+  /** The project's framework profile: architecture notes worth explaining (#85). */
+  profile?: Profile;
 }
 
 const TEST_TITLE = /\b(?:it|test)\s*\(\s*(["'`])(.+?)\1/g;
@@ -107,7 +110,11 @@ export function stepContext(input: LessonInput): string {
 
   return `# Project
 ${input.projectName}: ${summaries.project.purpose}
-Architecture: ${summaries.project.architecture}
+Architecture: ${summaries.project.architecture}${
+    input.profile && input.profile.lessonHints.length > 0
+      ? `\n\n# ${input.profile.label} notes (use them where this step meets them)\n${input.profile.lessonHints.map((h) => `- ${h}`).join("\n")}`
+      : ""
+  }
 
 # Path so far
 ${path.steps
