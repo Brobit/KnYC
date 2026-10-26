@@ -36,9 +36,9 @@ describe("estimateAnalysis", () => {
     const steps = Math.round((range.min + range.max) / 2);
     expect(estimate.steps).toBe(steps);
     expect(estimate.summaryCalls).toBe(4);
-    expect(estimate.calls).toBe(4 + 1 + steps);
+    expect(estimate.calls).toBe(4 + 1 + steps * 2);
     expect(estimate.tokens).toBe(20_000 + estimate.calls * 6_000 + steps * 4_000);
-    expect(estimate.minutes).toBe(Math.round((estimate.calls * 45) / 60));
+    expect(estimate.minutes).toBe(Math.round(((4 + 1 + steps) * 45 + steps * 8) / 60));
   });
 
   it("puts a file over the budget in its own batch and never says 0 minutes", () => {
