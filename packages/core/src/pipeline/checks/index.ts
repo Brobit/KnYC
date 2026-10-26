@@ -7,7 +7,8 @@
 
 import type { AiClient } from "../../ai/client.ts";
 import { AiError } from "../../ai/types.ts";
-import type { Host } from "../../host/host.ts";
+import { joinPath, type Host } from "../../host/host.ts";
+import { checkSources } from "../../learn/lesson.ts";
 import type { Check } from "../../schemas/check.ts";
 import type { LearningPath, Step } from "../../schemas/learning-path.ts";
 import type { Graph, Scan } from "../../sys/knyc-sys.ts";
@@ -16,6 +17,7 @@ import { buildUnits } from "../units.ts";
 import { buildOutDir, checkoutStep, compiledPath } from "../workspace.ts";
 import { mapTests, runSuiteAtStep, suiteCommand, type SuiteRun, type TestMapping } from "./existing.ts";
 import { fragileCheck } from "./audit.ts";
+import { goalFromChecks } from "./goal.ts";
 import { askForChecks, CHECKS_DIR, describeProblem, runCandidate, type CandidateCheck, type StepContext } from "./generated.ts";
 
 export interface StepChecks {
@@ -64,6 +66,8 @@ export interface ChecksOptions {
   now?: () => Date;
   /** The test mapping of an earlier run on the same timeline (the suite isn't run again). */
   mapping?: TestMapping;
+  /** Rewrite each step's goal from its proven checks (#84). Default true. */
+  rewriteGoals?: boolean;
 }
 
 export async function prepareChecks(
@@ -224,6 +228,18 @@ export async function prepareChecks(
     return accepted;
   }
 
+  /** The project's own test files (for goals of steps its tests check), read once. */
+  let tests: Promise<Map<string, string>> | null = null;
+  const projectTests = () =>
+    (tests ??= (async () => {
+      const files = new Map<string, string>();
+      for (const file of graph.files.filter((f) => f.test)) {
+        const code = await host.readFile(joinPath(options.sourceRoot, file.path)).catch(() => null);
+        if (code !== null) files.set(file.path, code);
+      }
+      return files;
+    })());
+
   async function forStep(stepId: string): Promise<StepChecksResult> {
     const step = path.steps.find((s) => s.id === stepId);
     if (!step) throw new Error(`the path has no step ${stepId}`);
@@ -260,12 +276,29 @@ export async function prepareChecks(
     if (entry.strength === "weak" && scan.commands[0]?.build) {
       add({ label: "The project builds", origin: "generated", timeoutMs: 300_000, spec: { kind: "build", root: ".", command: scan.commands[0].build } });
     }
+
+    // The goal, rewritten from the proven checks so it names their contracts (#84).
+    let goal = step.goal;
+    const sources = options.rewriteGoals === false ? [] : checkSources(checks, files, existing.length > 0 ? await projectTests() : new Map());
+    if (sources.length > 0) {
+      try {
+        goal = await goalFromChecks(options.client, step, sources);
+        entry.aiCalls += 1;
+        entry.notes.push("goal rewritten from its checks");
+      } catch (error) {
+        // A login problem or a usage limit stops everything, as for the checks themselves.
+        if (error instanceof AiError && (error.kind === "auth" || error.kind === "limit")) throw error;
+        entry.notes.push(`goal kept: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      log(`${step.id} goal ${goal === step.goal ? "kept" : "rewritten"}`);
+    }
     return {
       checks,
       files,
       report: entry,
       step: {
         ...step,
+        goal,
         checkIds: checks.map((c) => c.id),
         checkStrength: entry.strength === "strong" ? "strong" : "weak",
         prep: "checks-ready",

@@ -71,8 +71,9 @@ export function ChoosePathScreen({ jobId, track: initialTrack, onBack, onStarted
   const estimates = Object.fromEntries(SIZES.map((s) => [s, pathEstimate(units, s)])) as Record<PathSize, ReturnType<typeof pathEstimate>>;
   const estimate = estimates[size];
   const steps = Math.round((estimate.steps.min + estimate.steps.max) / 2);
-  // The plan, then about one call per step for the checks (design/08: M1's runs).
-  const calls = 1 + steps;
+  // The plan, then about one call per step for the checks (design/08: M1's runs) and a short one
+  // for its goal (#84).
+  const calls = 1 + steps * 2;
 
   const generate = async () => {
     setStarting(true);

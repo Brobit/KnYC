@@ -13,12 +13,14 @@ import { buildUnits } from "./units.ts";
 export const CALL_OVERHEAD_TOKENS = 6_000;
 /** M1 runs averaged 54 AI calls in 40 minutes, builds included (design/08). */
 export const SECONDS_PER_CALL = 45;
+/** A step's goal rewrite (#84): one short call on the cheap model. */
+export const SECONDS_PER_GOAL = 8;
 
 export interface AnalysisEstimate {
   /** Steps the path will have at this size (middle of the planner's range). */
   steps: number;
   summaryCalls: number;
-  /** Summaries, the plan, then about one call per step for the checks. */
+  /** Summaries, the plan, then about one call per step for the checks and one for its goal. */
   calls: number;
   tokens: number;
   minutes: number;
@@ -34,10 +36,12 @@ export function estimateAnalysis(fileTokens: number[], unitCount: number, size: 
   const steps = Math.round((range.min + range.max) / 2);
   // Files in batches, then one call for the folders and one for the project.
   const summaryCalls = batchBySize(fileTokens, (t) => t).length + 2;
-  const calls = summaryCalls + 1 + steps;
+  const longCalls = summaryCalls + 1 + steps;
+  const calls = longCalls + steps;
   const sourceTokens = fileTokens.reduce((sum, t) => sum + t, 0);
   const tokens = sourceTokens + calls * CALL_OVERHEAD_TOKENS + steps * 4_000;
-  return { steps, summaryCalls, calls, tokens, minutes: Math.max(1, Math.round((calls * SECONDS_PER_CALL) / 60)) };
+  const seconds = longCalls * SECONDS_PER_CALL + steps * SECONDS_PER_GOAL;
+  return { steps, summaryCalls, calls, tokens, minutes: Math.max(1, Math.round(seconds / 60)) };
 }
 
 export type ExclusionReason = "secret" | "ignored" | "binary" | "lockfile" | "too-large";

@@ -54,3 +54,4 @@ export * from "./learn/lesson.ts";
 export * from "./learn/hints.ts";
 export * from "./learn/help.ts";
 export * from "./learn/progress.ts";
+export * from "./pipeline/checks/goal.ts";
