@@ -32,6 +32,7 @@ import {
   withHint,
   withHintUsed,
   withReveal,
+  installedInContainer,
   workspaceStepChecks,
   writeProgress,
   type Check,
@@ -47,8 +48,9 @@ import {
   type Project,
 } from "@knyc/core";
 import { useOptionalJobs } from "@/jobs/jobs-context";
+import { useSettings } from "@/lib/settings";
 import { useWorkspace } from "@/workspace/workspace-context";
-import { checkRunFor, dockerCheckFor, httpCheckFor, readForAiFor, snapshotFor, workspaceFiles, type ReadForAi, type RunCheckCommand, type TakeSnapshot } from "./learn-backend";
+import { checkRunFor, DOCKER_NODE_IMAGE, dockerCheckFor, httpCheckFor, readForAiFor, snapshotFor, workspaceFiles, type ReadForAi, type RunCheckCommand, type TakeSnapshot } from "./learn-backend";
 
 /** Time on a step is added in these ticks. */
 const TIME_TICK_MS = 60_000;
@@ -126,7 +128,10 @@ export function LearningProvider({
   const { fs, folder, createFolder } = useWorkspace();
   const jobs = useOptionalJobs();
   const files = useMemo(() => workspaceFiles(fs), [fs]);
-  const run = useMemo(() => runCheck ?? checkRunFor(fs), [runCheck, fs]);
+  // Docker mode (#91): checks run in a Node container with the workspace mounted.
+  const { settings } = useSettings();
+  const dockerImage = settings.runChecksIn === "docker" ? DOCKER_NODE_IMAGE : undefined;
+  const run = useMemo(() => runCheck ?? checkRunFor(fs, dockerImage), [runCheck, fs, dockerImage]);
   const readForAi = useMemo(() => givenReadForAi ?? readForAiFor(fs), [givenReadForAi, fs]);
   const snapshot = useMemo(() => givenSnapshot ?? snapshotFor(), [givenSnapshot]);
   const [learning, setLearning] = useState<Learning | null>(null);
@@ -241,7 +246,8 @@ export function LearningProvider({
         run,
         commands: project.commands,
         testFiles: await storedTestFiles(files, path.id),
-        runHttp: httpCheckFor(),
+        installed: dockerImage ? installedInContainer(run) : undefined,
+        runHttp: httpCheckFor(dockerImage),
         runDocker: dockerCheckFor(),
         onResult: (result) => {
           setResults((current) => new Map(current).set(result.checkId, result));
@@ -266,7 +272,7 @@ export function LearningProvider({
     } finally {
       setRunning(new Set());
     }
-  }, [learning, stepId, checks, running.size, files, run, snapshot]);
+  }, [learning, stepId, checks, running.size, files, run, snapshot, dockerImage]);
 
   const stepProgress = learning && stepId ? learning.progress.paths[learning.path.id]?.steps[stepId] : undefined;
   const saveProgress = useCallback(

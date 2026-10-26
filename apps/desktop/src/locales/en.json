@@ -21,13 +21,15 @@
       "ai": "AI providers",
       "editor": "Editor",
       "appearance": "Appearance",
-      "language": "Language"
+      "language": "Language",
+      "checks": "Checks"
     },
     "intro": {
       "ai": "Keys are stored in your system keychain. Your code only goes to the providers you connect.",
       "editor": "Applies to the editor, the terminal and command output.",
       "appearance": "Colors of the whole app, editor and terminal included.",
-      "language": "The language of the interface."
+      "language": "The language of the interface.",
+      "checks": "Where your checks build and run your code."
     },
     "ai": {
       "apiKey": "API key",
@@ -85,6 +87,23 @@
       "hint": "Only English for now.",
       "names": {
         "en": "English"
+      }
+    },
+    "checks": {
+      "where": "Run checks",
+      "modes": {
+        "local": "On this computer",
+        "docker": "In Docker"
+      },
+      "localHint": "Uses the Node.js installed here, like your own terminal.",
+      "dockerHint": "Every check runs in a Node.js container with your workspace mounted: no local Node.js needed.",
+      "docker": "Docker",
+      "dockerNeeded": "Docker mode needs Docker, installed and running.",
+      "status": {
+        "checking": "Checking…",
+        "running": "Running",
+        "stopped": "Installed, not running",
+        "missing": "Not found"
       }
     }
   },
@@ -454,7 +473,8 @@
       "needed": "Needed now",
       "laterTitle": "Later stacks (not needed yet)",
       "notBlocking": "Nothing here blocks you: each project is checked again when you import it.",
-      "notRunning": "{{version}}, not running: start Docker"
+      "notRunning": "{{version}}, not running: start Docker",
+      "notNeeded": "Not needed: checks run in Docker"
     }
   },
   "import": {

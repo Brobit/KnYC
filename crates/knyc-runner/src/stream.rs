@@ -80,7 +80,28 @@ impl RunningCommand {
         env: &BTreeMap<String, String>,
         callbacks: StreamCallbacks,
     ) -> anyhow::Result<Self> {
-        let mut cmd = shell(command);
+        Self::start_command(shell(command), cwd, env, callbacks)
+    }
+
+    /// Starts `program` with `args` as they are (no shell): a server inside a container (#91).
+    pub fn start_program(
+        program: &str,
+        args: &[String],
+        cwd: &Path,
+        env: &BTreeMap<String, String>,
+        callbacks: StreamCallbacks,
+    ) -> anyhow::Result<Self> {
+        let mut cmd = std::process::Command::new(program);
+        cmd.args(args);
+        Self::start_command(cmd, cwd, env, callbacks)
+    }
+
+    fn start_command(
+        mut cmd: std::process::Command,
+        cwd: &Path,
+        env: &BTreeMap<String, String>,
+        callbacks: StreamCallbacks,
+    ) -> anyhow::Result<Self> {
         cmd.current_dir(cwd)
             .envs(env)
             // Colors make dev-server logs readable; the panel renders them.

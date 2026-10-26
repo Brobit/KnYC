@@ -19,6 +19,8 @@ export type SysRequest =
       env: Record<string, string>;
       /** Jest/Vitest JSON report the command writes, relative to cwd. */
       report?: string;
+      /** Docker mode (#91): run in this image, `mount` mounted at /work (cwd inside it). */
+      container?: Container;
     }
   | {
       /** A Docker check (#90): build the image (and run it), then remove what it made. */
@@ -34,7 +36,14 @@ export type SysRequest =
       timeoutMs: number;
       server: HttpServer;
       requests: HttpRequest[];
+      container?: Container;
     };
+
+/** Docker mode (#91): the toolchain image and the folder mounted at /work. */
+export interface Container {
+  image: string;
+  mount: string;
+}
 
 /** What a Docker check builds and runs (knyc-runner `docker.rs`); paths relative to cwd. */
 export interface DockerSpec {

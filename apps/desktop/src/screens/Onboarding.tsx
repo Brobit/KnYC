@@ -280,6 +280,9 @@ const TOOLCHAINS: { id: ToolchainStatus["id"]; name: string; icon: LucideIcon; u
 
 function Toolchains({ backend }: { backend: SettingsBackend }) {
   const { t } = useTranslation();
+  const { settings } = useSettings();
+  // Docker mode (#91): checks run in a Node container, so Node itself isn't needed here.
+  const inDocker = settings.runChecksIn === "docker";
   const [found, setFound] = useState<Map<string, ToolchainStatus> | null>(null);
   const [check, setCheck] = useState(0);
 
@@ -306,6 +309,8 @@ function Toolchains({ backend }: { backend: SettingsBackend }) {
         <span className="flex-1 text-[13px] text-text-primary">{name}</span>
         {!found ? (
           <span className="text-xs text-text-muted">{t("onboarding.toolchains.checking")}</span>
+        ) : !version && inDocker && (id === "node" || id === "npm") ? (
+          <span className="text-xs text-text-muted">{t("onboarding.toolchains.notNeeded")}</span>
         ) : version && stopped ? (
           <span className="text-xs text-warning">{t("onboarding.toolchains.notRunning", { version })}</span>
         ) : version ? (

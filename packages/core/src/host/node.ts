@@ -36,12 +36,22 @@ export function sysArgs(request: SysRequest): string[] {
       const args = ["run", "--cwd", request.cwd, "--timeout-ms", String(request.timeoutMs)];
       for (const [k, v] of Object.entries(request.env)) args.push("--env", `${k}=${v}`);
       if (request.report) args.push("--report", request.report);
+      if (request.container) args.push("--docker-image", request.container.image, "--mount", request.container.mount);
       return [...args, "--", ...request.command.split(" ").filter(Boolean)];
     }
     case "docker":
       return ["docker", "--cwd", request.cwd, "--timeout-ms", String(request.timeoutMs), "--spec", JSON.stringify(request.spec)];
     case "http":
-      return ["http", "--cwd", request.cwd, "--timeout-ms", String(request.timeoutMs), "--spec", JSON.stringify({ server: request.server, requests: request.requests })];
+      return [
+        "http",
+        "--cwd",
+        request.cwd,
+        "--timeout-ms",
+        String(request.timeoutMs),
+        "--spec",
+        JSON.stringify({ server: request.server, requests: request.requests }),
+        ...(request.container ? ["--docker-image", request.container.image, "--mount", request.container.mount] : []),
+      ];
   }
 }
 

@@ -3,6 +3,7 @@
 //! is expected, then stop the whole process tree. The client is a few lines of HTTP/1.1 over a
 //! TCP stream to 127.0.0.1: no dependency, and nothing ever leaves the machine.
 
+use crate::container::Container;
 use crate::stream::{Finished, RunningCommand, StreamCallbacks};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -245,6 +246,40 @@ pub fn run_http_check(
     cwd: &Path,
     timeout: Duration,
 ) -> HttpCheckOutcome {
+    run_http_check_in(server, requests, cwd, timeout, None)
+}
+
+/// Removes the server's container when the check ends, whatever happened (#91).
+struct ContainerGuard(Option<(String, Container)>);
+
+impl Drop for ContainerGuard {
+    fn drop(&mut self) {
+        if let Some((name, container)) = &self.0 {
+            let mut command = std::process::Command::new("docker");
+            command
+                .args(["rm", "-f", name])
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null());
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                command.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+            }
+            let _ = command.status();
+            crate::container::tidy(container);
+        }
+    }
+}
+
+/// Like [`run_http_check`]; with a container (Docker mode, #91) the server runs inside it, its
+/// port published on 127.0.0.1, and the container is removed afterwards.
+pub fn run_http_check_in(
+    server: &ServerSpec,
+    requests: &[HttpRequestSpec],
+    cwd: &Path,
+    timeout: Duration,
+    container: Option<&Container>,
+) -> HttpCheckOutcome {
     let started = Instant::now();
     let output = Arc::new(Mutex::new(String::new()));
     let finished: Arc<Mutex<Option<Finished>>> = Arc::new(Mutex::new(None));
@@ -278,7 +313,8 @@ pub fn run_http_check(
     };
     // Something already answering on the original's port isn't our server.
     let quick = Duration::from_millis(300);
-    let busy = server.port != port
+    let busy = container.is_none()
+        && server.port != port
         && request(
             server.port,
             "GET",
@@ -293,25 +329,40 @@ pub fn run_http_check(
     env.insert(server.port_env.clone(), port.to_string());
     let sink = Arc::clone(&output);
     let exit = Arc::clone(&finished);
-    let running = match RunningCommand::start(
-        &server.start,
-        cwd,
-        &env,
-        StreamCallbacks {
-            on_output: Box::new(move |_, text| {
-                if let Ok(mut out) = sink.lock()
-                    && out.len() < MAX_OUTPUT * 2
-                {
-                    out.push_str(&text);
-                }
-            }),
-            on_exit: Box::new(move |f| {
-                if let Ok(mut slot) = exit.lock() {
-                    *slot = Some(f);
-                }
-            }),
-        },
-    ) {
+    let name = container.map(|_| format!("knyc-server-{}-{port}", std::process::id()));
+    let _guard = ContainerGuard(name.clone().zip(container.cloned()));
+    let callbacks = StreamCallbacks {
+        on_output: Box::new(move |_, text| {
+            if let Ok(mut out) = sink.lock()
+                && out.len() < MAX_OUTPUT * 2
+            {
+                out.push_str(&text);
+            }
+        }),
+        on_exit: Box::new(move |f| {
+            if let Ok(mut slot) = exit.lock() {
+                *slot = Some(f);
+            }
+        }),
+    };
+    let launched = match container {
+        Some(container) => {
+            crate::container::prepare(container);
+            crate::container::docker_args(
+                container,
+                &server.start,
+                cwd,
+                &env,
+                &[(port, port)],
+                name.as_deref(),
+            )
+            .and_then(|args| {
+                RunningCommand::start_program("docker", &args, cwd, &BTreeMap::new(), callbacks)
+            })
+        }
+        None => RunningCommand::start(&server.start, cwd, &env, callbacks),
+    };
+    let running = match launched {
         Ok(running) => running,
         Err(e) => {
             return done(
