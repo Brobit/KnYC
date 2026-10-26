@@ -21,6 +21,13 @@ export type SysRequest =
       report?: string;
     }
   | {
+      /** A Docker check (#90): build the image (and run it), then remove what it made. */
+      op: "docker";
+      cwd: string;
+      timeoutMs: number;
+      spec: DockerSpec;
+    }
+  | {
       /** An HTTP check (#88): start the server in cwd, wait for it, send the requests, stop it. */
       op: "http";
       cwd: string;
@@ -28,6 +35,13 @@ export type SysRequest =
       server: HttpServer;
       requests: HttpRequest[];
     };
+
+/** What a Docker check builds and runs (knyc-runner `docker.rs`); paths relative to cwd. */
+export interface DockerSpec {
+  context: string;
+  dockerfile: string;
+  run?: { port: number; healthPath: string };
+}
 
 /** How to start a project's server for an HTTP check (knyc-runner `http.rs`). */
 export interface HttpServer {

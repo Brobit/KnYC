@@ -453,7 +453,8 @@
       "installNamed": "Install {{name}}",
       "needed": "Needed now",
       "laterTitle": "Later stacks (not needed yet)",
-      "notBlocking": "Nothing here blocks you: each project is checked again when you import it."
+      "notBlocking": "Nothing here blocks you: each project is checked again when you import it.",
+      "notRunning": "{{version}}, not running: start Docker"
     }
   },
   "import": {

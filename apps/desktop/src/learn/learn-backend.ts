@@ -2,7 +2,7 @@
 // WorkspaceFiles, and a check runner (src-tauri `workspace_check_run`). A plain browser (`pnpm dev`)
 // gets a pretend runner: a demo check passes once the file it names has code.
 import { invoke } from "@tauri-apps/api/core";
-import type { CheckCommand, CheckOutcome, HttpOutcome, LearnerFiles, RunStepChecksInput, WorkspaceFiles } from "@knyc/core";
+import type { CheckCommand, CheckOutcome, DockerOutcome, HttpOutcome, LearnerFiles, RunStepChecksInput, WorkspaceFiles } from "@knyc/core";
 import { DEMO_REQUIRES } from "@/jobs/demo-jobs";
 import { isTauri } from "@/lib/settings";
 import { WorkspaceFsError, type WorkspaceFs } from "@/lib/workspace-fs";
@@ -107,3 +107,13 @@ export const fakeHttpCheck: RunHttpCheck = async ({ requests }) => ({
 });
 
 export const httpCheckFor = (): RunHttpCheck => (isTauri() || !import.meta.env.DEV ? tauriHttpCheck : fakeHttpCheck);
+
+/** Runs a Docker check in the open workspace (src-tauri `workspace_docker_check`, #90). */
+export type RunDockerCheck = NonNullable<RunStepChecksInput["runDocker"]>;
+
+export const tauriDockerCheck: RunDockerCheck = (request) => invoke<DockerOutcome>("workspace_docker_check", { request });
+
+/** The browser preview has no Docker: the image "builds" and answers. */
+export const fakeDockerCheck: RunDockerCheck = async () => ({ status: "pass", stage: "health", output: "built and answered (browser preview)", durationMs: 600 });
+
+export const dockerCheckFor = (): RunDockerCheck => (isTauri() || !import.meta.env.DEV ? tauriDockerCheck : fakeDockerCheck);

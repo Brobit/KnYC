@@ -293,6 +293,35 @@ pub async fn workspace_check_run(
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct DockerCheckRequest {
+    timeout_ms: u64,
+    spec: knyc_runner::docker::DockerSpec,
+}
+
+/// Runs a Docker check in the open workspace (#90): build (and run) the image, then remove what
+/// the check made. The build context and the Dockerfile must be inside the workspace.
+#[tauri::command]
+pub async fn workspace_docker_check(
+    state: State<'_, WorkspaceState>,
+    request: DockerCheckRequest,
+) -> FsResult<knyc_runner::docker::DockerCheckOutcome> {
+    let scope = state.scope()?;
+    scope.resolve(&request.spec.context)?;
+    scope.resolve(&request.spec.dockerfile)?;
+    let cwd = scope.root().to_path_buf();
+    tauri::async_runtime::spawn_blocking(move || {
+        knyc_runner::docker::run_docker_check(
+            &request.spec,
+            &cwd,
+            Duration::from_millis(request.timeout_ms),
+        )
+    })
+    .await
+    .map_err(|e| FsError::Io(e.to_string()))
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct HttpCheckRequest {
     /// Package folder that starts the server, relative to the workspace.
     root: String,

@@ -37,6 +37,8 @@ export interface ToolchainStatus {
   id: "node" | "npm" | "git" | "docker" | "python" | "go" | "dotnet";
   /** null when not found. */
   version: string | null;
+  /** Docker only: whether its daemon answers (#90). */
+  running?: boolean;
 }
 
 export interface SettingsBackend {

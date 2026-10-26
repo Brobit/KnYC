@@ -38,6 +38,8 @@ export function sysArgs(request: SysRequest): string[] {
       if (request.report) args.push("--report", request.report);
       return [...args, "--", ...request.command.split(" ").filter(Boolean)];
     }
+    case "docker":
+      return ["docker", "--cwd", request.cwd, "--timeout-ms", String(request.timeoutMs), "--spec", JSON.stringify(request.spec)];
     case "http":
       return ["http", "--cwd", request.cwd, "--timeout-ms", String(request.timeoutMs), "--spec", JSON.stringify({ server: request.server, requests: request.requests })];
   }
