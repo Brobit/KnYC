@@ -31,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [express-notes, express-shop, express-no-tests, nest-tasks]
+        project: [express-notes, express-shop, express-no-tests, nest-tasks, fastify-links]
     runs-on: ubuntu-latest
     defaults:
       run:

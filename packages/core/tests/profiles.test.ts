@@ -95,6 +95,18 @@ describe("track rules", () => {
     });
   });
 
+  it("put a Fastify project's files in their tracks (#97)", () => {
+    const fastify = profileFor(["fastify 5.12.7"]);
+    expect(fastify).toMatchObject({ id: "fastify", label: "Fastify", kind: "backend", run: { portEnv: "PORT", readyPaths: ["/health", "/"] } });
+    expect(fastify.lessonHints.join(" ")).toContain("fastify-plugin");
+    expect(Object.fromEntries(["src/plugins/store.ts", "src/links/links.routes.ts", "src/server.ts", "tsconfig.json"].map((path) => [path, trackOf(fastify, path)]))).toEqual({
+      "src/plugins/store.ts": "backend",
+      "src/links/links.routes.ts": "backend",
+      "src/server.ts": "backend",
+      "tsconfig.json": "setup",
+    });
+  });
+
   it("put a NestJS project's files in their tracks (#96)", () => {
     const nest = profileFor(["nestjs 12.2.0"]);
     expect(nest).toMatchObject({ id: "nestjs", label: "NestJS", kind: "backend", run: { scripts: ["start", "start:prod"], portEnv: "PORT", readyPaths: ["/health", "/"] } });

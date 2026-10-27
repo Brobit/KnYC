@@ -73,6 +73,9 @@ pub struct Symbol {
     /// methods of the classes it depends on.
     #[serde(skip)]
     pub members: BTreeSet<String>,
+    /// Members used on other objects than `this` (`app.links`), for module augmentations.
+    #[serde(skip)]
+    pub outer_members: BTreeSet<String>,
 }
 
 #[derive(Debug, Default)]
@@ -81,6 +84,9 @@ pub struct ParsedFile {
     pub exports: Vec<String>,
     pub symbols: Vec<Symbol>,
     pub has_errors: bool,
+    /// Members this file adds to other types through `declare module "x" { interface … }` or
+    /// `declare global` (Fastify's `app.links`, Express's `req.user`).
+    pub augments: BTreeSet<String>,
 }
 
 pub fn parse(lang: Lang, source: &str) -> anyhow::Result<ParsedFile> {
@@ -106,11 +112,25 @@ pub fn parse(lang: Lang, source: &str) -> anyhow::Result<ParsedFile> {
         match node.kind() {
             "import_statement" => file.imports.extend(import(node, src)),
             "export_statement" => export(node, src, &mut file),
+            "ambient_declaration" => augmented_members(node, src, &mut file.augments),
             _ => declaration(node, src, false, &mut file),
         }
     }
     dynamic_imports(root, src, &mut file.imports);
     Ok(file)
+}
+
+/// The property and method names of the interfaces inside a `declare module` / `declare global`.
+fn augmented_members(node: Node, src: &[u8], out: &mut BTreeSet<String>) {
+    if matches!(node.kind(), "property_signature" | "method_signature")
+        && let Some(name) = node.child_by_field_name("name")
+    {
+        out.insert(text(name, src).to_string());
+    }
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        augmented_members(child, src, out);
+    }
 }
 
 fn text<'a>(node: Node, src: &'a [u8]) -> &'a str {
@@ -274,6 +294,8 @@ fn symbol(name: &str, kind: SymbolKind, exported: bool, node: Node, src: &[u8]) 
     let mut members = BTreeSet::new();
     collect_identifiers(node, src, &mut uses, &mut members);
     uses.remove(name);
+    let mut outer_members = BTreeSet::new();
+    collect_outer_members(node, src, &mut outer_members);
     Symbol {
         name: name.to_string(),
         kind,
@@ -282,6 +304,22 @@ fn symbol(name: &str, kind: SymbolKind, exported: bool, node: Node, src: &[u8]) 
         end_line: node.end_position().row + 1,
         uses,
         members,
+        outer_members,
+    }
+}
+
+fn collect_outer_members(node: Node, src: &[u8], out: &mut BTreeSet<String>) {
+    if node.kind() == "member_expression"
+        && let Some(property) = node.child_by_field_name("property")
+        && node
+            .child_by_field_name("object")
+            .is_some_and(|o| o.kind() != "this")
+    {
+        out.insert(text(property, src).to_string());
+    }
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        collect_outer_members(child, src, out);
     }
 }
 
@@ -535,6 +573,20 @@ export class AppModule {}
             "{:?}",
             app.uses
         );
+    }
+
+    #[test]
+    fn module_augmentations_list_the_members_they_add() {
+        let f = parse(
+            Lang::TypeScript,
+            "import fp from 'fastify-plugin';\ndeclare module 'fastify' {\n  interface FastifyInstance {\n    links: LinksStore;\n    requireAdmin(r: unknown): Promise<void>;\n  }\n}\nexport const storePlugin = fp(async (app) => {});\n",
+        )
+        .unwrap();
+        assert_eq!(
+            f.augments,
+            BTreeSet::from(["links".to_string(), "requireAdmin".to_string()])
+        );
+        assert!(f.symbols.iter().any(|s| s.name == "storePlugin"));
     }
 
     #[test]

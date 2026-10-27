@@ -78,7 +78,10 @@ export function buildUnits(graph: Graph): Units {
     const [path, name] = symbolId.split("#");
     if (!name) return byFile.get(symbolId)?.[0];
     const owner = `${path}#${name.split(".")[0]}`; // field or constructor → its class
-    return byId.has(owner) ? owner : undefined;
+    if (byId.has(owner)) return owner;
+    // A variable of a whole-file unit (a plugin file: `export const storePlugin = fp(…)`).
+    const whole = byFile.get(path!);
+    return whole?.length === 1 && byId.get(whole[0]!)?.kind === "file" ? whole[0] : undefined;
   };
 
   const needs = new Map<string, Set<string>>(atoms.map((a) => [a.id, new Set<string>()]));
