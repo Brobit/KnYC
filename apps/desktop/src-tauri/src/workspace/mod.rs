@@ -378,8 +378,20 @@ pub struct UiCheckRequest {
     server: knyc_runner::http::ServerSpec,
     /// The UI test modules, relative to the workspace.
     files: Vec<String>,
+    /// Servers started first, each in its package (the original backend, #92).
+    #[serde(default)]
+    companions: Vec<CompanionRequest>,
     /// Docker mode (#91): the frontend runs in this image; Chromium stays on this computer.
     docker_image: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompanionRequest {
+    #[serde(flatten)]
+    server: knyc_runner::http::ServerSpec,
+    /// Package folder, relative to the workspace.
+    root: String,
 }
 
 /// Runs a UI check in the open workspace (#89): the frontend starts in its package, the tests run
@@ -397,6 +409,16 @@ pub async fn workspace_ui_check(
         .iter()
         .map(|f| scope.resolve(f))
         .collect::<Result<Vec<_>, _>>()?;
+    let companions = request
+        .companions
+        .into_iter()
+        .map(|c| {
+            Ok(knyc_runner::ui::Companion {
+                cwd: scope.resolve(&c.root)?,
+                server: c.server,
+            })
+        })
+        .collect::<FsResult<Vec<_>>>()?;
     let container = container_for(&scope, request.docker_image);
     let data = app
         .path()
@@ -404,8 +426,9 @@ pub async fn workspace_ui_check(
         .map_err(|e| FsError::Io(e.to_string()))?;
     let runner = crate::browser::ui_runner(&data).map_err(FsError::Io)?;
     tauri::async_runtime::spawn_blocking(move || {
-        knyc_runner::ui::run_ui_check(
+        knyc_runner::ui::run_ui_check_with(
             &request.server,
+            &companions,
             &tests,
             &cwd,
             &runner,

@@ -18,7 +18,7 @@ import {
   generatePlan,
   graphProject,
   loadSourceFiles,
-  profileFor,
+  profileForTrack,
   projectFacts,
   scanProject,
   splitByRules,
@@ -42,6 +42,8 @@ export interface AnalyzeOptions {
   yes: boolean;
   /** Analysis cache root. Default: $KNYC_HOME or ~/.knyc. */
   home?: string;
+  /** Where Chromium is, for UI checks (#92); without it, steps marked "ui" get other checks. */
+  browsers?: string;
 }
 
 export interface AnalyzeIo {
@@ -132,7 +134,7 @@ export async function analyze(options: AnalyzeOptions, io: AnalyzeIo) {
     () =>
       generatePlan(
         client,
-        { track: options.track, size: options.size, units, summaries, profile: profileFor(facts.frameworks), hasTests: scan.testRunners.length > 0, otherTracks },
+        { track: options.track, size: options.size, units, summaries, profile: profileForTrack(facts.frameworks, options.track), hasTests: scan.testRunners.length > 0, otherTracks },
         { planning: role(options.models.planning), onRetry: (p) => io.log(`  retry: ${p.length} problems (${p[0]})`) },
       ),
     aiCalls,
@@ -154,7 +156,7 @@ export async function analyze(options: AnalyzeOptions, io: AnalyzeIo) {
   // ⑧ Checks.
   const checks = await stage(
     "Checks",
-    () => buildChecks(path, timeline, graph, scan, { host, sourceRoot: source, client, units, onProgress: (m) => io.log(`  ${m}`) }),
+    () => buildChecks(path, timeline, graph, scan, { host, sourceRoot: source, client, units, onProgress: (m) => io.log(`  ${m}`), ...(options.browsers ? { ui: { browsers: options.browsers } } : {}) }),
     aiCalls,
   );
 

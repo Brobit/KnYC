@@ -31,6 +31,14 @@ pub struct ServerSpec {
     /// Environment variable the server reads its port from.
     #[serde(default = "default_port_env")]
     pub port_env: String,
+    /// Arguments added to `start` for servers that take the port on the command line, "{port}"
+    /// replaced: Vite's " -- --port {port} --strictPort" (#92).
+    #[serde(default)]
+    pub port_args: Option<String>,
+    /// Start on `port` itself rather than a free one: a backend the frontend's dev proxy expects
+    /// there (#92).
+    #[serde(default)]
+    pub fixed_port: bool,
 }
 
 fn default_port_env() -> String {
@@ -298,7 +306,11 @@ pub(crate) fn serve<T>(
     // outside its root.
     let cwd = &dunce::canonicalize(cwd).unwrap_or_else(|_| cwd.to_path_buf());
     let finished: Arc<Mutex<Option<Finished>>> = Arc::new(Mutex::new(None));
-    let port = free_port().map_err(|e| (HttpStatus::Error, format!("no free port: {e}")))?;
+    let port = if server.fixed_port {
+        server.port
+    } else {
+        free_port().map_err(|e| (HttpStatus::Error, format!("no free port: {e}")))?
+    };
     // Something already answering on the original's port isn't our server.
     let quick = Duration::from_millis(300);
     let busy = container.is_none()
@@ -313,8 +325,35 @@ pub(crate) fn serve<T>(
         )
         .is_ok();
 
+    if server.fixed_port
+        && request(
+            port,
+            "GET",
+            &server.ready_path,
+            &BTreeMap::new(),
+            None,
+            quick,
+        )
+        .is_ok()
+    {
+        return Err((
+            HttpStatus::Error,
+            format!(
+                "port {port} is used by another program; it's needed for {}",
+                server.start
+            ),
+        ));
+    }
     let mut env = server.env.clone();
     env.insert(server.port_env.clone(), port.to_string());
+    let start = match &server.port_args {
+        Some(args) => format!(
+            "{} {}",
+            server.start,
+            args.replace("{port}", &port.to_string()).trim()
+        ),
+        None => server.start.clone(),
+    };
     let sink = Arc::clone(output);
     let exit = Arc::clone(&finished);
     let name = container.map(|_| format!("knyc-server-{}-{port}", std::process::id()));
@@ -338,7 +377,7 @@ pub(crate) fn serve<T>(
             crate::container::prepare(container);
             crate::container::docker_args(
                 container,
-                &server.start,
+                &start,
                 cwd,
                 &env,
                 &[(port, port)],
@@ -348,7 +387,7 @@ pub(crate) fn serve<T>(
                 RunningCommand::start_program("docker", &args, cwd, &BTreeMap::new(), callbacks)
             })
         }
-        None => RunningCommand::start(&server.start, cwd, &env, callbacks),
+        None => RunningCommand::start(&start, cwd, &env, callbacks),
     };
     let running = launched.map_err(|e| {
         (
@@ -517,6 +556,8 @@ mod tests {
             ready_path: "/health".into(),
             env: BTreeMap::new(),
             port_env: "PORT".into(),
+            port_args: None,
+            fixed_port: false,
         }
     }
 

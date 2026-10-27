@@ -8,13 +8,14 @@
 //   node run.mjs test <spec.json>       → writes the outcome to spec.out
 //
 // A UI test is an ES module in the workspace whose default export gets a fresh page:
-//   export default async function ({ page }) { await page.goto("/"); … }
+//   export default async function ({ page, mountUrl }) { await page.goto("/"); … }
+// `mountUrl` is the page beside it (x.ui.mjs → /…/x.html) that mounts one component alone (#92).
 // It fails by throwing (node:assert, or a locator that never appears).
 
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const require = createRequire(import.meta.url);
@@ -88,7 +89,12 @@ function describe(error, file) {
   return [message.trim(), ...at.map((l) => l.trim())].join("\n");
 }
 
-async function runTest(browser, baseUrl, file, timeoutMs) {
+/** The mount page served next to a test: <root>/.knyc-checks/a.ui.mjs → /.knyc-checks/a.html. */
+export function mountUrlOf(root, file) {
+  return `/${relative(root, file).replace(/\\/g, "/").replace(/\.ui\.mjs$/, ".html")}`;
+}
+
+async function runTest(browser, baseUrl, file, timeoutMs, root) {
   const started = Date.now();
   const context = await browser.newContext({ baseURL: baseUrl, viewport: { width: 1280, height: 720 } });
   const page = await context.newPage();
@@ -103,7 +109,7 @@ async function runTest(browser, baseUrl, file, timeoutMs) {
     let timer;
     const limit = new Promise((_, reject) => (timer = setTimeout(() => reject(new Error(`the test didn't finish within ${timeoutMs / 1000} s`)), timeoutMs)));
     try {
-      await Promise.race([test({ page, baseUrl }), limit]);
+      await Promise.race([test({ page, baseUrl, mountUrl: root ? mountUrlOf(root, file) : undefined }), limit]);
     } finally {
       clearTimeout(timer);
     }
@@ -139,7 +145,7 @@ async function test(specFile) {
   }
   try {
     const tests = [];
-    for (const file of spec.tests) tests.push(await runTest(browser, spec.baseUrl, file, spec.timeoutMs ?? 30_000));
+    for (const file of spec.tests) tests.push(await runTest(browser, spec.baseUrl, file, spec.timeoutMs ?? 30_000, spec.root));
     write({ status: tests.every((t) => t.status === "pass") ? "pass" : "fail", tests });
   } finally {
     await browser.close().catch(() => {});

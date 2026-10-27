@@ -22,6 +22,8 @@ Options:
   --summaries <model>   model for summaries (default: haiku)
   --planning <model>    model for the learning path (default: sonnet)
   --checks <model>      model for generated checks (default: sonnet)
+  --browsers <folder>   where Chromium is, for UI checks of frontend steps (Playwright's
+                        folder; default: $KNYC_BROWSERS; without it, no UI checks)
   -y, --yes             don't ask for confirmation after the estimate
   -h, --help            show this help
 
@@ -39,6 +41,8 @@ export interface ParsedArgs {
   workspace?: string;
   models: { summaries: string; planning: string; checks: string };
   yes: boolean;
+  /** Chromium for UI checks (#92). */
+  browsers?: string;
 }
 
 export function parse(argv: string[]): ParsedArgs {
@@ -53,6 +57,7 @@ export function parse(argv: string[]): ParsedArgs {
       summaries: { type: "string", default: "haiku" },
       planning: { type: "string", default: "sonnet" },
       checks: { type: "string", default: "sonnet" },
+      browsers: { type: "string" },
       yes: { type: "boolean", short: "y", default: false },
       help: { type: "boolean", short: "h", default: false },
     },
@@ -76,6 +81,7 @@ export function parse(argv: string[]): ParsedArgs {
     workspace: values.workspace,
     models: { summaries: values.summaries!, planning: values.planning!, checks: values.checks! },
     yes: values.yes!,
+    ...((values.browsers ?? process.env.KNYC_BROWSERS) ? { browsers: values.browsers ?? process.env.KNYC_BROWSERS } : {}),
   };
 }
 
@@ -106,7 +112,7 @@ async function main() {
     return;
   }
   if (args.command === "eval") {
-    const results = await evaluate(args.folders!, { track: args.track, size: args.size, models: args.models, yes: true, out: args.out! }, {
+    const results = await evaluate(args.folders!, { track: args.track, size: args.size, models: args.models, yes: true, out: args.out!, ...(args.browsers ? { browsers: args.browsers } : {}) }, {
       log: (line) => console.log(line),
       confirm: async () => true,
     });
@@ -117,7 +123,7 @@ ${renderEvaluation(results)}`);
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   try {
     await analyze(
-      { folder: args.folder!, track: args.track, size: args.size, workspace: args.workspace, models: args.models, yes: args.yes },
+      { folder: args.folder!, track: args.track, size: args.size, workspace: args.workspace, models: args.models, yes: args.yes, ...(args.browsers ? { browsers: args.browsers } : {}) },
       {
         log: (line) => console.log(line),
         confirm: async (question) => {

@@ -282,6 +282,23 @@ describe("every step has behavior (design/08, improvement 1)", () => {
     expect(flagged("express-shop")).toEqual([]);
   });
 
+  it("offers \"ui\" only on a frontend profile's path (#92)", () => {
+    const range = stepRange("overview", behaviorCount(notesUnits));
+    const withStrategy = (checkStrategy: string) => {
+      const plan = notesPlan();
+      plan.milestones[0]!.steps[0]!.checkStrategy = checkStrategy as never;
+      return plan;
+    };
+    const issues = (result: { success: boolean; error?: { issues: { path: PropertyKey[] }[] } }) => (result.error?.issues ?? []).filter((i) => i.path.includes("checkStrategy"));
+    expect(issues(planSchema(notesUnits, range).safeParse(withStrategy("ui")))).not.toHaveLength(0);
+    expect(issues(planSchema(notesUnits, range, 20, true).safeParse(withStrategy("ui")))).toHaveLength(0);
+    // Generated unit tests import compiled files; a Vite build is a bundle.
+    expect(issues(planSchema(notesUnits, range, 20, true).safeParse(withStrategy("unit-test")))).not.toHaveLength(0);
+    const input = { track: "frontend" as const, size: "overview" as const, units: notesUnits, summaries: summaries("express-notes"), hasTests: true };
+    expect(planPrompt({ ...input, profile: profiles.react })).toContain('Use "ui" for a step whose result shows in the browser');
+    expect(planPrompt({ ...input, track: "backend", profile: profiles.express })).toContain('The project has its own test suite: prefer "existing-tests" where its tests cover the step.');
+  });
+
   it("sends such steps back to the AI, and refuses them in a new path", () => {
     const plan = notesPlan();
     // Interfaces alone, then the store that uses them.

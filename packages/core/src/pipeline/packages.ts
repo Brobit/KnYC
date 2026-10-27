@@ -2,6 +2,7 @@
 // npm / yarn / pnpm workspaces. Each package installs, builds and runs its tests in its own folder;
 // a workspace root installs once for all of them (and builds them all when it has a build script).
 
+import { profiles } from "../profiles/index.ts";
 import type { Scan } from "../sys/knyc-sys.ts";
 
 /** A project's commands per package: the scan's, or project.json's (which leave out empty ones). */
@@ -16,12 +17,19 @@ export interface PackageCommand {
 /**
  * The scan's commands, ready to run: in a workspace, the root's install covers every package, and
  * its build (when it has one) builds them all, so the packages' own installs and builds go.
+ * A package whose framework builds differently step by step (React: a type check, #92) builds
+ * with that, and then each package builds on its own.
  */
-export function packageCommands(scan: Pick<Scan, "commands" | "packages">): PackageCommands {
+export function packageCommands(scan: Pick<Scan, "commands" | "packages"> & { frameworks?: Scan["frameworks"] }): PackageCommands {
+  const stepBuilds = new Map((scan.frameworks ?? []).flatMap((f) => (profiles[f.profileId]?.stepBuild ? [[f.root, profiles[f.profileId]!.stepBuild!] as const] : [])));
+  const commands = scan.commands.map((c) => (c.build && stepBuilds.has(c.root) ? { ...c, build: stepBuilds.get(c.root)! } : c));
   const workspace = (scan.packages ?? []).some((p) => p.root === "." && (p as { workspaces?: boolean }).workspaces === true);
-  const root = scan.commands.find((c) => c.root === ".");
-  if (!workspace || !root) return scan.commands;
-  return scan.commands.map((c) => (c.root === "." ? c : { ...c, install: root.install ? null : c.install, build: root.build ? null : c.build }));
+  const root = commands.find((c) => c.root === ".");
+  if (!workspace || !root) return commands;
+  const rootBuildsAll = !!root.build && stepBuilds.size === 0;
+  return commands.map((c) =>
+    c.root === "." ? (rootBuildsAll || !root.build ? c : { ...c, build: null }) : { ...c, install: root.install ? null : c.install, build: rootBuildsAll ? null : c.build },
+  );
 }
 
 const each = (commands: PackageCommands, key: "install" | "build"): PackageCommand[] =>

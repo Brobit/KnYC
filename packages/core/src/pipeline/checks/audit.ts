@@ -14,6 +14,10 @@ export interface CheckAudit {
 
 const ASSERTION = /\bassert(?:\.(\w+))?\s*\(([^;]*)/g;
 const EXISTENCE = /typeof\s|instanceof\s+Function|\bin\s+\w+\)|Object\.keys\(|!==?\s*undefined|!=\s*null/;
+// A UI check (#92) also asserts by waiting for what the page shows; waiting for the page's own
+// frame (#root, body, main) only says that something rendered.
+const WAIT_FOR = /\.(getBy\w+|locator)\(([^;]*?)\)[^;]*?\.waitFor\(/g;
+const FRAME = /^\s*["'`](?:#root|body|html|main)["'`]\s*$/;
 
 /** Counts assertions in a check file and how many only test that something exists. */
 export function auditCheck(code: string): CheckAudit {
@@ -30,6 +34,10 @@ export function auditCheck(code: string): CheckAudit {
     const isOk = method === "ok" || method === "strictEqual" || method === "equal";
     // assert.ok(x), assert.ok(typeof f === "function"), assert.equal(typeof f, "function")
     if ((isOk && EXISTENCE.test(args)) || (method === "ok" && /^\s*[\w.$]+\s*[,)]/.test(args))) existenceOnly += 1;
+  }
+  for (const match of code.matchAll(WAIT_FOR)) {
+    assertions += 1;
+    if (match[1] === "locator" && FRAME.test(match[2]!)) existenceOnly += 1;
   }
   return { kind: assertions > existenceOnly ? "behavior" : "trivial", assertions, existenceOnly };
 }

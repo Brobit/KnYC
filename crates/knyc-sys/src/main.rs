@@ -126,6 +126,8 @@ enum Commands {
 struct UiSpec {
     server: knyc_runner::http::ServerSpec,
     tests: Vec<PathBuf>,
+    #[serde(default)]
+    companions: Vec<knyc_runner::ui::Companion>,
 }
 
 /// The UI runner given, or the one of this checkout (next to the knyc-sys executable's repo).
@@ -253,8 +255,9 @@ fn main() -> Result<()> {
         } => {
             let spec: UiSpec = serde_json::from_str(&spec)?;
             print(
-                &knyc_runner::ui::run_ui_check(
+                &knyc_runner::ui::run_ui_check_with(
                     &spec.server,
+                    &spec.companions,
                     &spec.tests,
                     &cwd,
                     &ui_runner(runner, browsers)?,

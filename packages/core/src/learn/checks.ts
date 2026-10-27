@@ -50,7 +50,7 @@ export interface RunStepChecksInput {
   runHttp?: (request: { root: string; timeoutMs: number; server: HttpServer; requests: HttpRequest[] }) => Promise<HttpOutcome>;
   /** Runs UI tests in Chromium against the project's frontend (src-tauri `workspace_ui_check`, #89);
    * `files` are relative to the workspace. */
-  runUi?: (request: { root: string; timeoutMs: number; server: HttpServer; files: string[] }) => Promise<UiOutcome>;
+  runUi?: (request: { root: string; timeoutMs: number; server: HttpServer; files: string[]; companions?: (HttpServer & { root: string })[] }) => Promise<UiOutcome>;
   now?: () => Date;
 }
 
@@ -220,7 +220,9 @@ export async function runStepChecks(input: RunStepChecksInput): Promise<CheckRun
       } else if (spec.kind === "ui" && input.runUi) {
         // The UI tests are in the workspace only while they run (#89), like generated tests.
         for (const file of spec.files) await copy(paths.checkFile(file), file);
-        const outcome = await input.runUi({ root: spec.server.root, timeoutMs: check.timeoutMs, server: spec.server, files: spec.files });
+        // The tests themselves; a mount page and its module (#92) are only served.
+        const tests = spec.files.filter((f) => f.endsWith(".ui.mjs"));
+        const outcome = await input.runUi({ root: spec.server.root, timeoutMs: check.timeoutMs, server: spec.server, files: tests.length > 0 ? tests : spec.files, ...(spec.companions?.length ? { companions: spec.companions } : {}) });
         const result = uiRun(check.id, outcome, at());
         results.set(check.id, result);
         input.onResult?.(result);

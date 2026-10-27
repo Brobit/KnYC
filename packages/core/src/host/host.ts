@@ -49,6 +49,8 @@ export type SysRequest =
       /** KnYC's Chromium folder; the app always uses its own and ignores this. */
       browsers?: string;
       container?: Container;
+      /** Servers started first (the original backend, #92), each in its absolute folder. */
+      companions?: (HttpServer & { cwd: string })[];
     }
   | {
       /** Chromium for the UI checks (#89). */
@@ -80,6 +82,10 @@ export interface HttpServer {
   env?: Record<string, string>;
   /** Default "PORT". */
   portEnv?: string;
+  /** Arguments added to `start`, "{port}" replaced, for servers that ignore `portEnv` (Vite, #92). */
+  portArgs?: string;
+  /** Start on `port` itself, not a free one: the backend a frontend's dev proxy expects (#92). */
+  fixedPort?: boolean;
 }
 
 export interface HttpRequest {

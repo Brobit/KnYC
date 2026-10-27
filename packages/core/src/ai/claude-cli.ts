@@ -52,7 +52,9 @@ export class ClaudeCliProvider implements AiProvider {
       const result = await run(program, [...lead, ...claudeArgs(request)], request.prompt, cwd, request.timeoutMs);
       return interpretClaudeRun(result, request.timeoutMs);
     } finally {
-      await rm(cwd, { recursive: true, force: true });
+      // Windows can still hold the folder for a moment after the CLI exits (EBUSY); an empty
+      // folder left in the temp directory is harmless, an answer lost to it isn't.
+      await rm(cwd, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }).catch(() => {});
     }
   }
 }

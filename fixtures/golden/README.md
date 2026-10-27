@@ -9,6 +9,7 @@ Every change to the analysis pipeline is re-run on them and measured (issue #15)
 | [`express-shop`](express-shop/) | medium, ~850 lines, 8 modules | 16 | Auth, DI container, cross-module dependencies, business rules |
 | [`nest-tasks`](nest-tasks/) | small, ~300 lines, NestJS 12 | 14 (Vitest + supertest) | Modules, DI with a token, a pipe and a guard (#96) |
 | [`fastify-links`](fastify-links/) | small, ~250 lines, Fastify 5 | 10 (Vitest + app.inject) | Plugins, decorators with module augmentation, hooks, route schemas (#97) |
+| [`fullstack-notes`](fullstack-notes/) | small, ~350 lines, React (Vite) + Express, 2 packages | 9 (Vitest + supertest) | The frontend track against the original API, UI checks, mount pages (#92) |
 | [`express-no-tests`](express-no-tests/) | small, ~250 lines | none | Generated checks only (HTTP requests, commands) |
 
 They are plain npm projects (not part of the pnpm workspace), like most projects users will import.

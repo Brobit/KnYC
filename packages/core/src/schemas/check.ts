@@ -9,6 +9,10 @@ export const server = z.object({
   env: z.record(z.string(), z.string()).optional(),
   /** Environment variable the server reads its port from (the profile's; default PORT). */
   portEnv: z.string().optional(),
+  /** Arguments added to start, "{port}" replaced (Vite's " -- --port {port} --strictPort", #92). */
+  portArgs: z.string().optional(),
+  /** Start on `port` itself: a backend the frontend's dev proxy expects there (#92). */
+  fixedPort: z.boolean().optional(),
 });
 
 export const httpExpectation = z.object({
@@ -38,7 +42,13 @@ export const checkSpec = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("http"), server, requests: z.array(httpExpectation).min(1) }),
   /** UI tests in headless Chromium against the running frontend (#89); like a generated test's
    * files, they are copied into the workspace only while they run. */
-  z.object({ kind: z.literal("ui"), server, files: z.array(z.string()).min(1) }),
+  z.object({
+    kind: z.literal("ui"),
+    server,
+    files: z.array(z.string()).min(1),
+    /** Started before the frontend: the original backend its dev proxy calls (#92). */
+    companions: z.array(server).optional(),
+  }),
   z.object({
     kind: z.literal("command"),
     command: z.string().min(1),

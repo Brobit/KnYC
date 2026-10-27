@@ -41,8 +41,8 @@ export async function evaluateProject(options: AnalyzeOptions, io: AnalyzeIo): P
 
     const audits = new Map(
       result.checks
-        .filter((c) => c.origin === "generated" && c.spec.kind === "test" && c.validation)
-        .map((c) => [c.id, auditCheck(result.checkFiles.get(c.spec.kind === "test" ? c.spec.files[0]! : "") ?? "")]),
+        .filter((c) => c.origin === "generated" && (c.spec.kind === "test" || c.spec.kind === "ui") && c.validation)
+        .map((c) => [c.id, auditCheck(result.checkFiles.get(c.spec.kind === "test" || c.spec.kind === "ui" ? c.spec.files[0]! : "") ?? "")]),
     );
     let proven = 0;
     let trivialOnly = 0;

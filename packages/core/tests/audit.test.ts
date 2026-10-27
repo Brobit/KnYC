@@ -18,6 +18,14 @@ assert.throws(() => cart.setQuantity('u1', 'p', 1), /not in the cart/);`;
     expect(auditCheck(typeofOnly)).toEqual({ kind: "trivial", assertions: 2, existenceOnly: 2 });
   });
 
+  it("reads a UI check's waits as assertions, except waits for the page's frame (#92)", () => {
+    const shows = `await page.goto(mountUrl);\nawait page.getByText('No notes yet.').waitFor();`;
+    const frameOnly = `await page.goto("/");\nconst root = page.locator("#root");\nawait page.locator("#root").waitFor();`;
+    expect(auditCheck(shows)).toEqual({ kind: "behavior", assertions: 1, existenceOnly: 0 });
+    expect(auditCheck(frameOnly)).toEqual({ kind: "trivial", assertions: 1, existenceOnly: 1 });
+    expect(auditCheck(`await page.getByRole("heading", { name: "Notes" }).waitFor();\nassert.ok(count > 0, "mounted");`).kind).toBe("behavior");
+  });
+
   it("matches the three trivial checks found in the real M1 runs", () => {
     const labels: string[] = [];
     for (const name of ["express-notes", "express-no-tests", "express-shop"]) {
