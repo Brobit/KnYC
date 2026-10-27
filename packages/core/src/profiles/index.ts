@@ -2,6 +2,7 @@
 // PROFILES, plus its golden repo. A project no profile knows gets the generic one.
 
 import { express } from "./express.ts";
+import { fastify } from "./fastify.ts";
 import { nestjs } from "./nestjs.ts";
 import { generic } from "./generic.ts";
 import { matchesGlob } from "./glob.ts";
@@ -11,7 +12,7 @@ export type { FileTrack, Profile, TrackRule } from "./types.ts";
 export { generic } from "./generic.ts";
 export { globToRegExp, matchesGlob } from "./glob.ts";
 
-export const PROFILES: Profile[] = [express, nestjs];
+export const PROFILES: Profile[] = [express, nestjs, fastify];
 
 /** Profiles by the scan's framework id. */
 export const profiles: Record<string, Profile> = Object.fromEntries(PROFILES.map((p) => [p.id, p]));

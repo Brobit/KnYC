@@ -39,6 +39,9 @@ pub struct FileNode {
     pub imports: Vec<FileImport>,
     pub exports: Vec<String>,
     pub symbols: Vec<Symbol>,
+    /// Members the file adds to other types (module augmentation).
+    #[serde(skip)]
+    pub augments: BTreeSet<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -100,6 +103,7 @@ pub fn from_walk(walked: &Walk) -> anyhow::Result<Graph> {
             exports,
             symbols,
             has_errors,
+            augments,
         } = parse::parse(lang, &source)?;
         let imports = imports
             .into_iter()
@@ -129,6 +133,7 @@ pub fn from_walk(walked: &Walk) -> anyhow::Result<Graph> {
             imports,
             exports,
             symbols,
+            augments,
         });
     }
 
@@ -305,6 +310,40 @@ fn symbol_edges(files: &[FileNode]) -> Vec<(String, String)> {
             }
         }
     }
+    // Module augmentation: `app.links` exists because a plugin's `declare module "fastify"` adds
+    // it and the plugin decorates the app with it, so what uses the member needs that file's code
+    // (its exported functions, classes and values). A file that imports it is already ordered
+    // after it, and `this.links` is the class's own field.
+    for file in files {
+        let imported: BTreeSet<&str> = file
+            .imports
+            .iter()
+            .filter_map(|i| i.resolved.as_deref())
+            .collect();
+        for sym in &file.symbols {
+            for other in files
+                .iter()
+                .filter(|o| o.path != file.path && !o.test && !imported.contains(o.path.as_str()))
+            {
+                if !sym.outer_members.iter().any(|m| other.augments.contains(m)) {
+                    continue;
+                }
+                let from = format!("{}#{}", file.path, sym.name);
+                for target in other.symbols.iter().filter(|t| {
+                    t.exported
+                        && !t.name.contains('.')
+                        && matches!(
+                            t.kind,
+                            parse::SymbolKind::Function
+                                | parse::SymbolKind::Class
+                                | parse::SymbolKind::Variable
+                        )
+                }) {
+                    edges.insert((from.clone(), format!("{}#{}", other.path, target.name)));
+                }
+            }
+        }
+    }
     edges.into_iter().collect()
 }
 
@@ -466,6 +505,42 @@ mod tests {
         assert_eq!(resolve("src/b.ts", "./missing", &known), None);
         assert_eq!(package_name("@nestjs/core/injector"), "@nestjs/core");
         assert_eq!(package_name("express"), "express");
+    }
+
+    #[test]
+    fn module_augmentations_order_what_uses_them() {
+        let dir = project(&[
+            (
+                "src/store.ts",
+                "export class LinksStore { private links = new Map(); size() { return this.links.size; } }
+",
+            ),
+            (
+                "src/plugin.ts",
+                "import { LinksStore } from './store.js';
+declare module 'fastify' { interface FastifyInstance { links: LinksStore } }
+export const storePlugin = async (app: any) => { app.decorate('links', new LinksStore()); };
+",
+            ),
+            (
+                "src/routes.ts",
+                "export const routes = async (app: any) => { app.get('/', async () => app.links.size()); };
+",
+            ),
+        ]);
+        let g = build(dir.path()).unwrap();
+        // The routes use app.links, which only the plugin adds.
+        assert!(g.symbol_edges.contains(&(
+            "src/routes.ts#routes".into(),
+            "src/plugin.ts#storePlugin".into()
+        )));
+        // this.links is the store's own field, not the augmented member.
+        assert!(
+            !g.symbol_edges
+                .iter()
+                .any(|(from, to)| from.starts_with("src/store.ts")
+                    && to.starts_with("src/plugin.ts"))
+        );
     }
 
     #[test]

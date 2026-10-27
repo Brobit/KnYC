@@ -1,0 +1,23 @@
+{
+  "name": "fastify-links",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A small link shortener API in Fastify: plugins, decorators, hooks and route schemas (KnYC golden fixture).",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "fastify": "^5.12.7",
+    "fastify-plugin": "^6.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}

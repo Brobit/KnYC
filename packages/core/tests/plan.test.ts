@@ -64,6 +64,26 @@ describe("units from the real graphs", () => {
     expect(notesUnits.needs.get("src/server.ts")).toEqual(new Set(["src/app.ts#createApp", "src/config.ts#loadConfig"]));
   });
 
+  it("maps a value of a whole-file unit to that file (#97: a Fastify plugin file)", () => {
+    const plugin = graphSchema.parse({
+      version: 1,
+      root: "/p",
+      files: [
+        { path: "src/plugin.ts", language: "typescript", loc: 3, test: false, parseErrors: false, imports: [], exports: ["storePlugin"], symbols: [{ name: "storePlugin", kind: "variable", exported: true, startLine: 1, endLine: 3 }] },
+        { path: "src/app.ts", language: "typescript", loc: 3, test: false, parseErrors: false, imports: [], exports: ["buildApp"], symbols: [{ name: "buildApp", kind: "function", exported: true, startLine: 1, endLine: 3 }] },
+      ],
+      edges: [],
+      symbolEdges: [["src/app.ts#buildApp", "src/plugin.ts#storePlugin"]],
+      layers: [["src/plugin.ts"], ["src/app.ts"]],
+      cycles: [],
+      external: {},
+      unresolved: [],
+    });
+    const units = buildUnits(plugin);
+    expect(units.byId.get("src/plugin.ts")?.kind).toBe("file");
+    expect(units.needs.get("src/app.ts#buildApp")).toEqual(new Set(["src/plugin.ts"]));
+  });
+
   it("knows that checkout needs reserveStock through an injected service", () => {
     expect(shopUnits.needs.get("src/orders/orders.service.ts#OrdersService.checkout")).toContain(
       "src/products/products.service.ts#ProductsService.reserveStock",
