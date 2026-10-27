@@ -9,16 +9,15 @@ import {
   browserStatus,
   buildUnits,
   describeUiProblem,
-  generic,
   graphProject,
   knycPaths,
   learningPath,
   prepareChecks,
-  profiles,
   runCommand,
   runStepChecks,
   runUiCheck,
   scanProject,
+  uiCandidateFiles,
   uiChecksPrompt,
   uiRun,
   uiTestModule,
@@ -57,8 +56,23 @@ describe("UI checks (#89)", () => {
   it("wrap the model's test body in a module the runner calls with a page", () => {
     const code = uiTestModule("Add increments the count", 'await page.goto("/");\nawait page.getByRole("button", { name: "Add" }).click();');
     expect(code).toBe(
-      '// KnYC UI check: Add increments the count\nimport assert from "node:assert/strict";\n\nexport default async function ({ page }) {\n  await page.goto("/");\n  await page.getByRole("button", { name: "Add" }).click();\n}\n',
+      '// KnYC UI check: Add increments the count\nimport assert from "node:assert/strict";\n\nexport default async function ({ page, mountUrl }) {\n  await page.goto("/");\n  await page.getByRole("button", { name: "Add" }).click();\n}\n',
     );
+  });
+
+  it("can mount a component alone, on a page beside the test (#92)", () => {
+    const files = uiCandidateFiles(".knyc-checks/s04-ui-1-1", "NoteItem shows its title", 'await page.goto(mountUrl);\nawait page.getByText("Buy milk").waitFor();', 'import { createRoot } from "react-dom/client";\n');
+    expect(files.map((f) => f.path)).toEqual([".knyc-checks/s04-ui-1-1.ui.mjs", ".knyc-checks/s04-ui-1-1.html", ".knyc-checks/s04-ui-1-1.mount.tsx"]);
+    expect(files[1]!.code).toContain('<div id="root"></div><script type="module" src="./s04-ui-1-1.mount.tsx"></script>');
+    expect(files[2]!.code).toBe('// KnYC mount page for: NoteItem shows its title\nimport { createRoot } from "react-dom/client";\n');
+    expect(uiCandidateFiles(".knyc-checks/s09-ui-1-1", "x", "await page.goto('/');")).toHaveLength(1);
+
+    const ctx = { step: { id: "s04", title: "Note item", goal: "A note shows its title" } as never, diff: "", importPaths: new Map(), dependencies: [], exports: new Map(), context: new Map() };
+    expect(uiChecksPrompt(ctx)).not.toContain("also write `mount`");
+    const mounts = new Map([["apps/web/src/components/NoteItem.tsx", "../src/components/NoteItem"]]);
+    expect(uiChecksPrompt(ctx, [], mounts)).toContain('- apps/web/src/components/NoteItem.tsx: "../src/components/NoteItem"');
+    expect(uiChecksPrompt(ctx, [], mounts)).not.toContain("its own page is empty");
+    expect(uiChecksPrompt(ctx, [], mounts, false)).toContain("its own page is empty at this step, so every check here uses a mount page");
   });
 
   it("ask for tests a user could do, on what the step makes visible", () => {
@@ -137,7 +151,7 @@ describe("UI checks (#89)", () => {
       "--timeout-ms",
       "90000",
       "--spec",
-      JSON.stringify({ server, tests: ["/w/.knyc-checks/a.ui.mjs"] }),
+      JSON.stringify({ server, tests: ["/w/.knyc-checks/a.ui.mjs"], companions: [] }),
       "--browsers",
       "/data/browsers",
     ]);
@@ -174,7 +188,6 @@ describe.skipIf(!chromium)("a React step checked in Chromium (#89 Done when)", (
   // The long path: Vite refuses files under a Windows short name (ALANNM~1) as outside its root.
   const dir = realpathSync.native(mkdtempSync(join(tmpdir(), "knyc-ui-")));
   afterAll(() => {
-    delete profiles.react;
     rmSync(dir, { recursive: true, force: true });
   });
 
@@ -199,8 +212,6 @@ describe.skipIf(!chromium)("a React step checked in Chromium (#89 Done when)", (
     const host = new NodeHost({ binary: knycSys });
     const scan = await scanProject(host, ref, { toolchains: false });
     const graph = await graphProject(host, ref);
-    // A stand-in until the React profile (#92): how to start the frontend.
-    profiles.react = { ...generic, id: "react", label: "React", kind: "frontend", run: { scripts: ["dev"], readyPaths: ["/"], port: 5173, portEnv: "PORT" } };
 
     const units = buildUnits(graph);
     const inStep2 = (file: string) => file === "src/App.jsx" || file === "src/main.jsx";

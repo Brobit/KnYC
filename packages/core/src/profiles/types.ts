@@ -40,7 +40,14 @@ export interface Profile {
     readyPaths: string[];
     /** The port the server listens on when it ignores `portEnv` (Vite: 5173). Default 3000. */
     port?: number;
+    /** Arguments that give the server its port, "{port}" replaced (Vite: " -- --port {port} --strictPort"). */
+    portArgs?: string;
   };
+  /**
+   * How a package of this framework builds at each step, when its own build needs code that only
+   * comes last (Vite bundles from main.tsx, which mounts everything): React type-checks (#92).
+   */
+  stepBuild?: string;
   /** Architecture notes lessons can use ("a router is mounted on a path prefix…"). */
   lessonHints: string[];
 }

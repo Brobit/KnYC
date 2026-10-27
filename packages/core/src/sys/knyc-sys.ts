@@ -202,8 +202,17 @@ export const uiOutcomeSchema = z.object({
 export type UiOutcome = z.infer<typeof uiOutcomeSchema>;
 
 /** Runs UI tests in headless Chromium through knyc-sys (#89), against the frontend started in `cwd`. */
-export function runUiCheck(host: Host, cwd: string, server: HttpServer, tests: string[], browsers: string | undefined, timeoutMs = 60_000, container?: Container) {
-  return knycSys(host, { op: "ui", cwd, timeoutMs, server, tests, browsers, ...(container ? { container } : {}) }, uiOutcomeSchema);
+export function runUiCheck(
+  host: Host,
+  cwd: string,
+  server: HttpServer,
+  tests: string[],
+  browsers: string | undefined,
+  timeoutMs = 60_000,
+  container?: Container,
+  companions: (HttpServer & { cwd: string })[] = [],
+) {
+  return knycSys(host, { op: "ui", cwd, timeoutMs, server, tests, browsers, ...(container ? { container } : {}), ...(companions.length > 0 ? { companions } : {}) }, uiOutcomeSchema);
 }
 
 export const browserStatusSchema = z.object({ installed: z.boolean(), revision: z.string().optional() });

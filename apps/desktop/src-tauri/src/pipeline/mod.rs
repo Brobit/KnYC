@@ -65,6 +65,9 @@ pub enum SysRequest {
         timeout_ms: u64,
         server: knyc_runner::http::ServerSpec,
         tests: Vec<String>,
+        /// Servers started first (the original backend, #92), each in its sandbox folder.
+        #[serde(default)]
+        companions: Vec<knyc_runner::ui::Companion>,
         #[allow(dead_code)]
         browsers: Option<String>,
     },
@@ -248,6 +251,7 @@ pub fn sys(scope: &PipelineScope, request: SysRequest) -> Result<serde_json::Val
             timeout_ms,
             server,
             tests,
+            companions,
             browsers: _,
         } => {
             let cwd = scoped(scope.writable(&cwd))?;
@@ -255,9 +259,17 @@ pub fn sys(scope: &PipelineScope, request: SysRequest) -> Result<serde_json::Val
                 .iter()
                 .map(|t| scoped(scope.writable(t)))
                 .collect::<Result<Vec<_>, _>>()?;
+            let companions = companions
+                .into_iter()
+                .map(|c| {
+                    let cwd = scoped(scope.writable(&c.cwd.to_string_lossy()))?;
+                    Ok(knyc_runner::ui::Companion { cwd, ..c })
+                })
+                .collect::<Result<Vec<_>, String>>()?;
             let runner = crate::browser::ui_runner(scope.data())?;
-            json(serde_json::to_value(knyc_runner::ui::run_ui_check(
+            json(serde_json::to_value(knyc_runner::ui::run_ui_check_with(
                 &server,
+                &companions,
                 &tests,
                 &cwd,
                 &runner,

@@ -61,7 +61,7 @@ export function sysArgs(request: SysRequest): string[] {
         "--timeout-ms",
         String(request.timeoutMs),
         "--spec",
-        JSON.stringify({ server: request.server, tests: request.tests }),
+        JSON.stringify({ server: request.server, tests: request.tests, companions: request.companions ?? [] }),
         "--browsers",
         request.browsers,
         ...(request.container ? ["--docker-image", request.container.image, "--mount", request.container.mount] : []),

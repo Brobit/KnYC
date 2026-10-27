@@ -4,6 +4,7 @@
 import { express } from "./express.ts";
 import { fastify } from "./fastify.ts";
 import { nestjs } from "./nestjs.ts";
+import { react } from "./react.ts";
 import { generic } from "./generic.ts";
 import { matchesGlob } from "./glob.ts";
 import type { FileTrack, Profile } from "./types.ts";
@@ -12,7 +13,7 @@ export type { FileTrack, Profile, TrackRule } from "./types.ts";
 export { generic } from "./generic.ts";
 export { globToRegExp, matchesGlob } from "./glob.ts";
 
-export const PROFILES: Profile[] = [express, nestjs, fastify];
+export const PROFILES: Profile[] = [express, nestjs, fastify, react];
 
 /** Profiles by the scan's framework id. */
 export const profiles: Record<string, Profile> = Object.fromEntries(PROFILES.map((p) => [p.id, p]));
@@ -28,6 +29,16 @@ export const isFrontendFramework = (id: string) => profiles[id]?.kind === "front
 /** The profile of a project, from the scan's frameworks ("express 4.21" or "express"); generic when none is known. */
 export function profileFor(frameworks: string[]): Profile {
   return frameworks.map((f) => profiles[f.split(" ")[0]!]).find((p): p is Profile => p !== undefined) ?? generic;
+}
+
+/**
+ * The profile a track's path follows (#92): in a React web app with an Express API, the frontend
+ * path is React's and the backend path Express's; the full project, or a track no framework has,
+ * gets `profileFor`.
+ */
+export function profileForTrack(frameworks: string[], track: string): Profile {
+  const known = frameworks.map((f) => profiles[f.split(" ")[0]!]).filter((p): p is Profile => p !== undefined);
+  return (track === "frontend" || track === "backend" ? known.find((p) => p.kind === track) : undefined) ?? profileFor(frameworks);
 }
 
 /** A label for a framework id, known or not ("express" → "Express", "koa" → "Koa"). */

@@ -331,6 +331,8 @@ mod docker_tests {
             ready_path: "/".into(),
             env: Default::default(),
             port_env: "PORT".into(),
+            port_args: None,
+            fixed_port: false,
         };
         let request = HttpRequestSpec {
             method: "GET".into(),

@@ -16,7 +16,7 @@ import type { Summaries } from "../pipeline/summaries.ts";
 import { buildTimeline, type Timeline } from "../pipeline/timeline.ts";
 import { classifyLeftovers, extractContracts, splitByRules, unitsForTrack, type TrackSplit } from "../pipeline/tracks.ts";
 import { buildUnits, type Units } from "../pipeline/units.ts";
-import { profileFor } from "../profiles/index.ts";
+import { profileForTrack } from "../profiles/index.ts";
 import type { Check } from "../schemas/check.ts";
 import type { Job, PathChoice } from "../schemas/job.ts";
 import { learningPath, type LearningPath } from "../schemas/learning-path.ts";
@@ -135,7 +135,7 @@ export function pathStages(job: Job, deps: AnalysisDependencies & { pipeline?: P
         const others = choice.track === "full" ? [] : split.contracts.filter((c) => c.track !== choice.track);
         const planned = await pipeline.plan(
           client,
-          { track: choice.track, size: choice.size, units, summaries, profile: profileFor(facts.frameworks), hasTests: scan.testRunners.length > 0, otherTracks: others },
+          { track: choice.track, size: choice.size, units, summaries, profile: profileForTrack(facts.frameworks, choice.track), hasTests: scan.testRunners.length > 0, otherTracks: others },
           deps.roles.planning,
         );
         await save(paths.path, learningPath.parse({ ...planned, id: pathIdFor(choice), setupAsStep: choice.setupAsStep, status: "preparing" }));

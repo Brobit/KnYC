@@ -9,7 +9,7 @@ import type { AiClient } from "../../ai/client.ts";
 import { AiError } from "../../ai/types.ts";
 import { joinPath, type Host, type HttpRequest } from "../../host/host.ts";
 import { checkSources } from "../../learn/lesson.ts";
-import { profileFor } from "../../profiles/index.ts";
+import { profileForTrack, profiles } from "../../profiles/index.ts";
 import type { Check } from "../../schemas/check.ts";
 
 /** The server an HTTP check starts (check schema `server`). */
@@ -24,7 +24,7 @@ import { mapTests, runSuiteAtStep, suitesOf, type SuiteRun, type TestMapping } f
 import { fragileCheck } from "./audit.ts";
 import { goalFromChecks } from "./goal.ts";
 import { askForHttpChecks, describeHttpProblem, type HttpCandidate } from "./http.ts";
-import { askForUiChecks, describeUiProblem, uiTestModule, type UiCandidate } from "./ui.ts";
+import { askForUiChecks, describeUiProblem, uiCandidateFiles, type UiCandidate } from "./ui.ts";
 import { askForChecks, checkCommand, CHECKS_DIR, describeProblem, relativeImport, runCandidate, type CandidateCheck, type StepContext } from "./generated.ts";
 
 export interface StepChecks {
@@ -123,7 +123,8 @@ export async function prepareChecks(
   const units = options.units ?? buildUnits(graph);
   const stepOf = stepOfUnits(path, units);
   const graphFiles = new Map(graph.files.map((f) => [f.path, f]));
-  const profile = profileFor(scan.frameworks.map((f) => f.profileId));
+  // The path's track decides: a React frontend path in a repo with an Express API is React's (#92).
+  const profile = profileForTrack(scan.frameworks.map((f) => f.profileId), path.trackId);
 
   /** What each existing module exports at step k: names the model must use. */
   const exportsAt = (k: number, sources: string[]) =>
@@ -265,8 +266,25 @@ export async function prepareChecks(
    * step and Chromium is downloaded: Playwright tests proven red → green against it in headless
    * Chromium, and still green at the last step. Null when the step should get generated tests.
    */
-  async function uiChecksFor(step: Step, tag: string, entry: StepChecks): Promise<{ server: HttpCheckServer; candidates: UiCandidate[] } | null> {
-    if (step.checkStrategy !== "ui") return null;
+  /**
+   * The servers a frontend needs running (#92): every other package whose framework is a backend
+   * with a start script, on the port the original listens on (the frontend's dev proxy expects it
+   * there). In a frontend path they are the original code.
+   */
+  function backendCompanions(frontendRoot: string): HttpCheckServer[] {
+    const commands = packageCommands(scan);
+    return scan.frameworks.flatMap((framework) => {
+      const backend = profiles[framework.profileId];
+      const start = commands.find((c) => c.root === framework.root)?.run;
+      if (framework.root === frontendRoot || backend?.kind !== "backend" || !backend.run || !start) return [];
+      return [{ start, root: framework.root, port: backend.run.port ?? 3000, readyPath: backend.run.readyPaths[0] ?? "/", portEnv: backend.run.portEnv ?? "PORT", fixedPort: true }];
+    });
+  }
+
+  async function uiChecksFor(step: Step, tag: string, entry: StepChecks): Promise<{ server: HttpCheckServer; companions: HttpCheckServer[]; candidates: UiCandidate[] } | null> {
+    // On a frontend path, also when the project's tests don't cover the step: node tests can't
+    // load a Vite package's source, a mount page can.
+    if (step.checkStrategy !== "ui" && profile.kind !== "frontend") return null;
     const root = stepPackage(step);
     const start = packageCommands(scan).find((c) => c.root === root)?.run ?? undefined;
     if (!profile.run || !start) {
@@ -278,26 +296,51 @@ export async function prepareChecks(
       entry.notes.push("Chromium isn't downloaded; generated tests instead");
       return null;
     }
-    const server: HttpCheckServer = { start, root, port: profile.run.port ?? 3000, readyPath: profile.run.readyPaths[0] ?? "/", portEnv: profile.run.portEnv ?? "PORT" };
+    const server: HttpCheckServer = {
+      start,
+      root,
+      port: profile.run.port ?? 3000,
+      readyPath: profile.run.readyPaths[0] ?? "/",
+      portEnv: profile.run.portEnv ?? "PORT",
+      ...(profile.run.portArgs ? { portArgs: profile.run.portArgs } : {}),
+    };
+    const companions = backendCompanions(root);
+    const companionsIn = companions.map((c) => ({ ...c, cwd: c.root === "." ? workDir : joinPath(workDir, c.root) }));
     const cwd = root === "." ? workDir : joinPath(workDir, root);
     const checksDir = root === "." ? CHECKS_DIR : `${root}/${CHECKS_DIR}`;
     const test = async (candidate: UiCandidate) => {
-      const file = joinPath(workDir, candidate.file);
-      await host.writeFile(file, candidate.code);
+      for (const file of candidate.files) await host.writeFile(joinPath(workDir, file.path), file.code);
       try {
-        return await runUiCheck(host, cwd, server, [file], browsers, 60_000);
+        return await runUiCheck(host, cwd, server, [joinPath(workDir, candidate.files[0]!.path)], browsers, 90_000, undefined, companionsIn);
       } finally {
-        await host.remove(file);
+        for (const file of candidate.files) await host.remove(joinPath(workDir, file.path));
       }
     };
 
     const { ctx, before } = await stepContextAt(step, tag);
+    // A frontend step's component can be mounted alone before the app shows it (#92): the files the
+    // step changes and those they use, as the checks folder imports them (no extension: the dev
+    // server resolves it).
+    const mountImports = new Map<string, string>();
+    if (profile.kind === "frontend") {
+      const changed = (await git("diff", "--name-only", before, tag)).split("\n").filter(Boolean);
+      for (const file of [...changed, ...ctx.context.keys()]) {
+        const inside = root === "." || file.startsWith(`${root}/`);
+        if (inside && /\.(tsx?|jsx?)$/.test(file) && !/\.(test|spec)\./.test(file)) mountImports.set(file, relativeImport(checksDir, file.replace(/\.(tsx?|jsx?)$/, "")));
+      }
+    }
+    // The dev server's page loads index.html's entry script; until that file exists the app shows
+    // nothing and only mount pages can test the step.
+    const inRoot = (file: string) => (root === "." ? file : `${root}/${file}`);
+    const html = await git("show", `${tag}:${inRoot("index.html")}`).catch(() => "");
+    const entryScript = html.match(/<script[^>]*\bsrc=["']\/?([^"']+)["']/)?.[1];
+    const appShown = !entryScript || (await git("cat-file", "-e", `${tag}:${inRoot(entryScript)}`).then(() => true, () => false));
     let problems: string[] = [];
     let accepted: UiCandidate[] = [];
     for (let attempt = 0; attempt <= (options.retries ?? 2) && accepted.length === 0; attempt++) {
       let answer;
       try {
-        answer = await askForUiChecks(options.client, ctx, problems);
+        answer = await askForUiChecks(options.client, ctx, problems, mountImports, appShown);
       } catch (error) {
         if (!(error instanceof AiError) || error.kind === "auth" || error.kind === "limit") throw error;
         entry.aiCalls += 1;
@@ -306,7 +349,7 @@ export async function prepareChecks(
       }
       entry.aiCalls += 1;
       if (answer.checks.length === 0) break;
-      const candidates: UiCandidate[] = answer.checks.map((c, i) => ({ label: c.label, file: `${checksDir}/${step.id}-ui-${attempt + 1}-${i + 1}.ui.mjs`, code: uiTestModule(c.label, c.body) }));
+      const candidates: UiCandidate[] = answer.checks.map((c, i) => ({ label: c.label, files: uiCandidateFiles(`${checksDir}/${step.id}-ui-${attempt + 1}-${i + 1}`, c.label, c.body, c.mount) }));
       await checkoutStep(host, workDir, tag, scan);
       const atStep: UiOutcome[] = [];
       for (const c of candidates) atStep.push(await test(c));
@@ -325,6 +368,7 @@ export async function prepareChecks(
         else accepted.push(c);
       });
       log(`${step.id} ui attempt ${attempt + 1}: ${accepted.length}/${candidates.length} checks proven`);
+      for (const problem of problems) log(`  ${problem.split("\n").slice(0, 3).join(" | ")}`);
     }
     if (accepted.length > 0 && last && last.tag !== tag) {
       await checkoutStep(host, workDir, last.tag!, scan);
@@ -336,10 +380,10 @@ export async function prepareChecks(
       accepted = kept;
     }
     if (accepted.length === 0) {
-      entry.notes.push("no UI check proven; generated tests instead");
+      entry.notes.push(`no UI check proven${problems.length > 0 ? ` (last problem: ${problems[0]!.split("\n")[0]})` : ""}; generated tests instead`);
       return null;
     }
-    return { server, candidates: accepted };
+    return { server, companions, candidates: accepted };
   }
 
   /** Generated checks proven red → green for one step, and still green at the last step. */
@@ -394,6 +438,7 @@ export async function prepareChecks(
         else good.push(c);
       });
       log(`${step.id} attempt ${attempt + 1}: ${good.length}/${candidates.length} checks proven`);
+      for (const problem of problems) log(`  ${problem.split("\n").slice(0, 3).join(" | ")}`);
       if (good.length > 0) {
         accepted = good;
         break;
@@ -490,8 +535,8 @@ export async function prepareChecks(
       add({ label: candidate.label, origin: "generated", timeoutMs: 60_000, validation: proven, spec: { kind: "http", server: http!.server, requests: candidate.requests as Extract<Check["spec"], { kind: "http" }>["requests"] } });
     }
     for (const candidate of ui?.candidates ?? []) {
-      files.set(candidate.file, candidate.code);
-      add({ label: candidate.label, origin: "generated", timeoutMs: 90_000, validation: proven, spec: { kind: "ui", server: ui!.server, files: [candidate.file] } });
+      for (const file of candidate.files) files.set(file.path, file.code);
+      add({ label: candidate.label, origin: "generated", timeoutMs: 90_000, validation: proven, spec: { kind: "ui", server: ui!.server, files: candidate.files.map((f) => f.path), ...(ui!.companions.length > 0 ? { companions: ui!.companions } : {}) } });
     }
     entry.generated = generated.length + (http?.candidates.length ?? 0) + (ui?.candidates.length ?? 0);
     if (entry.strength !== "merged") entry.strength = checks.length > 0 ? "strong" : "weak";

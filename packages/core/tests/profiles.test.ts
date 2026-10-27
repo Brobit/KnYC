@@ -13,6 +13,7 @@ import {
   learningPath,
   planPrompt,
   profileFor,
+  profileForTrack,
   PROFILES,
   stepContext,
   trackOf,
@@ -93,6 +94,18 @@ describe("track rules", () => {
       "src/types/note.ts": "shared",
       "src/notes/note.types.ts": "shared",
     });
+  });
+
+  it("give each track of a full-stack repo its framework's profile (#92)", () => {
+    const frameworks = ["express 5.3.0", "react 19.3.1"];
+    expect(profileForTrack(frameworks, "frontend").id).toBe("react");
+    expect(profileForTrack(frameworks, "backend").id).toBe("express");
+    expect(profileForTrack(frameworks, "full").id).toBe("express");
+    expect(profileForTrack(["express 5.3.0"], "frontend").id).toBe("express");
+    const react = profileForTrack(frameworks, "frontend");
+    expect(react).toMatchObject({ kind: "frontend", run: { port: 5173, portArgs: "-- --port {port} --strictPort" }, check: { fallback: "build" } });
+    expect(trackOf(react, "src/components/NoteItem.tsx")).toBe("frontend");
+    expect(trackOf(react, "vite.config.ts")).toBe("setup");
   });
 
   it("put a Fastify project's files in their tracks (#97)", () => {

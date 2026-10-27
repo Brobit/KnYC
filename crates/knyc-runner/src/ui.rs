@@ -125,8 +125,60 @@ fn cut(text: &str, max: usize) -> String {
 
 /// Runs `tests` (absolute paths of ES modules in the workspace) against the server started in
 /// `cwd`. In Docker mode the server runs in the container and Chromium on this computer.
+/// A server started before the frontend (the original backend its dev proxy calls, #92), in its
+/// package folder.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Companion {
+    #[serde(flatten)]
+    pub server: ServerSpec,
+    /// Its package folder, absolute.
+    pub cwd: PathBuf,
+}
+
+/// Starts each companion in turn, runs `with` while they all answer, then stops them.
+fn with_companions<T>(
+    companions: &[Companion],
+    timeout: Duration,
+    container: Option<&Container>,
+    output: &Arc<Mutex<String>>,
+    with: impl FnOnce() -> T,
+) -> Result<T, (HttpStatus, String)> {
+    match companions.split_first() {
+        None => Ok(with()),
+        Some((first, rest)) => serve(
+            &first.server,
+            &first.cwd,
+            timeout,
+            container,
+            output,
+            |_| with_companions(rest, timeout, container, output, with),
+        )
+        .and_then(|(_, inner)| inner)
+        .map_err(|(status, error)| {
+            (
+                status,
+                format!("{} (needed by the frontend): {error}", first.server.start),
+            )
+        }),
+    }
+}
+
 pub fn run_ui_check(
     server: &ServerSpec,
+    tests: &[PathBuf],
+    cwd: &Path,
+    runner: &UiRunner,
+    timeout: Duration,
+    container: Option<&Container>,
+) -> UiCheckOutcome {
+    run_ui_check_with(server, &[], tests, cwd, runner, timeout, container)
+}
+
+/// Like [`run_ui_check`], with `companions` started first (the frontend's backend, #92).
+pub fn run_ui_check_with(
+    server: &ServerSpec,
+    companions: &[Companion],
     tests: &[PathBuf],
     cwd: &Path,
     runner: &UiRunner,
@@ -151,6 +203,8 @@ pub fn run_ui_check(
         let spec = serde_json::json!({
             "baseUrl": format!("http://localhost:{}", served.port),
             "tests": tests,
+            // Mount pages are served from the frontend's folder (#92).
+            "root": cwd,
             "timeoutMs": left.as_millis() as u64,
             "out": out.path(),
         });
@@ -188,7 +242,10 @@ pub fn run_ui_check(
             )
         })
     };
-    let served = serve(server, cwd, timeout, container, &output, test);
+    let served = with_companions(companions, timeout, container, &output, || {
+        serve(server, cwd, timeout, container, &output, test)
+    })
+    .and_then(|inner| inner);
     let all_output = || {
         let server_output = output.lock().map(|o| o.clone()).unwrap_or_default();
         let tests_output = printed.lock().map(|p| p.clone()).unwrap_or_default();

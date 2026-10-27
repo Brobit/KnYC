@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { AiClient } from "../ai/client.ts";
 import type { Profile } from "../profiles/index.ts";
 import type { ModelRef, TrackId } from "../schemas/common.ts";
-import { checkStrategy, learningPath, type LearningPath, type PathSize, type UnitChange } from "../schemas/learning-path.ts";
+import { checkStrategy, learningPath, type CheckStrategy, type LearningPath, type PathSize, type UnitChange } from "../schemas/learning-path.ts";
 import type { Summaries } from "./summaries.ts";
 import type { TrackContract } from "./tracks.ts";
 import { describeUnits, hasBehavior, type Units } from "./units.ts";
@@ -21,7 +21,8 @@ export function stepRange(size: PathSize, unitCount: number): { min: number; max
   return { min, max };
 }
 
-const planStep = z.object({
+const planStepWith = (strategy: z.ZodType<CheckStrategy>) =>
+  z.object({
   title: z.string().min(3).max(80),
   goal: z
     .string()
@@ -33,19 +34,27 @@ const planStep = z.object({
     .array(z.string())
     .min(1)
     .describe("Unit ids from the unit list. A file path introduces the whole file; a class id also brings its methods unless they are listed in other steps"),
-  // "ui" comes to the planner with the frontend profiles (#92).
-  checkStrategy: checkStrategy.exclude(["ui"]).describe("existing-tests | unit-test | http | command | build"),
+  checkStrategy: strategy,
   estimatedMinutes: z.number().int().min(5).max(120),
 });
 
-const planMilestone = z.object({
-  title: z.string().min(3).max(60),
-  summary: z.string().min(10).max(300),
-  steps: z.array(planStep).min(1),
-});
+const planAnswerWith = (strategy: z.ZodType<CheckStrategy>) =>
+  z.object({
+    milestones: z
+      .array(
+        z.object({
+          title: z.string().min(3).max(60),
+          summary: z.string().min(10).max(300),
+          steps: z.array(planStepWith(strategy)).min(1),
+        }),
+      )
+      .min(1),
+  });
 
-export const planAnswer = z.object({ milestones: z.array(planMilestone).min(1) });
-export type PlanAnswer = z.infer<typeof planAnswer>;
+/** "ui" (a browser test, #89) is offered only on a frontend profile's path (#92). */
+export const planAnswer = planAnswerWith(checkStrategy.exclude(["ui"]).describe("existing-tests | unit-test | http | command | build"));
+const frontendPlanAnswer = planAnswerWith(checkStrategy.exclude(["http", "unit-test"]).describe("existing-tests | ui | command | build"));
+export type PlanAnswer = z.infer<typeof frontendPlanAnswer> | z.infer<typeof planAnswer>;
 
 const stepId = (index: number) => `s${String(index + 1).padStart(2, "0")}`;
 
@@ -130,8 +139,8 @@ function planProblems(answer: PlanAnswer, units: Units, range: { min: number; ma
 }
 
 /** The answer schema: plan shape + every placement rule, so violations are sent back to the AI. */
-export function planSchema(units: Units, range: { min: number; max: number }, maxProblems = 20) {
-  return planAnswer.superRefine((answer, ctx) => {
+export function planSchema(units: Units, range: { min: number; max: number }, maxProblems = 20, frontend = false) {
+  return (frontend ? frontendPlanAnswer : planAnswer).superRefine((answer: PlanAnswer, ctx) => {
     const { problems } = planProblems(answer, units, range);
     for (const message of problems.slice(0, maxProblems)) ctx.addIssue({ code: "custom", path: ["milestones"], message });
     if (problems.length > maxProblems) {
@@ -211,7 +220,13 @@ ${describeContracts(input.otherTracks)}
 `
     : ""
 }# Checks
-${input.hasTests ? "The project has its own test suite: prefer \"existing-tests\" where its tests cover the step." : "The project has no tests: use \"http\", \"unit-test\", \"command\" or \"build\"."}
+${
+  input.profile?.kind === "frontend"
+    ? `Use "ui" for a step whose result shows in the browser (a component, a page, a form) or a hook that holds state or loads data: a test opens the app, or a test page that mounts the component or hook alone, and clicks, types and reads it.${input.hasTests ? " Prefer \"existing-tests\" where the project's own tests cover the step." : ""} Use "build" for types and other code nothing can show yet.`
+    : input.hasTests
+      ? "The project has its own test suite: prefer \"existing-tests\" where its tests cover the step."
+      : "The project has no tests: use \"http\", \"unit-test\", \"command\" or \"build\"."
+}
 
 # Units (${units.atoms.length}), leaves first. "needs" lists what each unit uses.
 ${describeUnits(units, purposes)}
@@ -304,7 +319,7 @@ export async function generatePlan(client: AiClient, input: PlanInput, options: 
     role: "planning",
     system: PLANNER_SYSTEM,
     prompt: planPrompt(input),
-    schema: planSchema(input.units, range),
+    schema: planSchema(input.units, range, 20, input.profile?.kind === "frontend"),
     retries: options.retries ?? 3,
     onRetry: (_attempt, problems) => options.onRetry?.(problems),
   });

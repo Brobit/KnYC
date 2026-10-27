@@ -35,6 +35,8 @@ export async function buildOutDir(host: Host, root: string): Promise<{ outDir: s
       file = json.extends?.startsWith(".") ? json.extends.replace(/^\.\//, "") : undefined;
       if (file && !file.endsWith(".json")) file = `${file}.json`;
     }
+    // A type-check-only config (Vite) writes nothing: checks import the sources.
+    if (options.noEmit === true) return null;
     return { outDir: String(options.outDir ?? "dist").replace(/^\.\//, "").replace(/\/$/, ""), rootDir: String(options.rootDir ?? ".").replace(/^\.\//, "").replace(/\/$/, "") || "." };
   } catch {
     return null;

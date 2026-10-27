@@ -1,0 +1,14 @@
+{
+  "name": "fullstack-notes",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A React (Vite) notes app against an Express API, in two packages (KnYC golden fixture).",
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "build": "npm run build -w apps/api -w apps/web",
+    "test": "npm test -w apps/api -w apps/web"
+  }
+}

@@ -124,7 +124,33 @@ describe("where the build writes (#96)", () => {
     expect(await layout({ ...nest, "package.json": '{"scripts":{"build":"tsc"}}' })).toEqual({ outDir: "dist", rootDir: "." });
   });
 
+  it("is none for a type-check-only config (#92)", async () => {
+    expect(await layout({ "package.json": '{"scripts":{"build":"tsc --noEmit && vite build"}}', "tsconfig.json": '{"compilerOptions":{"noEmit":true}}' })).toBeNull();
+  });
+
   it("is unknown without a tsconfig", async () => {
     expect(await layout({ "package.json": '{"scripts":{"build":"tsc -p tsconfig.build.json"}}' })).toBeNull();
+  });
+});
+
+describe("step builds (#92)", () => {
+  it("type-check a React package at each step, and build each package on its own", () => {
+    const scan = {
+      packages: [{ root: ".", workspaces: true }, { root: "apps/api" }, { root: "apps/web" }],
+      frameworks: [
+        { profileId: "express", version: "5.3.0", root: "apps/api" },
+        { profileId: "react", version: "19.3.1", root: "apps/web" },
+      ],
+      commands: [
+        { root: ".", install: "npm ci", build: "npm run build", test: "npm run test", run: null },
+        { root: "apps/api", install: "npm install", build: "npm run build", test: "npm run test", run: "npm run start" },
+        { root: "apps/web", install: "npm install", build: "npm run build", test: "npm run test", run: "npm run dev" },
+      ],
+    } as never;
+    expect(builds(packageCommands(scan))).toEqual([
+      { root: "apps/api", command: "npm run build" },
+      { root: "apps/web", command: "npx tsc --noEmit" },
+    ]);
+    expect(installs(packageCommands(scan))).toEqual([{ root: ".", command: "npm ci" }]);
   });
 });
