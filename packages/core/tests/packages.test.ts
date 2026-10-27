@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildOutDir,
   builds,
+  compiledPath,
   checkCommand,
   checkoutStep,
   inPackage,
@@ -100,5 +102,29 @@ describe("packages (#87)", () => {
     const results = await runStepChecks({ checks: [buildCheck("chk-s01-1", "apps/api"), buildCheck("chk-s01-2", "apps/web")], pathId: "p", files, run, commands: twoPackages.commands });
     expect(calls).toEqual(["apps/api npm install", "apps/api npm run build", "apps/web npm run build"]);
     expect(results.map((r) => r.status)).toEqual(["pass", "fail"]);
+  });
+});
+
+describe("where the build writes (#96)", () => {
+  const layout = (files: Record<string, string>) => buildOutDir(new MemoryHost({ files: Object.fromEntries(Object.entries(files).map(([p, c]) => [`/p/${p}`, c])) }), "/p");
+
+  it("reads tsconfig.json for a plain tsc build", async () => {
+    expect(await layout({ "package.json": '{"scripts":{"build":"tsc"}}', "tsconfig.json": '{\n  // comment\n "compilerOptions": { "outDir": "./dist", "rootDir": "./src", },\n}' })).toEqual({ outDir: "dist", rootDir: "src" });
+  });
+
+  it("follows the build's -p config and its extends (NestJS: tsconfig.build.json moves rootDir to src)", async () => {
+    const nest = {
+      "tsconfig.json": '{"compilerOptions":{"outDir":"./dist","rootDir":"."}}',
+      "tsconfig.build.json": '{"extends":"./tsconfig.json","compilerOptions":{"rootDir":"./src"}}',
+    };
+    const built = await layout({ ...nest, "package.json": '{"scripts":{"build":"tsc -p tsconfig.build.json"}}' });
+    expect(built).toEqual({ outDir: "dist", rootDir: "src" });
+    expect(compiledPath("src/health/health.controller.ts", built)).toBe("dist/health/health.controller.js");
+    expect(await layout({ ...nest, "package.json": '{"scripts":{"build":"nest build"}}' })).toEqual({ outDir: "dist", rootDir: "src" });
+    expect(await layout({ ...nest, "package.json": '{"scripts":{"build":"tsc"}}' })).toEqual({ outDir: "dist", rootDir: "." });
+  });
+
+  it("is unknown without a tsconfig", async () => {
+    expect(await layout({ "package.json": '{"scripts":{"build":"tsc -p tsconfig.build.json"}}' })).toBeNull();
   });
 });

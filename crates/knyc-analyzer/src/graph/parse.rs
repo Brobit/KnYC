@@ -209,6 +209,20 @@ fn export(node: Node, src: &[u8], file: &mut ParsedFile) {
     if let Some(decl) = node.child_by_field_name("declaration") {
         let before = file.symbols.len();
         declaration(decl, src, true, file);
+        // `@Module({ imports: [TasksModule] }) export class AppModule {}`: the decorators belong to
+        // the export statement, yet what they name is what the class needs (NestJS, #96).
+        let mut decorators = node.walk();
+        for decorator in node.children_by_field_name("decorator", &mut decorators) {
+            if let Some(class) = file.symbols[before..]
+                .iter_mut()
+                .find(|s| !s.name.contains('.'))
+            {
+                let mut members = BTreeSet::new();
+                collect_identifiers(decorator, src, &mut class.uses, &mut members);
+                let own = class.name.clone();
+                class.uses.remove(&own);
+            }
+        }
         let exported: Vec<_> = file.symbols[before..]
             .iter()
             .filter(|s| !s.name.contains('.'))
@@ -499,6 +513,28 @@ export default NotesStore;
         assert!(router.uses.contains("NotesStore") && router.uses.contains("Router"));
         assert!(get("NotesStore.list").uses.contains("MAX"));
         assert!(get("handler").uses.contains("fs"));
+    }
+
+    #[test]
+    fn decorators_of_an_exported_class_are_what_it_uses() {
+        let f = parse(
+            Lang::TypeScript,
+            "import { Module } from '@nestjs/common';
+import { TasksModule } from './tasks.module.js';
+
+@Module({
+  imports: [TasksModule],
+})
+export class AppModule {}
+",
+        )
+        .unwrap();
+        let app = f.symbols.iter().find(|s| s.name == "AppModule").unwrap();
+        assert!(
+            app.uses.contains("TasksModule") && app.uses.contains("Module"),
+            "{:?}",
+            app.uses
+        );
     }
 
     #[test]
