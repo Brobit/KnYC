@@ -57,6 +57,8 @@ export const graphFileSchema = z.object({
   ),
   exports: z.array(z.string()),
   symbols: z.array(graphSymbolSchema),
+  /** Table → the model that defines it, or "" for a migration's tables (#98, #99). */
+  tables: z.record(z.string(), z.string()).optional(),
 });
 export type GraphFile = z.infer<typeof graphFileSchema>;
 

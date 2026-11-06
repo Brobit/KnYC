@@ -31,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [express-notes, express-shop, express-no-tests, nest-tasks, fastify-links, fullstack-notes, prisma-library]
+        project: [express-notes, express-shop, express-no-tests, nest-tasks, fastify-links, fullstack-notes, prisma-library, typeorm-library, drizzle-library]
     runs-on: ubuntu-latest
     defaults:
       run:

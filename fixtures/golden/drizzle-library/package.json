@@ -1,0 +1,30 @@
+{
+  "name": "drizzle-library",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A small lending library on SQLite with Drizzle ORM: a schema, migrations, a seed and queries, behind an Express API (KnYC golden fixture).",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node dist/db/migrate.js",
+    "db:seed": "node dist/db/seed.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.6.0",
+    "drizzle-orm": "0.45.4",
+    "express": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.5",
+    "@types/supertest": "^7.2.0",
+    "drizzle-kit": "0.31.11",
+    "supertest": "^7.2.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}

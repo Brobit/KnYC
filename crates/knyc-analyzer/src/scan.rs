@@ -260,8 +260,10 @@ const JS_FRAMEWORKS: &[(&str, &str)] = &[
     ("fastify", "fastify"),
     ("koa", "koa"),
     ("hono", "hono"),
-    // An ORM, not a web framework: its profile places the database track (#98).
+    // ORMs, not web frameworks: their profiles place the database track (#98, #99).
     ("@prisma/client", "prisma"),
+    ("typeorm", "typeorm"),
+    ("drizzle-orm", "drizzle"),
 ];
 
 /// Frameworks that another detected framework already implies.

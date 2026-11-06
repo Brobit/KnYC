@@ -70,8 +70,12 @@ export function buildUnits(graph: Graph): Units {
       // Fields and constructors belong to their class atom.
     }
     // A file of only variables and top-level statements (an entry point like server.ts) is one
-    // unit: its statements aren't symbols, so splitting it would lose what they need.
-    if (fileAtoms.every((a) => a.kind === "variable")) {
+    // unit: its statements aren't symbols, so splitting it would lose what they need. A database
+    // schema of variables (Drizzle tables) is split by table; a migration is one unit (#99).
+    const tables = Object.values(file.tables ?? {});
+    const schema = tables.some((model) => model !== "");
+    const migration = tables.length > 0 && !schema;
+    if (migration || (!schema && fileAtoms.every((a) => a.kind === "variable"))) {
       fileAtoms.length = 0;
       fileAtoms.push({ id: path, file: path, kind: "file", exported: true, lines: file.loc, startLine: 1, endLine: file.loc });
     }

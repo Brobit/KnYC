@@ -107,6 +107,13 @@ pub fn parse_prisma(source: &str) -> ParsedFile {
 /// A SQL file has no symbols (one unit); it records the tables it creates, changes, indexes or
 /// references. SQLite's table rebuilds (`new_Book`) count as `Book`.
 pub fn parse_sql(source: &str) -> ParsedFile {
+    ParsedFile {
+        tables: sql_tables(source),
+        ..ParsedFile::default()
+    }
+}
+
+fn sql_tables(source: &str) -> BTreeMap<String, String> {
     let mut tables = BTreeMap::new();
     for line in source.lines().filter(|l| !l.trim_start().starts_with("--")) {
         for c in TABLE.captures_iter(line) {
@@ -115,10 +122,50 @@ pub fn parse_sql(source: &str) -> ParsedFile {
             tables.insert(name, String::new());
         }
     }
-    ParsedFile {
-        tables,
-        ..ParsedFile::default()
+    tables
+}
+
+static DRIZZLE_TABLE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"(?m)^\s*export\s+const\s+(\w+)\s*=\s*(?:sqliteTable|pgTable|mysqlTable)\(\s*["'`](\w+)["'`]"#)
+        .unwrap()
+});
+static ENTITY: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r#"@Entity\(\s*(?:["'`](\w+)["'`])?[^)]*\)\s*(?:export\s+)?(?:default\s+)?class\s+(\w+)"#,
+    )
+    .unwrap()
+});
+
+/// The tables a TypeScript file defines or migrates (#99): Drizzle tables (`export const books =
+/// sqliteTable("books", …)`, table → variable) and TypeORM entities (`@Entity() class BookLoan`,
+/// "book_loan" → class); in a migration file (its path says so), the tables its SQL strings touch.
+pub fn ts_tables(source: &str, path: &str) -> BTreeMap<String, String> {
+    let mut tables = BTreeMap::new();
+    for c in DRIZZLE_TABLE.captures_iter(source) {
+        tables.insert(c[2].to_lowercase(), c[1].to_string());
     }
+    for c in ENTITY.captures_iter(source) {
+        let table = c
+            .get(1)
+            .map_or_else(|| snake_case(&c[2]), |t| t.as_str().to_lowercase());
+        tables.insert(table, c[2].to_string());
+    }
+    if tables.is_empty() && path.to_lowercase().contains("migration") {
+        return sql_tables(source);
+    }
+    tables
+}
+
+/// TypeORM's default table name: "BookLoan" → "book_loan".
+fn snake_case(name: &str) -> String {
+    let mut out = String::new();
+    for (i, ch) in name.chars().enumerate() {
+        if ch.is_uppercase() && i > 0 {
+            out.push('_');
+        }
+        out.extend(ch.to_lowercase());
+    }
+    out
 }
 
 #[cfg(test)]
@@ -209,6 +256,41 @@ model Member {
         );
         assert_eq!(file.tables.get("book").map(String::as_str), Some("Book"));
         assert!(!file.has_errors);
+    }
+
+    #[test]
+    fn drizzle_tables_typeorm_entities_and_typescript_migrations() {
+        let drizzle = r#"export const books = sqliteTable(
+  "books",
+  { id: integer().primaryKey() },
+);
+export const authorsRelations = relations(authors, () => ({}));"#;
+        assert_eq!(
+            ts_tables(drizzle, "src/db/schema.ts")
+                .into_iter()
+                .collect::<Vec<_>>(),
+            vec![("books".to_string(), "books".to_string())]
+        );
+
+        let entity = "@Entity()\nexport class BookLoan {}\n@Entity(\"people\")\nclass Person {}\n";
+        assert_eq!(
+            ts_tables(entity, "src/entities/loan.ts")
+                .into_iter()
+                .collect::<Vec<_>>(),
+            vec![
+                ("book_loan".to_string(), "BookLoan".to_string()),
+                ("people".to_string(), "Person".to_string())
+            ]
+        );
+
+        let migration = "await queryRunner.query(`CREATE TABLE \"author\" (\"id\" integer)`);";
+        assert_eq!(
+            ts_tables(migration, "src/db/migrations/1-init.ts")
+                .into_keys()
+                .collect::<Vec<_>>(),
+            vec!["author"]
+        );
+        assert!(ts_tables(migration, "src/queries/raw.ts").is_empty());
     }
 
     #[test]
