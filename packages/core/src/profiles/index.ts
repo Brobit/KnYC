@@ -4,6 +4,7 @@
 import { express } from "./express.ts";
 import { fastify } from "./fastify.ts";
 import { nestjs } from "./nestjs.ts";
+import { prisma } from "./prisma.ts";
 import { react } from "./react.ts";
 import { generic } from "./generic.ts";
 import { matchesGlob } from "./glob.ts";
@@ -13,7 +14,7 @@ export type { FileTrack, Profile, TrackRule } from "./types.ts";
 export { generic } from "./generic.ts";
 export { globToRegExp, matchesGlob } from "./glob.ts";
 
-export const PROFILES: Profile[] = [express, nestjs, fastify, react];
+export const PROFILES: Profile[] = [express, nestjs, fastify, react, prisma];
 
 /** Profiles by the scan's framework id. */
 export const profiles: Record<string, Profile> = Object.fromEntries(PROFILES.map((p) => [p.id, p]));
@@ -28,7 +29,9 @@ export const isFrontendFramework = (id: string) => profiles[id]?.kind === "front
 
 /** The profile of a project, from the scan's frameworks ("express 4.21" or "express"); generic when none is known. */
 export function profileFor(frameworks: string[]): Profile {
-  return frameworks.map((f) => profiles[f.split(" ")[0]!]).find((p): p is Profile => p !== undefined) ?? generic;
+  const known = frameworks.map((f) => profiles[f.split(" ")[0]!]).filter((p): p is Profile => p !== undefined);
+  // An ORM describes the database, not the project: the web framework comes first.
+  return known.find((p) => p.kind !== "database") ?? known[0] ?? generic;
 }
 
 /**
@@ -38,7 +41,7 @@ export function profileFor(frameworks: string[]): Profile {
  */
 export function profileForTrack(frameworks: string[], track: string): Profile {
   const known = frameworks.map((f) => profiles[f.split(" ")[0]!]).filter((p): p is Profile => p !== undefined);
-  return (track === "frontend" || track === "backend" ? known.find((p) => p.kind === track) : undefined) ?? profileFor(frameworks);
+  return (track === "frontend" || track === "backend" || track === "database" ? known.find((p) => p.kind === track) : undefined) ?? profileFor(frameworks);
 }
 
 /** A label for a framework id, known or not ("express" → "Express", "koa" → "Koa"). */

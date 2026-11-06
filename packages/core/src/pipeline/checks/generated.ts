@@ -67,7 +67,7 @@ ${
     ? `
 How steps of ${ctx.profile.kind === "generic" ? "projects like this one" : `${ctx.profile.label} projects`} are usually checked:
 ${ctx.profile.check.hints.map((h) => `- ${h}`).join("\n")}
-`
+${ctx.profile.check.recipe ? `\nCode that works for this, to copy into a check:\n\`\`\`js\n${ctx.profile.check.recipe}\n\`\`\`\n` : ""}`
     : ""
 }
 Rules for each check file:

@@ -3,6 +3,7 @@
 //! TypeScript and JavaScript for now; other languages come with their profiles.
 
 pub mod parse;
+mod schema;
 
 use crate::walk::{Walk, walk};
 use parse::{Lang, ParsedFile, Symbol};
@@ -42,6 +43,9 @@ pub struct FileNode {
     /// Members the file adds to other types (module augmentation).
     #[serde(skip)]
     pub augments: BTreeSet<String>,
+    /// Database tables a Prisma schema defines or a SQL file touches (#98).
+    #[serde(skip)]
+    pub tables: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -104,6 +108,7 @@ pub fn from_walk(walked: &Walk) -> anyhow::Result<Graph> {
             symbols,
             has_errors,
             augments,
+            tables,
         } = parse::parse(lang, &source)?;
         let imports = imports
             .into_iter()
@@ -134,10 +139,12 @@ pub fn from_walk(walked: &Walk) -> anyhow::Result<Graph> {
             exports,
             symbols,
             augments,
+            tables,
         });
     }
 
-    let mut edges = BTreeSet::new();
+    let (database_files, database_symbols) = database_edges(&files);
+    let mut edges: BTreeSet<Edge> = database_files.into_iter().collect();
     let mut external: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     let mut unresolved = Vec::new();
     for file in &files {
@@ -175,7 +182,10 @@ pub fn from_walk(walked: &Walk) -> anyhow::Result<Graph> {
         }
     });
 
-    let symbol_edges = symbol_edges(&files);
+    let mut symbol_edges = symbol_edges(&files);
+    symbol_edges.extend(database_symbols);
+    symbol_edges.sort();
+    symbol_edges.dedup();
     let (cycles, layers) = layers(&files, &edges);
 
     Ok(Graph {
@@ -345,6 +355,94 @@ fn symbol_edges(files: &[FileNode]) -> Vec<(String, String)> {
         }
     }
     edges.into_iter().collect()
+}
+
+/// Prisma (#98): a migration needs the models of the tables it touches and the migration before
+/// it; code that queries a model (`db.book.findMany`, `tx.loan.create`) needs the model and the
+/// first migration that touches its table, since the query runs against that table. Returns file
+/// edges (for layers) and symbol edges (unit ids).
+fn database_edges(files: &[FileNode]) -> (Vec<Edge>, Vec<(String, String)>) {
+    let mut file_edges = Vec::new();
+    let mut symbol_edges = Vec::new();
+    let mut link = |from_file: &str, from: String, to_file: &str, to: String| {
+        if from_file != to_file {
+            file_edges.push(Edge {
+                from: from_file.to_string(),
+                to: to_file.to_string(),
+                type_only: false,
+            });
+        }
+        symbol_edges.push((from, to));
+    };
+
+    // Table → (schema, model), and the client's accessor (`book` for Book) → table.
+    let mut models: HashMap<&str, (&str, &str)> = HashMap::new();
+    let mut accessors: HashMap<String, &str> = HashMap::new();
+    for schema in files.iter().filter(|f| f.language == "prisma") {
+        for (table, model) in &schema.tables {
+            models.insert(table, (&schema.path, model));
+            let mut chars = model.chars();
+            if let Some(first) = chars.next() {
+                accessors.insert(first.to_lowercase().chain(chars).collect(), table);
+            }
+        }
+    }
+    if models.is_empty() {
+        return (file_edges, symbol_edges);
+    }
+
+    let mut migrations: Vec<&FileNode> = files
+        .iter()
+        .filter(|f| f.language == "sql" && f.path.contains("migrations/"))
+        .collect();
+    migrations.sort_by(|a, b| a.path.cmp(&b.path));
+    let folder = |path: &str| path[..path.find("migrations/").unwrap_or(0)].to_string();
+    let mut first_migration: HashMap<&str, &str> = HashMap::new();
+    for (i, migration) in migrations.iter().enumerate() {
+        for table in migration.tables.keys() {
+            if let Some((schema, model)) = models.get(table.as_str()) {
+                link(
+                    &migration.path,
+                    migration.path.clone(),
+                    schema,
+                    format!("{schema}#{model}"),
+                );
+                first_migration.entry(table).or_insert(&migration.path);
+            }
+        }
+        if let Some(previous) = i.checked_sub(1).map(|p| migrations[p])
+            && folder(&previous.path) == folder(&migration.path)
+        {
+            link(
+                &migration.path,
+                migration.path.clone(),
+                &previous.path,
+                previous.path.clone(),
+            );
+        }
+    }
+
+    for file in files
+        .iter()
+        .filter(|f| matches!(f.language, "typescript" | "javascript"))
+    {
+        for sym in &file.symbols {
+            for table in sym.outer_members.iter().filter_map(|m| accessors.get(m)) {
+                let (schema, model) = models[table];
+                let from = format!("{}#{}", file.path, sym.name);
+                link(
+                    &file.path,
+                    from.clone(),
+                    schema,
+                    format!("{schema}#{model}"),
+                );
+                if let Some(migration) = first_migration.get(table) {
+                    link(&file.path, from, migration, migration.to_string());
+                }
+            }
+        }
+    }
+    (file_edges, symbol_edges)
 }
 
 /// Tarjan's strongly connected components, then the longest path to a leaf as the layer.

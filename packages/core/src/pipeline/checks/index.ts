@@ -56,6 +56,14 @@ export interface StepChecksResult {
   step: Step;
 }
 
+/** A problem on one log line: its first lines, without TAP's framing ("not ok 1", "error: |-"). */
+const logLines = (problem: string) =>
+  problem
+    .split("\n")
+    .filter((l) => l.trim() && !/^\s*(not ok \d|ok \d|error: \|-|---|\.\.\.|duration_ms|type: )/.test(l))
+    .slice(0, 4)
+    .join(" | ");
+
 export interface ChecksPreparation {
   /** Which of the project's tests prove which step (save it to skip the suite runs next time). */
   mapping: TestMapping;
@@ -368,7 +376,7 @@ export async function prepareChecks(
         else accepted.push(c);
       });
       log(`${step.id} ui attempt ${attempt + 1}: ${accepted.length}/${candidates.length} checks proven`);
-      for (const problem of problems) log(`  ${problem.split("\n").slice(0, 3).join(" | ")}`);
+      for (const problem of problems) log(`  ${logLines(problem)}`);
     }
     if (accepted.length > 0 && last && last.tag !== tag) {
       await checkoutStep(host, workDir, last.tag!, scan);
@@ -438,7 +446,7 @@ export async function prepareChecks(
         else good.push(c);
       });
       log(`${step.id} attempt ${attempt + 1}: ${good.length}/${candidates.length} checks proven`);
-      for (const problem of problems) log(`  ${problem.split("\n").slice(0, 3).join(" | ")}`);
+      for (const problem of problems) log(`  ${logLines(problem)}`);
       if (good.length > 0) {
         accepted = good;
         break;

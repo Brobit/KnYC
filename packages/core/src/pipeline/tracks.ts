@@ -60,11 +60,15 @@ export function splitByRules(scan: Scan, graph: Graph): TrackSplit {
     const candidates = closest.length > 0 ? closest.map((f) => ({ profile: f.profile, path: relative(file.path, f.root) })) : [{ profile: generic, path: file.path }];
 
     const ruled = candidates.map((c) => c.profile.trackRules.find((rule) => matchesGlob(c.path, rule.glob))?.track).find(Boolean);
+    // An ORM's profile only places database files (#98); the web framework next to it, or the
+    // generic profile, gives the default.
+    const placing = candidates.filter((c) => c.profile.kind !== "database");
+    const defaults = placing.length > 0 ? placing : [{ profile: generic, path: file.path }];
     if (ruled) files[file.path] = ruled;
-    else if (candidates.length === 1 && (candidates[0]!.profile.kind !== "generic" || !mixed)) files[file.path] = candidates[0]!.profile.defaultTrack;
+    else if (defaults.length === 1 && (defaults[0]!.profile.kind !== "generic" || !mixed)) files[file.path] = defaults[0]!.profile.defaultTrack;
     else {
       // Two frameworks at the same root, or no framework in a full-stack project: the AI decides.
-      files[file.path] = candidates[0]!.profile.defaultTrack;
+      files[file.path] = defaults[0]!.profile.defaultTrack;
       leftovers.push(file.path);
     }
   }
@@ -155,7 +159,38 @@ export function unitsForTrack(units: Units, split: TrackSplit | undefined, track
   const byFile = new Map([...units.byFile].filter(([file]) => split.files[file] === track));
   // What a unit needs from another track is there from the start (the original code).
   const needs = new Map(atoms.map((a) => [a.id, new Set([...(units.needs.get(a.id) ?? [])].filter((n) => keep.has(n)))]));
-  return { atoms, byId: new Map(atoms.map((a) => [a.id, a])), byFile, needs };
+  return { atoms, byId: new Map(atoms.map((a) => [a.id, a])), byFile, needs, held: heldUnits(units, keep) };
+}
+
+/**
+ * The other way round (#98): another track's code that uses this track's units (an Express route
+ * calling a query) can't be there before them. It stays the original code, held back until all
+ * the track's units it reaches exist.
+ */
+function heldUnits(units: Units, track: Set<string>): Units["held"] {
+  const waitsFor = new Map<string, Set<string>>();
+  for (const atom of units.atoms) {
+    if (track.has(atom.id)) continue;
+    // The track's atoms reached through other tracks' code (a few hundred atoms: a plain search).
+    const found = new Set<string>();
+    const seen = new Set([atom.id]);
+    const queue = [atom.id];
+    while (queue.length > 0) {
+      for (const need of units.needs.get(queue.pop()!) ?? []) {
+        if (track.has(need)) found.add(need);
+        else if (!seen.has(need)) {
+          seen.add(need);
+          queue.push(need);
+        }
+      }
+    }
+    if (found.size > 0) waitsFor.set(atom.id, found);
+  }
+  if (waitsFor.size === 0) return undefined;
+  const files = new Set([...waitsFor.keys()].map((id) => units.byId.get(id)!.file));
+  const byFile = new Map([...units.byFile].filter(([file]) => files.has(file)));
+  const byId = new Map([...byFile.values()].flat().map((id) => [id, units.byId.get(id)!]));
+  return { byId, byFile, waitsFor };
 }
 
 /** The tracks this project has code for, in the usual order. */

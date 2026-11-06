@@ -2,7 +2,7 @@
 //! each symbol uses (for symbol-level dependencies).
 
 use serde::Serialize;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use tree_sitter::{Node, Parser};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -10,6 +10,10 @@ pub enum Lang {
     TypeScript,
     Tsx,
     JavaScript,
+    /// Prisma schema (#98): models and enums are symbols.
+    Prisma,
+    /// SQL, migrations above all (#98): one whole-file unit, with the tables it touches.
+    Sql,
 }
 
 impl Lang {
@@ -19,6 +23,8 @@ impl Lang {
             "ts" | "mts" | "cts" => Some(Self::TypeScript),
             "tsx" => Some(Self::Tsx),
             "js" | "jsx" | "mjs" | "cjs" => Some(Self::JavaScript),
+            "prisma" => Some(Self::Prisma),
+            "sql" => Some(Self::Sql),
             _ => None,
         }
     }
@@ -27,6 +33,8 @@ impl Lang {
         match self {
             Self::TypeScript | Self::Tsx => "typescript",
             Self::JavaScript => "javascript",
+            Self::Prisma => "prisma",
+            Self::Sql => "sql",
         }
     }
 }
@@ -87,6 +95,9 @@ pub struct ParsedFile {
     /// Members this file adds to other types through `declare module "x" { interface … }` or
     /// `declare global` (Fastify's `app.links`, Express's `req.user`).
     pub augments: BTreeSet<String>,
+    /// Database tables, lower-cased (#98): a Prisma schema's table → model, the tables a SQL file
+    /// creates or changes (→ empty).
+    pub tables: BTreeMap<String, String>,
 }
 
 pub fn parse(lang: Lang, source: &str) -> anyhow::Result<ParsedFile> {
@@ -95,6 +106,8 @@ pub fn parse(lang: Lang, source: &str) -> anyhow::Result<ParsedFile> {
         Lang::TypeScript => tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
         Lang::Tsx => tree_sitter_typescript::LANGUAGE_TSX.into(),
         Lang::JavaScript => tree_sitter_javascript::LANGUAGE.into(),
+        Lang::Prisma => return Ok(super::schema::parse_prisma(source)),
+        Lang::Sql => return Ok(super::schema::parse_sql(source)),
     };
     parser.set_language(&language)?;
     let tree = parser

@@ -33,6 +33,16 @@ export interface Units {
   byFile: Map<string, string[]>;
   /** Atom id → atom ids it needs (never itself). */
   needs: Map<string, Set<string>>;
+  /** A track's units only (#98): other tracks' code that uses them, held back until they exist. */
+  held?: HeldUnits;
+}
+
+export interface HeldUnits {
+  /** Every atom of the files that hold back some code (atoms that wait for nothing stay). */
+  byId: Map<string, Atom>;
+  byFile: Map<string, string[]>;
+  /** Held atom → the track's atoms it waits for, directly or through other held code. */
+  waitsFor: Map<string, Set<string>>;
 }
 
 const ATOM_KINDS = new Set(["function", "class", "interface", "type", "enum", "variable"]);
