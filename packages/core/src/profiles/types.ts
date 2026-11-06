@@ -18,7 +18,8 @@ export interface Profile {
   id: string;
   label: string;
   /** The track a project of this framework is mostly about. */
-  kind: "frontend" | "backend" | "generic";
+  /** "database": an ORM (#98); its rules place the database track, the web framework places the rest. */
+  kind: "frontend" | "backend" | "database" | "generic";
   /** First match wins; a file no rule matches goes to `defaultTrack`. */
   trackRules: TrackRule[];
   defaultTrack: FileTrack;
@@ -29,6 +30,8 @@ export interface Profile {
     hints: string[];
     /** The strategy when a step's own one isn't usable. */
     fallback: CheckStrategy;
+    /** Tested code a generated check can copy (Prisma: a freshly migrated database, #98). */
+    recipe?: string;
   };
   /** How the project runs, for checks against a running server (#88). */
   run?: {

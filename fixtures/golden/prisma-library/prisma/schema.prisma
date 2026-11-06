@@ -1,0 +1,51 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+/// A writer; their name is unique, so adding a book can find or create them by name.
+model Author {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  books Book[]
+}
+
+model Book {
+  id       Int    @id @default(autoincrement())
+  title    String
+  year     Int
+  author   Author @relation(fields: [authorId], references: [id])
+  authorId Int
+  loans    Loan[]
+
+  @@index([authorId])
+}
+
+model Member {
+  id       Int      @id @default(autoincrement())
+  email    String   @unique
+  name     String
+  joinedAt DateTime @default(now())
+  loans    Loan[]
+}
+
+/// A book lent to a member. Open while returnedAt is null; a book has at most one open loan.
+model Loan {
+  id         Int       @id @default(autoincrement())
+  book       Book      @relation(fields: [bookId], references: [id])
+  bookId     Int
+  member     Member    @relation(fields: [memberId], references: [id])
+  memberId   Int
+  borrowedAt DateTime  @default(now())
+  dueAt      DateTime
+  returnedAt DateTime?
+
+  @@index([bookId])
+  @@index([memberId])
+}

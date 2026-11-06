@@ -97,14 +97,32 @@ function pruneExports(source: string, file: GraphFile, ctx: SliceContext): strin
  * The file at step k. `atoms` are this file's units; `keep` holds the unit ids introduced so far.
  * Returns null when nothing of the file exists yet.
  */
+const PRISMA_FIELD = /^\s*\w+\s+(\w+)(\[\]|\?)?(\s|$)/;
+
+/**
+ * Prisma (#98): a kept model's fields typed with a model that isn't there yet. Only the other side
+ * of a relation can be (`books Book[]`): the side holding the foreign key needs its model.
+ */
+function pruneRelations(source: string, absent: Set<string>): string {
+  return source
+    .split("\n")
+    .filter((line) => !absent.has(line.match(PRISMA_FIELD)?.[1] ?? ""))
+    .join("\n");
+}
+
 export function sliceSource(content: string, file: GraphFile, atoms: Atom[], keep: Set<string>, ctx: SliceContext): string | null {
-  if (!atoms.some((a) => keep.has(a.id))) return null;
+  // A Prisma schema without models still has its generator and datasource (#98): the client is
+  // generated from the first step.
+  const prisma = file.language === "prisma";
+  if (!prisma && !atoms.some((a) => keep.has(a.id))) return null;
   if (atoms.every((a) => keep.has(a.id))) return content; // complete: the original, untouched
 
   const lines = content.split("\n");
   const removed = removedLines(lines, atoms, keep);
   let source = lines.filter((_, i) => !removed.has(i)).join("\n");
-  source = pruneExports(pruneImports(source, file, ctx), file, ctx);
+  source = prisma
+    ? pruneRelations(source, new Set(atoms.filter((a) => !keep.has(a.id)).map((a) => a.id.slice(a.id.indexOf("#") + 1))))
+    : pruneExports(pruneImports(source, file, ctx), file, ctx);
   // Removing blocks leaves runs of blank lines behind, and blank lines before a closing brace.
   return source
     .replace(/\n[ \t]*\n([ \t]*\n)+/g, "\n\n")

@@ -50,22 +50,30 @@ export async function filesAtStep(
   read: (path: string) => Promise<string>,
 ): Promise<Map<string, string | null>> {
   const keep = new Set([...stepOf].filter(([, at]) => at <= k).map(([id]) => id));
-  const sourceFiles = new Set(units.byFile.keys());
+  // Other tracks' code held back until the track's units it uses exist (#98); the rest of those
+  // files is there from the start.
+  const held = units.held;
+  for (const [id, waits] of held?.waitsFor ?? []) if ([...waits].every((w) => keep.has(w))) keep.add(id);
+  for (const id of held?.byId.keys() ?? []) if (!held!.waitsFor.has(id)) keep.add(id);
+  const byFile = new Map([...(held?.byFile ?? []), ...units.byFile]);
+  const byId = new Map([...(held?.byId ?? []), ...units.byId]);
+
+  const sourceFiles = new Set(byFile.keys());
   const tests = new Set(graph.files.filter((f) => f.test).map((f) => f.path));
   const ctx: SliceContext = {
     fileExists: (path) =>
-      sourceFiles.has(path) ? units.byFile.get(path)!.some((id) => keep.has(id)) : !tests.has(path),
+      sourceFiles.has(path) ? byFile.get(path)!.some((id) => keep.has(id)) : !tests.has(path),
     symbolExists: (path, name) => {
-      if (units.byId.get(path)?.kind === "file") return keep.has(path);
+      if (byId.get(path)?.kind === "file") return keep.has(path);
       const id = `${path}#${name}`;
-      return units.byId.has(id) ? keep.has(id) : undefined;
+      return byId.has(id) ? keep.has(id) : undefined;
     },
   };
 
   const files = new Map<string, string | null>();
   for (const file of graph.files) {
     if (file.test || !sourceFiles.has(file.path)) continue;
-    const atoms = units.byFile.get(file.path)!.map((id) => units.byId.get(id)!);
+    const atoms = byFile.get(file.path)!.map((id) => byId.get(id)!);
     files.set(file.path, sliceSource(await read(file.path), file, atoms, keep, ctx));
   }
   return files;

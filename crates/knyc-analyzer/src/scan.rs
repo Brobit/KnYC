@@ -260,6 +260,8 @@ const JS_FRAMEWORKS: &[(&str, &str)] = &[
     ("fastify", "fastify"),
     ("koa", "koa"),
     ("hono", "hono"),
+    // An ORM, not a web framework: its profile places the database track (#98).
+    ("@prisma/client", "prisma"),
 ];
 
 /// Frameworks that another detected framework already implies.
@@ -668,6 +670,7 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![
                 ("nestjs", Some("10.4.0"), "apps/api"),
+                ("prisma", Some("6.0.0"), "apps/api"),
                 ("nextjs", Some("15.1.0"), "apps/web"),
             ],
             "React and Express are implied and not listed twice"
