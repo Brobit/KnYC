@@ -43,8 +43,9 @@ pub struct FileNode {
     /// Members the file adds to other types (module augmentation).
     #[serde(skip)]
     pub augments: BTreeSet<String>,
-    /// Database tables a Prisma schema defines or a SQL file touches (#98).
-    #[serde(skip)]
+    /// Database tables, lower-cased (#98, #99): table → the model that defines it (a Prisma model,
+    /// a Drizzle table, a TypeORM entity), or → "" for the tables a migration touches.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub tables: BTreeMap<String, String>,
 }
 
@@ -110,6 +111,10 @@ pub fn from_walk(walked: &Walk) -> anyhow::Result<Graph> {
             augments,
             tables,
         } = parse::parse(lang, &source)?;
+        let tables = match lang {
+            Lang::Prisma | Lang::Sql => tables,
+            _ => schema::ts_tables(&source, &file.path),
+        };
         let imports = imports
             .into_iter()
             .map(|i| {
@@ -143,7 +148,11 @@ pub fn from_walk(walked: &Walk) -> anyhow::Result<Graph> {
         });
     }
 
-    let (database_files, database_symbols) = database_edges(&files);
+    let mut symbol_edges = symbol_edges(&files);
+    let (database_files, database_symbols) = database_edges(&files, &symbol_edges);
+    symbol_edges.extend(database_symbols);
+    symbol_edges.sort();
+    symbol_edges.dedup();
     let mut edges: BTreeSet<Edge> = database_files.into_iter().collect();
     let mut external: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     let mut unresolved = Vec::new();
@@ -182,10 +191,6 @@ pub fn from_walk(walked: &Walk) -> anyhow::Result<Graph> {
         }
     });
 
-    let mut symbol_edges = symbol_edges(&files);
-    symbol_edges.extend(database_symbols);
-    symbol_edges.sort();
-    symbol_edges.dedup();
     let (cycles, layers) = layers(&files, &edges);
 
     Ok(Graph {
@@ -357,11 +362,15 @@ fn symbol_edges(files: &[FileNode]) -> Vec<(String, String)> {
     edges.into_iter().collect()
 }
 
-/// Prisma (#98): a migration needs the models of the tables it touches and the migration before
-/// it; code that queries a model (`db.book.findMany`, `tx.loan.create`) needs the model and the
-/// first migration that touches its table, since the query runs against that table. Returns file
-/// edges (for layers) and symbol edges (unit ids).
-fn database_edges(files: &[FileNode]) -> (Vec<Edge>, Vec<(String, String)>) {
+/// Databases (#98, #99): a migration needs the models of the tables it touches and the migration
+/// before it; code that uses a model needs the first migration that touches its table, since it
+/// runs against that table. Models are Prisma models, Drizzle tables and TypeORM entities; a
+/// Prisma model is used through the client's accessor (`db.book.findMany`), the others through
+/// imports (already symbol edges). Returns file edges (for layers) and symbol edges (unit ids).
+fn database_edges(
+    files: &[FileNode],
+    code_edges: &[(String, String)],
+) -> (Vec<Edge>, Vec<(String, String)>) {
     let mut file_edges = Vec::new();
     let mut symbol_edges = Vec::new();
     let mut link = |from_file: &str, from: String, to_file: &str, to: String| {
@@ -375,15 +384,17 @@ fn database_edges(files: &[FileNode]) -> (Vec<Edge>, Vec<(String, String)>) {
         symbol_edges.push((from, to));
     };
 
-    // Table → (schema, model), and the client's accessor (`book` for Book) → table.
+    // Table → (file, model); a Prisma client's accessor (`book` for Book) → table.
     let mut models: HashMap<&str, (&str, &str)> = HashMap::new();
     let mut accessors: HashMap<String, &str> = HashMap::new();
-    for schema in files.iter().filter(|f| f.language == "prisma") {
-        for (table, model) in &schema.tables {
-            models.insert(table, (&schema.path, model));
-            let mut chars = model.chars();
-            if let Some(first) = chars.next() {
-                accessors.insert(first.to_lowercase().chain(chars).collect(), table);
+    for file in files.iter().filter(|f| !f.test) {
+        for (table, model) in file.tables.iter().filter(|(_, m)| !m.is_empty()) {
+            models.insert(table, (&file.path, model));
+            if file.language == "prisma" {
+                let mut chars = model.chars();
+                if let Some(first) = chars.next() {
+                    accessors.insert(first.to_lowercase().chain(chars).collect(), table);
+                }
             }
         }
     }
@@ -391,21 +402,31 @@ fn database_edges(files: &[FileNode]) -> (Vec<Edge>, Vec<(String, String)>) {
         return (file_edges, symbol_edges);
     }
 
+    // Migrations: SQL files, or code in a migrations folder, that touch tables and define none.
     let mut migrations: Vec<&FileNode> = files
         .iter()
-        .filter(|f| f.language == "sql" && f.path.contains("migrations/"))
+        .filter(|f| {
+            !f.test
+                && !f.tables.is_empty()
+                && f.tables.values().all(String::is_empty)
+                && (f.language == "sql" || f.path.to_lowercase().contains("migration"))
+        })
         .collect();
     migrations.sort_by(|a, b| a.path.cmp(&b.path));
-    let folder = |path: &str| path[..path.find("migrations/").unwrap_or(0)].to_string();
+    // Prisma: one folder per migration under migrations/; Drizzle and TypeORM: files side by side.
+    let folder = |path: &str| match path.find("migrations/") {
+        Some(i) => path[..i].to_string(),
+        None => path.rsplit_once('/').map_or("", |(dir, _)| dir).to_string(),
+    };
     let mut first_migration: HashMap<&str, &str> = HashMap::new();
     for (i, migration) in migrations.iter().enumerate() {
         for table in migration.tables.keys() {
-            if let Some((schema, model)) = models.get(table.as_str()) {
+            if let Some((file, model)) = models.get(table.as_str()) {
                 link(
                     &migration.path,
                     migration.path.clone(),
-                    schema,
-                    format!("{schema}#{model}"),
+                    file,
+                    format!("{file}#{model}"),
                 );
                 first_migration.entry(table).or_insert(&migration.path);
             }
@@ -422,9 +443,21 @@ fn database_edges(files: &[FileNode]) -> (Vec<Edge>, Vec<(String, String)>) {
         }
     }
 
+    // Model ids → their table; files that hold models or migrations don't query them.
+    let tables_of: HashMap<String, &str> = models
+        .iter()
+        .map(|(table, (file, model))| (format!("{file}#{model}"), *table))
+        .collect();
+    let schema_files: BTreeSet<&str> = models
+        .values()
+        .map(|(file, _)| *file)
+        .chain(migrations.iter().map(|m| m.path.as_str()))
+        .collect();
+    let in_schema = |id: &str| schema_files.contains(id.split('#').next().unwrap_or(id));
+
     for file in files
         .iter()
-        .filter(|f| matches!(f.language, "typescript" | "javascript"))
+        .filter(|f| matches!(f.language, "typescript" | "javascript") && !f.test)
     {
         for sym in &file.symbols {
             for table in sym.outer_members.iter().filter_map(|m| accessors.get(m)) {
@@ -441,6 +474,13 @@ fn database_edges(files: &[FileNode]) -> (Vec<Edge>, Vec<(String, String)>) {
                 }
             }
         }
+    }
+    for (from, to) in code_edges.iter().filter(|(from, _)| !in_schema(from)) {
+        let Some(migration) = tables_of.get(to).and_then(|t| first_migration.get(t)) else {
+            continue;
+        };
+        let from_file = from.split('#').next().unwrap_or(from);
+        link(from_file, from.clone(), migration, migration.to_string());
     }
     (file_edges, symbol_edges)
 }

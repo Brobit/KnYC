@@ -76,7 +76,36 @@ export async function filesAtStep(
     const atoms = byFile.get(file.path)!.map((id) => byId.get(id)!);
     files.set(file.path, sliceSource(await read(file.path), file, atoms, keep, ctx));
   }
+  await sliceDrizzleJournals(graph, files, read);
   return files;
+}
+
+/**
+ * Drizzle (#99): the migrator applies what `meta/_journal.json` lists, and drizzle-kit diffs the
+ * schema against the last snapshot. At a step, the journal lists the migrations the step has, and
+ * the snapshots of later ones are gone.
+ */
+async function sliceDrizzleJournals(graph: Graph, files: Map<string, string | null>, read: (path: string) => Promise<string>) {
+  const folders = new Set(graph.files.filter((f) => f.language === "sql").map((f) => f.path.slice(0, f.path.lastIndexOf("/") + 1)));
+  for (const folder of folders) {
+    const journalPath = `${folder}meta/_journal.json`;
+    const original = await read(journalPath).catch(() => null);
+    let journal: { entries?: { idx: number; tag: string }[] } | null = null;
+    try {
+      journal = original === null ? null : JSON.parse(original);
+    } catch {
+      // Not a drizzle-kit journal: leave it alone.
+    }
+    if (original === null || !journal || !Array.isArray(journal.entries)) continue;
+    const entries = journal.entries;
+    const present = entries.filter((e) => files.get(`${folder}${e.tag}.sql`) !== null);
+    if (present.length === entries.length) {
+      files.set(journalPath, original);
+      continue;
+    }
+    files.set(journalPath, `${JSON.stringify({ ...journal, entries: present }, null, 2)}\n`);
+    for (const entry of entries.filter((e) => !present.includes(e))) files.set(`${folder}meta/${String(entry.idx).padStart(4, "0")}_snapshot.json`, null);
+  }
 }
 
 export interface StepBuild {

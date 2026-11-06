@@ -137,3 +137,61 @@ describe("the database track (#98)", () => {
     expect(sliceSource(SCHEMA, file, atoms, new Set(atoms.map((a) => a.id)), ctx)).toBe(SCHEMA);
   });
 });
+
+describe("TypeORM and Drizzle (#99)", () => {
+  const variables = (names: string[]) => names.map((name, i) => ({ name, kind: "variable", exported: true, startLine: i + 1, endLine: i + 1 }));
+  const drizzle = graphSchema.parse({
+    files: [
+      { ...ts("src/db/schema.ts", []), symbols: variables(["authors", "books"]), tables: { authors: "authors", books: "books" } },
+      { path: "drizzle/0000_init.sql", language: "sql", loc: 2, test: false, parseErrors: false, imports: [], exports: [], symbols: [], tables: { authors: "" } },
+      { path: "drizzle/0001_books.sql", language: "sql", loc: 2, test: false, parseErrors: false, imports: [], exports: [], symbols: [], tables: { books: "" } },
+      {
+        ...ts("src/db/migrations/1-init.ts", ["Init1"]),
+        symbols: [
+          { name: "Init1", kind: "class", exported: true, startLine: 1, endLine: 4 },
+          { name: "Init1.up", kind: "method", exported: false, startLine: 2, endLine: 3 },
+        ],
+        tables: { author: "" },
+      },
+    ],
+    edges: [],
+    symbolEdges: [],
+    cycles: [],
+    layers: [["src/db/schema.ts", "drizzle/0000_init.sql", "drizzle/0001_books.sql", "src/db/migrations/1-init.ts"]],
+    external: {},
+    unresolved: [],
+  });
+
+  it("splits a schema of tables by table, and keeps a migration in one piece", () => {
+    const units = buildUnits(drizzle);
+    expect(units.byFile.get("src/db/schema.ts")).toEqual(["src/db/schema.ts#authors", "src/db/schema.ts#books"]);
+    expect(units.byFile.get("src/db/migrations/1-init.ts")).toEqual(["src/db/migrations/1-init.ts"]);
+  });
+
+  it("lists in Drizzle's journal only the migrations a step has, and drops later snapshots", async () => {
+    const units = buildUnits(drizzle);
+    const journal = { version: "7", dialect: "sqlite", entries: [{ idx: 0, tag: "0000_init" }, { idx: 1, tag: "0001_books" }] };
+    const read = async (path: string) => (path === "drizzle/meta/_journal.json" ? JSON.stringify(journal) : "x\n");
+    const stepOf = new Map([
+      ["src/db/schema.ts#authors", 0],
+      ["drizzle/0000_init.sql", 0],
+      ["src/db/schema.ts#books", 1],
+      ["drizzle/0001_books.sql", 1],
+      ["src/db/migrations/1-init.ts", 1],
+    ]);
+    const first = await filesAtStep(0, drizzle, units, stepOf, read);
+    expect(JSON.parse(first.get("drizzle/meta/_journal.json")!).entries).toEqual([{ idx: 0, tag: "0000_init" }]);
+    expect(first.get("drizzle/meta/0001_snapshot.json")).toBeNull();
+    expect(first.has("drizzle/meta/0000_snapshot.json")).toBe(false);
+    const last = await filesAtStep(1, drizzle, units, stepOf, read);
+    expect(last.get("drizzle/meta/_journal.json")).toBe(JSON.stringify(journal));
+  });
+
+  it("are database profiles whose rules win over the web framework's", () => {
+    expect(profileForTrack(["express", "typeorm"], "database").id).toBe("typeorm");
+    expect(profileForTrack(["express", "drizzle"], "database").id).toBe("drizzle");
+    const config = graphSchema.parse({ ...drizzle, files: [ts("drizzle.config.ts", ["default"])], layers: [["drizzle.config.ts"]] });
+    const split = splitByRules({ ...scan, frameworks: [scan.frameworks[0]!, { profileId: "drizzle", version: "0.45.4", root: "." }] } as Scan, config);
+    expect(split.files["drizzle.config.ts"]).toBe("setup");
+  });
+});

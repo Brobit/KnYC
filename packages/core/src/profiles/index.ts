@@ -5,6 +5,8 @@ import { express } from "./express.ts";
 import { fastify } from "./fastify.ts";
 import { nestjs } from "./nestjs.ts";
 import { prisma } from "./prisma.ts";
+import { drizzle } from "./drizzle.ts";
+import { typeorm } from "./typeorm.ts";
 import { react } from "./react.ts";
 import { generic } from "./generic.ts";
 import { matchesGlob } from "./glob.ts";
@@ -14,7 +16,7 @@ export type { FileTrack, Profile, TrackRule } from "./types.ts";
 export { generic } from "./generic.ts";
 export { globToRegExp, matchesGlob } from "./glob.ts";
 
-export const PROFILES: Profile[] = [express, nestjs, fastify, react, prisma];
+export const PROFILES: Profile[] = [express, nestjs, fastify, react, prisma, typeorm, drizzle];
 
 /** Profiles by the scan's framework id. */
 export const profiles: Record<string, Profile> = Object.fromEntries(PROFILES.map((p) => [p.id, p]));

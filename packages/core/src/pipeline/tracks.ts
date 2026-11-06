@@ -59,7 +59,9 @@ export function splitByRules(scan: Scan, graph: Graph): TrackSplit {
     const closest = holding.filter((f) => (f.root === "." ? 0 : f.root.split("/").length) === depth);
     const candidates = closest.length > 0 ? closest.map((f) => ({ profile: f.profile, path: relative(file.path, f.root) })) : [{ profile: generic, path: file.path }];
 
-    const ruled = candidates.map((c) => c.profile.trackRules.find((rule) => matchesGlob(c.path, rule.glob))?.track).find(Boolean);
+    // An ORM's rules first: they know its files better than the web framework's shared rules.
+    const byRules = [...candidates].sort((a, b) => Number(b.profile.kind === "database") - Number(a.profile.kind === "database"));
+    const ruled = byRules.map((c) => c.profile.trackRules.find((rule) => matchesGlob(c.path, rule.glob))?.track).find(Boolean);
     // An ORM's profile only places database files (#98); the web framework next to it, or the
     // generic profile, gives the default.
     const placing = candidates.filter((c) => c.profile.kind !== "database");
