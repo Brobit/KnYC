@@ -67,7 +67,8 @@ enum Commands {
     /// Run an HTTP check: start the server, wait for its ready path, send the requests, stop it.
     /// `--spec` is the check spec as JSON: {"server": {...}, "requests": [...]}.
     /// Run a Docker check: build the image, run it and wait for its health path when asked, then
-    /// remove what it made. `--spec` is the check spec as JSON: {"context", "dockerfile", "run"?}.
+    /// remove what it made. `--spec` is the check spec as JSON: {"context", "dockerfile", "run"?}, or a
+    /// compose file to bring up: {"compose"}.
     Docker {
         #[arg(long)]
         cwd: PathBuf,
@@ -215,9 +216,9 @@ fn main() -> Result<()> {
             timeout_ms,
             spec,
         } => {
-            let spec: knyc_runner::docker::DockerSpec = serde_json::from_str(&spec)?;
+            let spec: knyc_runner::docker::DockerJob = serde_json::from_str(&spec)?;
             print(
-                &knyc_runner::docker::run_docker_check(
+                &knyc_runner::docker::run_docker_job(
                     &spec,
                     &cwd,
                     Duration::from_millis(timeout_ms),

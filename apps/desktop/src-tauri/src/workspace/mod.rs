@@ -309,22 +309,24 @@ pub async fn workspace_check_run(
 #[serde(rename_all = "camelCase")]
 pub struct DockerCheckRequest {
     timeout_ms: u64,
-    spec: knyc_runner::docker::DockerSpec,
+    spec: knyc_runner::docker::DockerJob,
 }
 
-/// Runs a Docker check in the open workspace (#90): build (and run) the image, then remove what
-/// the check made. The build context and the Dockerfile must be inside the workspace.
+/// Runs a Docker check in the open workspace (#90): build (and run) the image, or bring a compose
+/// file up (#100), then remove what the check made. The files must be inside the workspace.
 #[tauri::command]
 pub async fn workspace_docker_check(
     state: State<'_, WorkspaceState>,
     request: DockerCheckRequest,
 ) -> FsResult<knyc_runner::docker::DockerCheckOutcome> {
     let scope = state.scope()?;
-    scope.resolve(&request.spec.context)?;
-    scope.resolve(&request.spec.dockerfile)?;
+    if let knyc_runner::docker::DockerJob::Image(spec) = &request.spec {
+        scope.resolve(&spec.context)?;
+    }
+    scope.resolve(request.spec.file())?;
     let cwd = scope.root().to_path_buf();
     tauri::async_runtime::spawn_blocking(move || {
-        knyc_runner::docker::run_docker_check(
+        knyc_runner::docker::run_docker_job(
             &request.spec,
             &cwd,
             Duration::from_millis(request.timeout_ms),

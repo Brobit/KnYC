@@ -23,7 +23,7 @@ export type SysRequest =
       container?: Container;
     }
   | {
-      /** A Docker check (#90): build the image (and run it), then remove what it made. */
+      /** A Docker check (#90): build the image (and run it), or bring a compose file up (#100), then remove what it made. */
       op: "docker";
       cwd: string;
       timeoutMs: number;
@@ -66,11 +66,8 @@ export interface Container {
 }
 
 /** What a Docker check builds and runs (knyc-runner `docker.rs`); paths relative to cwd. */
-export interface DockerSpec {
-  context: string;
-  dockerfile: string;
-  run?: { port: number; healthPath: string };
-}
+/** One image to build (and run), or a compose file to bring up (#100): knyc-runner `DockerJob`. */
+export type DockerSpec = { context: string; dockerfile: string; run?: { port: number; healthPath: string } } | { compose: string };
 
 /** How to start a project's server for an HTTP check (knyc-runner `http.rs`). */
 export interface HttpServer {

@@ -15,7 +15,7 @@ import type { Check } from "../../schemas/check.ts";
 /** The server an HTTP check starts (check schema `server`). */
 type HttpCheckServer = Extract<Check["spec"], { kind: "http" }>["server"];
 import type { LearningPath, Step } from "../../schemas/learning-path.ts";
-import { browserStatus, runHttpCheck, runUiCheck, type Graph, type HttpOutcome, type Scan, type UiOutcome } from "../../sys/knyc-sys.ts";
+import { browserStatus, runDockerCheck, runHttpCheck, runUiCheck, type Graph, type HttpOutcome, type Scan, type UiOutcome } from "../../sys/knyc-sys.ts";
 import { stepOfUnits, type Timeline } from "../timeline.ts";
 import { buildUnits, type Units } from "../units.ts";
 import { builds, inPackage, packageCommands, packageOf } from "../packages.ts";
@@ -23,6 +23,8 @@ import { buildOutDir, checkoutStep, compiledPath } from "../workspace.ts";
 import { mapTests, runSuiteAtStep, suitesOf, type SuiteRun, type TestMapping } from "./existing.ts";
 import { fragileCheck } from "./audit.ts";
 import { goalFromChecks } from "./goal.ts";
+import { deploymentCheck, type DeploymentCheck } from "./deployment.ts";
+import { scriptsFrom, workflowProblems } from "./workflow.ts";
 import { askForHttpChecks, describeHttpProblem, type HttpCandidate } from "./http.ts";
 import { askForUiChecks, describeUiProblem, uiCandidateFiles, type UiCandidate } from "./ui.ts";
 import { askForChecks, checkCommand, CHECKS_DIR, describeProblem, relativeImport, runCandidate, type CandidateCheck, type StepContext } from "./generated.ts";
@@ -503,6 +505,57 @@ export async function prepareChecks(
       return files;
     })());
 
+  /**
+   * The deployment track (#100): a check per Dockerfile, compose file and workflow the step adds,
+   * proven red → green like the others. Without Docker, the step keeps its build checks.
+   */
+  async function deploymentChecksFor(step: Step, tag: string, entry: StepChecks): Promise<DeploymentCheck[] | null> {
+    if (profile.kind !== "deployment") return null;
+    const readyPath = (folder: string) => {
+      const root = packageOf(roots, `${folder}/x`);
+      const framework = scan.frameworks.find((f) => f.root === root);
+      return (framework && profiles[framework.profileId]?.run?.readyPaths[0]) ?? "/";
+    };
+    const candidates: DeploymentCheck[] = [];
+    for (const file of new Set(step.introduces.map((u) => units.byId.get(u.unit)?.file).filter((f): f is string => !!f))) {
+      const content = await git("show", `${tag}:${file}`).catch(() => null);
+      const check = content === null ? null : deploymentCheck(file, graphFiles.get(file)?.language ?? "", content, readyPath);
+      if (check) candidates.push(check);
+    }
+    if (candidates.length === 0) return null;
+
+    const run = async (check: DeploymentCheck): Promise<{ status: string; error?: string }> => {
+      const spec = check.spec;
+      if (spec.kind === "workflow") {
+        const read = (p: string) => host.readFile(joinPath(workDir, p));
+        const text = await read(spec.file).catch(() => null);
+        const problems = text === null ? [`${spec.file} doesn't exist`] : await workflowProblems(text, scriptsFrom(read));
+        return problems.length === 0 ? { status: "pass" } : { status: "fail", error: problems.join("; ") };
+      }
+      const job = spec.kind === "compose" ? { compose: spec.file } : { context: spec.context, dockerfile: spec.dockerfile, ...(spec.run ? { run: spec.run } : {}) };
+      const outcome = await runDockerCheck(host, workDir, job, check.timeoutMs);
+      return { status: outcome.status, ...(outcome.error ? { error: outcome.error } : {}) };
+    };
+    await checkoutStep(host, workDir, tag, scan);
+    const atStep = [];
+    for (const check of candidates) atStep.push(await run(check));
+    if (atStep.some((o) => o.status === "unavailable")) {
+      entry.notes.push("Docker isn't running; checked by its build instead");
+      return null;
+    }
+    await checkoutStep(host, workDir, previousTag(step.id), scan);
+    const accepted: DeploymentCheck[] = [];
+    for (const [i, check] of candidates.entries()) {
+      if (atStep[i]!.status !== "pass") {
+        entry.notes.push(`"${check.label}" fails on the code right after the step: ${atStep[i]!.error ?? atStep[i]!.status}`);
+      } else if ((await run(check)).status === "pass") {
+        entry.notes.push(`"${check.label}" already passes before the step`);
+      } else accepted.push(check);
+    }
+    log(`${step.id} deployment: ${accepted.length}/${candidates.length} checks proven`);
+    return accepted.length > 0 ? accepted : null;
+  }
+
   async function forStep(stepId: string): Promise<StepChecksResult> {
     const step = path.steps.find((s) => s.id === stepId);
     if (!step) throw new Error(`the path has no step ${stepId}`);
@@ -513,13 +566,15 @@ export async function prepareChecks(
     let generated: CandidateCheck[] = [];
     let http: Awaited<ReturnType<typeof httpChecksFor>> = null;
     let ui: Awaited<ReturnType<typeof uiChecksFor>> = null;
+    let deployment: DeploymentCheck[] | null = null;
     if (build?.mergedInto) {
       entry.strength = "merged";
       entry.notes.push(`doesn't build alone; merged into ${build.mergedInto}`);
     } else if (build?.tag && existing.length === 0) {
-      http = await httpChecksFor(step, build.tag, entry);
-      if (!http) ui = await uiChecksFor(step, build.tag, entry);
-      if (!http && !ui) generated = await generatedFor(step, build.tag, entry);
+      deployment = await deploymentChecksFor(step, build.tag, entry);
+      if (!deployment) http = await httpChecksFor(step, build.tag, entry);
+      if (!deployment && !http) ui = await uiChecksFor(step, build.tag, entry);
+      if (!deployment && !http && !ui) generated = await generatedFor(step, build.tag, entry);
     }
 
     // Check documents and the updated step.
@@ -546,7 +601,10 @@ export async function prepareChecks(
       for (const file of candidate.files) files.set(file.path, file.code);
       add({ label: candidate.label, origin: "generated", timeoutMs: 90_000, validation: proven, spec: { kind: "ui", server: ui!.server, files: candidate.files.map((f) => f.path), ...(ui!.companions.length > 0 ? { companions: ui!.companions } : {}) } });
     }
-    entry.generated = generated.length + (http?.candidates.length ?? 0) + (ui?.candidates.length ?? 0);
+    for (const check of deployment ?? []) {
+      add({ label: check.label, origin: "generated", timeoutMs: check.timeoutMs, validation: proven, spec: check.spec });
+    }
+    entry.generated = generated.length + (http?.candidates.length ?? 0) + (ui?.candidates.length ?? 0) + (deployment?.length ?? 0);
     if (entry.strength !== "merged") entry.strength = checks.length > 0 ? "strong" : "weak";
     if (entry.strength === "weak") {
       // One build check per package that builds (#87).

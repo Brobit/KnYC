@@ -2,6 +2,7 @@
 //! file and symbol dependencies, cycles, and layers from leaves to entry points.
 //! TypeScript and JavaScript for now; other languages come with their profiles.
 
+mod deploy;
 pub mod parse;
 mod schema;
 
@@ -112,8 +113,10 @@ pub fn from_walk(walked: &Walk) -> anyhow::Result<Graph> {
             tables,
         } = parse::parse(lang, &source)?;
         let tables = match lang {
-            Lang::Prisma | Lang::Sql => tables,
-            _ => schema::ts_tables(&source, &file.path),
+            Lang::TypeScript | Lang::Tsx | Lang::JavaScript => {
+                schema::ts_tables(&source, &file.path)
+            }
+            _ => tables,
         };
         let imports = imports
             .into_iter()

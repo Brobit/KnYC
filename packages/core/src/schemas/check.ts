@@ -68,6 +68,10 @@ export const checkSpec = z.discriminatedUnion("kind", [
     dockerfile: z.string(),
     run: z.object({ port: z.number().int(), healthPath: z.string().startsWith("/") }).optional(),
   }),
+  /** The compose file's services come up and their published ports answer (#100). */
+  z.object({ kind: z.literal("compose"), file: z.string() }),
+  /** A GitHub Actions workflow is valid and runs scripts the project has (#100). */
+  z.object({ kind: z.literal("workflow"), file: z.string() }),
 ]);
 export type CheckSpec = z.infer<typeof checkSpec>;
 

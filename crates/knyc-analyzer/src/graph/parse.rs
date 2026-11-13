@@ -14,11 +14,27 @@ pub enum Lang {
     Prisma,
     /// SQL, migrations above all (#98): one whole-file unit, with the tables it touches.
     Sql,
+    /// A Dockerfile (#100): one whole-file unit.
+    Dockerfile,
+    /// A compose file or a CI workflow (#100), not other YAML: one whole-file unit; a compose file
+    /// imports the Dockerfiles it builds.
+    Yaml,
 }
 
 impl Lang {
     pub fn from_path(path: &str) -> Option<Self> {
+        let name = path.rsplit('/').next().unwrap_or(path);
+        if name == "Dockerfile" || name.starts_with("Dockerfile.") || name.ends_with(".Dockerfile")
+        {
+            return Some(Self::Dockerfile);
+        }
         let ext = path.rsplit_once('.')?.1;
+        if matches!(ext, "yml" | "yaml") {
+            let compose = name.starts_with("compose") || name.starts_with("docker-compose");
+            let workflow =
+                path.starts_with(".github/workflows/") || path.contains("/.github/workflows/");
+            return (compose || workflow).then_some(Self::Yaml);
+        }
         match ext {
             "ts" | "mts" | "cts" => Some(Self::TypeScript),
             "tsx" => Some(Self::Tsx),
@@ -35,6 +51,8 @@ impl Lang {
             Self::JavaScript => "javascript",
             Self::Prisma => "prisma",
             Self::Sql => "sql",
+            Self::Dockerfile => "dockerfile",
+            Self::Yaml => "yaml",
         }
     }
 }
@@ -108,6 +126,8 @@ pub fn parse(lang: Lang, source: &str) -> anyhow::Result<ParsedFile> {
         Lang::JavaScript => tree_sitter_javascript::LANGUAGE.into(),
         Lang::Prisma => return Ok(super::schema::parse_prisma(source)),
         Lang::Sql => return Ok(super::schema::parse_sql(source)),
+        Lang::Dockerfile => return Ok(ParsedFile::default()),
+        Lang::Yaml => return Ok(super::deploy::parse_yaml(source)),
     };
     parser.set_language(&language)?;
     let tree = parser

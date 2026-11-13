@@ -49,7 +49,7 @@ pub enum SysRequest {
     Docker {
         cwd: String,
         timeout_ms: u64,
-        spec: knyc_runner::docker::DockerSpec,
+        spec: knyc_runner::docker::DockerJob,
     },
     /// An HTTP check against the server of a sandboxed project (#88).
     Http {
@@ -226,7 +226,7 @@ pub fn sys(scope: &PipelineScope, request: SysRequest) -> Result<serde_json::Val
             spec,
         } => {
             let cwd = scoped(scope.writable(&cwd))?;
-            json(serde_json::to_value(knyc_runner::docker::run_docker_check(
+            json(serde_json::to_value(knyc_runner::docker::run_docker_job(
                 &spec,
                 &cwd,
                 Duration::from_millis(timeout_ms),

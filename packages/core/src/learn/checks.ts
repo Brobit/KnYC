@@ -6,6 +6,7 @@
 import type { DockerSpec, HttpRequest, HttpServer } from "../host/host.ts";
 import { REPORT_FILE } from "../pipeline/checks/existing.ts";
 import { failureExcerpt } from "../pipeline/checks/generated.ts";
+import { scriptsFrom, workflowProblems } from "../pipeline/checks/workflow.ts";
 import { builds, installs, type PackageCommands } from "../pipeline/packages.ts";
 import type { Check, CheckRun } from "../schemas/check.ts";
 import type { PathProgress, Progress } from "../schemas/progress.ts";
@@ -209,6 +210,18 @@ export async function runStepChecks(input: RunStepChecksInput): Promise<CheckRun
       } else if (spec.kind === "docker" && input.runDocker) {
         const outcome = await input.runDocker({ timeoutMs: check.timeoutMs, spec: { context: spec.context, dockerfile: spec.dockerfile, ...(spec.run ? { run: spec.run } : {}) } });
         const result = dockerRun(check.id, outcome, at());
+        results.set(check.id, result);
+        input.onResult?.(result);
+      } else if (spec.kind === "compose" && input.runDocker) {
+        const result = dockerRun(check.id, await input.runDocker({ timeoutMs: check.timeoutMs, spec: { compose: spec.file } }), at());
+        results.set(check.id, result);
+        input.onResult?.(result);
+      } else if (spec.kind === "workflow") {
+        // Read and judged here: nothing runs (#100).
+        const started = Date.now();
+        const text = await input.files.read(spec.file).catch(() => null);
+        const problems = text === null ? [`${spec.file} doesn't exist`] : await workflowProblems(text, scriptsFrom((p) => input.files.read(p)));
+        const result: CheckRun = { checkId: check.id, at: at(), status: problems.length === 0 ? "pass" : "fail", durationMs: Date.now() - started, output: problems.join("\n"), failures: problems.map((message) => ({ message })) };
         results.set(check.id, result);
         input.onResult?.(result);
       } else if (spec.kind === "http" && input.runHttp) {
