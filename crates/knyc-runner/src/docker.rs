@@ -34,6 +34,32 @@ pub struct DockerSpec {
     pub run: Option<DockerRun>,
 }
 
+/// What a Docker check runs: one image (`context` + `dockerfile`) or a compose file (`compose`,
+/// #100). Both answer with a [`DockerCheckOutcome`].
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum DockerJob {
+    Compose(crate::compose::ComposeSpec),
+    Image(DockerSpec),
+}
+
+impl DockerJob {
+    /// The file the check reads (for workspace scope checks).
+    pub fn file(&self) -> &str {
+        match self {
+            Self::Compose(spec) => &spec.compose,
+            Self::Image(spec) => &spec.dockerfile,
+        }
+    }
+}
+
+pub fn run_docker_job(job: &DockerJob, cwd: &Path, timeout: Duration) -> DockerCheckOutcome {
+    match job {
+        DockerJob::Compose(spec) => crate::compose::run_compose_check(spec, cwd, timeout),
+        DockerJob::Image(spec) => run_docker_check(spec, cwd, timeout),
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum DockerStatus {
@@ -75,7 +101,7 @@ pub fn docker_running() -> bool {
 }
 
 /// A docker command that must finish quickly (removals, logs); its output, empty on failure.
-fn docker(args: &[&str]) -> String {
+pub(crate) fn docker(args: &[&str]) -> String {
     no_window(Command::new("docker").args(args))
         .output()
         .map(|out| {
@@ -88,7 +114,7 @@ fn docker(args: &[&str]) -> String {
         .unwrap_or_default()
 }
 
-fn cut_tail(text: &str, max: usize) -> String {
+pub(crate) fn cut_tail(text: &str, max: usize) -> String {
     if text.len() <= max {
         return text.to_string();
     }
@@ -100,7 +126,7 @@ fn cut_tail(text: &str, max: usize) -> String {
 }
 
 /// A tag no other check uses at the same time.
-fn unique_tag() -> String {
+pub(crate) fn unique_tag() -> String {
     static NEXT: AtomicU32 = AtomicU32::new(0);
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)

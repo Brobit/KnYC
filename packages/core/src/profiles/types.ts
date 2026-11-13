@@ -18,8 +18,11 @@ export interface Profile {
   id: string;
   label: string;
   /** The track a project of this framework is mostly about. */
-  /** "database": an ORM (#98); its rules place the database track, the web framework places the rest. */
-  kind: "frontend" | "backend" | "database" | "generic";
+  /**
+   * "database": an ORM (#98); its rules place the database track, the web framework places the
+   * rest. "deployment": the deployment track's own profile, the same for every framework (#100).
+   */
+  kind: "frontend" | "backend" | "database" | "deployment" | "generic";
   /** First match wins; a file no rule matches goes to `defaultTrack`. */
   trackRules: TrackRule[];
   defaultTrack: FileTrack;

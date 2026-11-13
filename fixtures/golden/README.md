@@ -9,7 +9,7 @@ Every change to the analysis pipeline is re-run on them and measured (issue #15)
 | [`express-shop`](express-shop/) | medium, ~850 lines, 8 modules | 16 | Auth, DI container, cross-module dependencies, business rules |
 | [`nest-tasks`](nest-tasks/) | small, ~300 lines, NestJS 12 | 14 (Vitest + supertest) | Modules, DI with a token, a pipe and a guard (#96) |
 | [`fastify-links`](fastify-links/) | small, ~250 lines, Fastify 5 | 10 (Vitest + app.inject) | Plugins, decorators with module augmentation, hooks, route schemas (#97) |
-| [`fullstack-notes`](fullstack-notes/) | small, ~350 lines, React (Vite) + Express, 2 packages | 9 (Vitest + supertest) | The frontend track against the original API, UI checks, mount pages (#92) |
+| [`fullstack-notes`](fullstack-notes/) | small, ~350 lines, React (Vite) + Express, 2 packages | 9 (Vitest + supertest) | The frontend track against the original API, UI checks, mount pages (#92); the deployment track: Dockerfiles, compose, a CI workflow (#100) |
 | [`prisma-library`](prisma-library/) | small, ~300 lines, Prisma 7 on SQLite + Express | 7 (Vitest, a migrated SQLite file per test) | The database track: models, migrations, queries, transactions; the API held back until its queries exist (#98) |
 | [`typeorm-library`](typeorm-library/) | small, ~300 lines, TypeORM 1.x on SQLite + Express | 7 (Vitest, a migrated SQLite file per test) | The database track with entities in a relation cycle, migrations as classes (#99) |
 | [`drizzle-library`](drizzle-library/) | small, ~300 lines, Drizzle on SQLite + Express | 7 (Vitest, a migrated SQLite file per test) | The database track with tables as variables, drizzle-kit migrations and their journal (#99) |

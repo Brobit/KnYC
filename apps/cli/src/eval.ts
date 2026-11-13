@@ -4,7 +4,7 @@
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
-import { auditCheck, type PathSize, type Usage } from "@knyc/core";
+import { auditCheck, type Check, type PathSize, type Usage } from "@knyc/core";
 import { analyze, type AnalyzeIo, type AnalyzeOptions } from "./analyze.ts";
 import type { StageStat } from "./report.ts";
 
@@ -33,6 +33,14 @@ export interface ProjectResult {
   costUsd?: number;
 }
 
+/**
+ * The deployment track's checks have no code to audit (#100): a container that answers, services
+ * that come up, a workflow judged on what it runs are behavior; an image that only builds is like
+ * a build check.
+ */
+const deploymentBehavior = (check: Check) =>
+  check.origin === "generated" && ((check.spec.kind === "docker" && !!check.spec.run) || check.spec.kind === "compose" || check.spec.kind === "workflow");
+
 export async function evaluateProject(options: AnalyzeOptions, io: AnalyzeIo): Promise<ProjectResult> {
   const base = { project: basename(resolve(options.folder)), size: options.size };
   try {
@@ -48,7 +56,7 @@ export async function evaluateProject(options: AnalyzeOptions, io: AnalyzeIo): P
     let trivialOnly = 0;
     for (const step of result.path.steps) {
       const mine = result.checks.filter((c) => c.stepId === step.id && c.validation);
-      const behavior = mine.filter((c) => c.origin === "repo" || audits.get(c.id)?.kind === "behavior");
+      const behavior = mine.filter((c) => c.origin === "repo" || audits.get(c.id)?.kind === "behavior" || deploymentBehavior(c));
       if (behavior.length > 0) proven += 1;
       else if (mine.length > 0) trivialOnly += 1;
     }

@@ -59,3 +59,5 @@ export * from "./pipeline/tracks.ts";
 export * from "./pipeline/packages.ts";
 export * from "./pipeline/checks/http.ts";
 export * from "./pipeline/checks/ui.ts";
+export * from "./pipeline/checks/workflow.ts";
+export * from "./pipeline/checks/deployment.ts";

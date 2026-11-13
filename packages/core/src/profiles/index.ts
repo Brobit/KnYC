@@ -7,6 +7,7 @@ import { nestjs } from "./nestjs.ts";
 import { prisma } from "./prisma.ts";
 import { drizzle } from "./drizzle.ts";
 import { typeorm } from "./typeorm.ts";
+import { deployment } from "./deployment.ts";
 import { react } from "./react.ts";
 import { generic } from "./generic.ts";
 import { matchesGlob } from "./glob.ts";
@@ -42,6 +43,8 @@ export function profileFor(frameworks: string[]): Profile {
  * gets `profileFor`.
  */
 export function profileForTrack(frameworks: string[], track: string): Profile {
+  // Deployment files are the same for every framework (#100).
+  if (track === "deployment") return deployment;
   const known = frameworks.map((f) => profiles[f.split(" ")[0]!]).filter((p): p is Profile => p !== undefined);
   return (track === "frontend" || track === "backend" || track === "database" ? known.find((p) => p.kind === track) : undefined) ?? profileFor(frameworks);
 }
