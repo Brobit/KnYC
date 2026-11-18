@@ -19,6 +19,9 @@ pub struct Container {
     pub image: String,
     /// Host folder mounted at /work (the workspace).
     pub mount: PathBuf,
+    /// A Docker network to join: the check's Postgres server's (#116).
+    #[serde(skip)]
+    pub network: Option<String>,
 }
 
 const WORK: &str = "/work";
@@ -199,6 +202,9 @@ pub fn docker_args(
     if let Some(name) = name {
         args.extend(["--name".into(), name.into()]);
     }
+    if let Some(network) = &container.network {
+        args.extend(["--network".into(), network.clone()]);
+    }
     if let Some(user) = user() {
         // npm needs a writable home when the user has none in the image.
         args.extend(["--user".into(), user, "-e".into(), "HOME=/tmp".into()]);
@@ -250,6 +256,7 @@ mod tests {
         let container = Container {
             image: "node:22-slim".into(),
             mount: dir.path().to_path_buf(),
+            network: None,
         };
         let env = BTreeMap::from([("PORT".to_string(), "4100".to_string())]);
         let args = docker_args(
@@ -309,6 +316,7 @@ mod docker_tests {
         let container = Container {
             image: "node:22-slim".into(),
             mount: dir.path().to_path_buf(),
+            network: None,
         };
 
         let mut spec = RunSpec::new(

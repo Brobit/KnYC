@@ -3,6 +3,7 @@
 
 import { joinPath, type Host } from "../../host/host.ts";
 import { runCommand, type Scan } from "../../sys/knyc-sys.ts";
+import type { Database } from "../database.ts";
 import { checkoutStep } from "../workspace.ts";
 
 export const REPORT_FILE = ".knyc-report.json";
@@ -55,6 +56,7 @@ export async function runSuiteAtStep(
   sourceRoot: string,
   suites: Suite[],
   timeoutMs = 5 * 60_000,
+  database?: Database,
 ): Promise<SuiteRun> {
   const { build } = await checkoutStep(host, workDir, step.tag, scan, timeoutMs);
   const results = new Map<string, TestStatus>();
@@ -63,7 +65,7 @@ export async function runSuiteAtStep(
   for (const file of testFiles) await host.copyFile(joinPath(sourceRoot, file), joinPath(workDir, file));
   for (const suite of suites) {
     const cwd = suite.root === "." ? workDir : joinPath(workDir, suite.root);
-    const outcome = await runCommand(host, cwd, suite.command, { report: REPORT_FILE, timeoutMs });
+    const outcome = await runCommand(host, cwd, suite.command, { report: REPORT_FILE, timeoutMs, ...(database ? { database } : {}) });
     for (const test of outcome.tests?.tests ?? []) {
       // "(could not run)" entries stand for a whole file that can't load yet: its tests are red.
       const file = suite.root === "." ? test.file : `${suite.root}/${test.file}`;

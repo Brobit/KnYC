@@ -21,6 +21,8 @@ export type SysRequest =
       report?: string;
       /** Docker mode (#91): run in this image, `mount` mounted at /work (cwd inside it). */
       container?: Container;
+      /** A database server the command needs, started before it and removed after (#116). */
+      database?: "postgres";
     }
   | {
       /** A Docker check (#90): build the image (and run it), or bring a compose file up (#100), then remove what it made. */

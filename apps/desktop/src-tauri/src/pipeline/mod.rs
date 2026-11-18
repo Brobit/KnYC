@@ -44,6 +44,8 @@ pub enum SysRequest {
         #[serde(default)]
         env: BTreeMap<String, String>,
         report: Option<String>,
+        /// A database server the command needs (#116).
+        database: Option<knyc_runner::postgres::Database>,
     },
     /// A Docker check on a sandboxed project (#90).
     Docker {
@@ -209,12 +211,14 @@ pub fn sys(scope: &PipelineScope, request: SysRequest) -> Result<serde_json::Val
             timeout_ms,
             env,
             report,
+            database,
         } => {
             // Builds and checks of the learner's project run in its sandbox, never in the source.
             let cwd = scoped(scope.writable(&cwd))?;
             let mut spec = RunSpec::new(command, cwd);
             spec.timeout = Duration::from_millis(timeout_ms);
             spec.env = env;
+            spec.database = database;
             json(serde_json::to_value(run_check(
                 &spec,
                 report.map(PathBuf::from),

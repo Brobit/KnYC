@@ -28,6 +28,8 @@ pub struct RunSpec {
     pub cancel: Option<Arc<AtomicBool>>,
     /// Docker mode (#91): run the command inside this container instead of on the machine.
     pub container: Option<crate::container::Container>,
+    /// A database server the command needs (#116): started before it, removed after.
+    pub database: Option<crate::postgres::Database>,
 }
 
 impl RunSpec {
@@ -41,6 +43,7 @@ impl RunSpec {
             max_output: DEFAULT_MAX_OUTPUT,
             cancel: None,
             container: None,
+            database: None,
         }
     }
 }
@@ -108,6 +111,21 @@ fn capture(
 
 /// Runs the command. An error means it couldn't start; a failing command is a normal result.
 pub fn run(spec: &RunSpec) -> anyhow::Result<RunResult> {
+    if spec.database.is_some() {
+        // Stopped when `_server` drops, after the command.
+        let _server = crate::postgres::Postgres::start(Duration::from_secs(120))?;
+        let mut spec = spec.clone();
+        spec.database = None;
+        let url = match &mut spec.container {
+            Some(container) => {
+                container.network = Some(_server.network.clone());
+                &_server.container_url
+            }
+            None => &_server.local_url,
+        };
+        spec.env.extend(crate::postgres::Postgres::env(url));
+        return run(&spec);
+    }
     if let Some(container) = &spec.container {
         crate::container::prepare(container);
         let args = crate::container::docker_args(

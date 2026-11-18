@@ -22,6 +22,7 @@ export * from "./pipeline/redact.ts";
 export * from "./pipeline/summaries.ts";
 export * from "./pipeline/sources.ts";
 export * from "./pipeline/units.ts";
+export * from "./pipeline/database.ts";
 export * from "./profiles/index.ts";
 export * from "./pipeline/plan.ts";
 export * from "./pipeline/import-estimate.ts";

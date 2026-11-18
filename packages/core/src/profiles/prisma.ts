@@ -50,6 +50,30 @@ function freshDatabase(seed = false) {
   if (seed) prisma("db", "seed");
   return url;
 }`,
+    // A project on Postgres (#116): each check runs next to a Postgres server; a test gets its own
+    // database on it, which `migrate deploy` creates. Tested on prisma-postgres-library.
+    postgres: {
+      hints: [
+        "models and migrations: a test that applies the migrations to a fresh database on the check's Postgres server, then writes and reads rows through the project's client (the tables exist and keep the data)",
+        "queries: the project's own tests where they cover them, else a test on a fresh migrated database that calls the query and compares what it returns",
+        "a fresh database per test: the recipe below migrates a new database on the check's Postgres server (and seeds it when asked) and returns its URL; give that URL to the project's own client factory, imported statically from its compiled output, and disconnect the client at the end of the test",
+        "the seed isn't compiled: `freshDatabase(true)` runs it, then count the rows it wrote",
+        "never spawn `npx` or `npm` (they need a shell on Windows), and import project code with static imports from the given paths, not import() of an absolute path",
+      ],
+      recipe: `import { execFileSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import { delimiter, resolve } from 'node:path';
+
+// KNYC_POSTGRES_URL: the check's Postgres server, without a database.
+function freshDatabase(seed = false) {
+  const url = process.env.KNYC_POSTGRES_URL + "/t" + randomUUID().replaceAll("-", "");
+  const env = { ...process.env, DATABASE_URL: url, PATH: resolve("node_modules/.bin") + delimiter + process.env.PATH };
+  const prisma = (...args) => execFileSync(process.execPath, ["node_modules/prisma/build/index.js", ...args], { env, stdio: "pipe" });
+  prisma("migrate", "deploy");
+  if (seed) prisma("db", "seed");
+  return url;
+}`,
+    },
   },
   lessonHints: [
     "schema.prisma describes the tables: one model per table, one field per column; `@id`, `@unique` and `@default` become constraints and defaults in the database.",

@@ -38,6 +38,8 @@ export const checkSpec = z.discriminatedUnion("kind", [
     filter: z.array(z.string()).default([]),
     /** Generated test files, copied into the workspace only while the check runs. */
     files: z.array(z.string()).default([]),
+    /** A database server the tests need (#116): Postgres, started next to them in Docker. */
+    database: z.enum(["postgres"]).optional(),
   }),
   z.object({ kind: z.literal("http"), server, requests: z.array(httpExpectation).min(1) }),
   /** UI tests in headless Chromium against the running frontend (#89); like a generated test's
