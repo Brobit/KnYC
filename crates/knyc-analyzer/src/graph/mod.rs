@@ -306,9 +306,13 @@ fn symbol_edges(files: &[FileNode]) -> Vec<(String, String)> {
         }
         let is_class = |path: &str, name: &str| {
             by_path.get(path).is_some_and(|f| {
-                f.symbols
-                    .iter()
-                    .any(|s| s.name == name && s.kind == parse::SymbolKind::Class)
+                f.symbols.iter().any(|s| {
+                    s.name == name
+                        && matches!(
+                            s.kind,
+                            parse::SymbolKind::Class | parse::SymbolKind::Component
+                        )
+                })
             })
         };
         for sym in &file.symbols {
@@ -377,6 +381,7 @@ fn symbol_edges(files: &[FileNode]) -> Vec<(String, String)> {
                             t.kind,
                             parse::SymbolKind::Function
                                 | parse::SymbolKind::Class
+                                | parse::SymbolKind::Component
                                 | parse::SymbolKind::Variable
                         )
                 }) {

@@ -151,6 +151,41 @@ describe("runStepChecks", () => {
     expect(map.has("tests/notes.test.ts")).toBe(false);
   });
 
+  it("puts back the learner's file where a check's mount goes, instead of removing it (#95)", async () => {
+    const mount = knycPaths(PATH_ID).checkFile("src/main.ts");
+    const { map, files } = memoryFiles({
+      [knycPaths(PATH_ID).checkFile(".knyc-checks/s04-ui-1-1.ui.mjs")]: "export default async () => {}",
+      [mount]: "// the mount",
+      "src/main.ts": "// the learner's own main.ts",
+      "package.json": "{}",
+    });
+    let during = "";
+    const check: Check = {
+      schemaVersion: 1,
+      id: "chk-s04-1",
+      stepId: "s04",
+      label: "NoteItem toggles its pin",
+      origin: "generated",
+      timeoutMs: 1000,
+      spec: { kind: "ui", server: { start: "npm start", root: ".", port: 4200, readyPath: "/", portEnv: "PORT" }, files: [".knyc-checks/s04-ui-1-1.ui.mjs", "src/main.ts"] },
+    };
+    await runStepChecks({
+      checks: [check],
+      pathId: PATH_ID,
+      files,
+      run: async () => pass(),
+      commands: [{ root: ".", install: null, build: "npm run build" }],
+      runUi: async () => {
+        during = map.get("src/main.ts") ?? "";
+        return { status: "pass", tests: [], output: "", durationMs: 1 };
+      },
+      now: () => NOW,
+    });
+    expect(during).toBe("// the mount");
+    expect(map.get("src/main.ts")).toBe("// the learner's own main.ts");
+    expect(map.has(".knyc-checks/s04-ui-1-1.ui.mjs")).toBe(false);
+  });
+
   it("fails every check with the build errors when the project doesn't build", async () => {
     const { files } = memoryFiles({ "node_modules/x": "" });
     const calls: string[] = [];

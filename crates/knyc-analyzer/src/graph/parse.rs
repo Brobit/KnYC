@@ -79,6 +79,9 @@ pub struct Import {
 pub enum SymbolKind {
     Function,
     Class,
+    /// A class whose template is in its decorator (an Angular `@Component`, #95): its methods are
+    /// what the template calls, so they're part of it, not units of their own.
+    Component,
     Method,
     Field,
     Interface,
@@ -304,6 +307,10 @@ fn export(node: Node, src: &[u8], file: &mut ParsedFile) {
             {
                 let mut members = BTreeSet::new();
                 collect_identifiers(decorator, src, &mut class.uses, &mut members);
+                if class.kind == SymbolKind::Class && text(decorator, src).starts_with("@Component")
+                {
+                    class.kind = SymbolKind::Component;
+                }
                 let own = class.name.clone();
                 class.uses.remove(&own);
             }

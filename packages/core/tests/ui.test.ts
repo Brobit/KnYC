@@ -72,6 +72,11 @@ describe("UI checks (#89)", () => {
     expect(vue.map((f) => f.path)).toEqual([".knyc-checks/s04-ui-1-1.ui.mjs", ".knyc-checks/s04-ui-1-1.html", ".knyc-checks/s04-ui-1-1.mount.ts"]);
     expect(vue[1]!.code).toContain('<script type="module" src="./s04-ui-1-1.mount.ts"></script>');
 
+    // Angular (#95): until the app has its own src/main.ts, the mount is it, on the app's page.
+    const angular = uiCandidateFiles("web/.knyc-checks/s04-ui-1-1", "NoteItem", "await page.goto(mountUrl);", "bootstrapApplication(Mount);", "angular-main", "web");
+    expect(angular.map((f) => f.path)).toEqual(["web/.knyc-checks/s04-ui-1-1.ui.mjs", "web/src/main.ts"]);
+    expect(angular[0]!.code).toContain('const mountUrl = "/";');
+
     // Next.js (#93): the mount module is a page of the app, and the test knows its URL.
     const next = uiCandidateFiles("web/.knyc-checks/s04-ui-1-1", "NoteItem shows its title", "await page.goto(mountUrl);", "export default function Page() { return null; }", "next-app", "web");
     expect(next.map((f) => f.path)).toEqual(["web/.knyc-checks/s04-ui-1-1.ui.mjs", "web/app/knyc-checks/s04-ui-1-1/page.tsx"]);

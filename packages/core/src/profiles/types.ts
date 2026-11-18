@@ -58,7 +58,7 @@ export interface Profile {
    * How a UI check mounts one component alone: a React or Vue module on an HTML page served by Vite
    * (default React, #92, #94), or a page of a Next.js app (`app/knyc-checks/<id>/page.tsx`, #93).
    */
-  uiMount?: "react" | "vue" | "next-app";
+  uiMount?: "react" | "vue" | "next-app" | "angular-main";
   /** Files, relative to the package, without which the app's own page is empty (Next.js: app/page.tsx). */
   entryFiles?: string[];
   /**

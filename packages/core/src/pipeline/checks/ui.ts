@@ -44,9 +44,9 @@ export interface UiCandidate {
 
 /**
  * How a framework mounts one component alone: React in a TSX module (#92), Vue in a TS module
- * (#94), Next.js as a page of the app (#93).
+ * (#94), Next.js as a page of the app (#93), Angular as the app's main.ts while it has none (#95).
  */
-export type MountKind = "react" | "vue" | "next-app";
+export type MountKind = "react" | "vue" | "next-app" | "angular-main";
 
 /**
  * The files of a candidate: the test, and the page that mounts one component alone (#92). With
@@ -56,6 +56,14 @@ export type MountKind = "react" | "vue" | "next-app";
  */
 export function uiCandidateFiles(base: string, label: string, body: string, mount?: string, kind: MountKind = "react", root = "."): UiCandidate["files"] {
   const name = base.slice(base.lastIndexOf("/") + 1);
+  // Angular (#95): `ng serve` builds only src/main.ts. Until the app has one, the mount is it, and
+  // its page is the app's own ("/", whose index.html holds <app-root>).
+  if (kind === "angular-main" && mount?.trim()) {
+    return [
+      { path: `${base}.ui.mjs`, code: uiTestModule(label, body, "/") },
+      { path: `${root === "." ? "" : `${root}/`}src/main.ts`, code: `// KnYC mount page for: ${label.replace(/\n/g, " ")}\n${mount.trim()}\n` },
+    ];
+  }
   if (kind === "next-app" && mount?.trim()) {
     const page = `${root === "." ? "" : `${root}/`}app/knyc-checks/${name}/page.tsx`;
     return [
@@ -78,6 +86,8 @@ const MOUNT_MODULE: Record<MountKind, string> = {
   react: 'a complete TSX module that renders the step\'s component into document.getElementById("root")',
   vue: 'a complete TypeScript module that mounts the step\'s component on "#root" with createApp (import { createApp, h } from "vue"; a render function passes the props; install createPinia() and a router with createMemoryHistory() when the component uses a store, RouterLink or RouterView)',
   "next-app": 'a complete TSX module whose default export is a page component (a Next.js page, already marked "use client") that renders the step\'s component',
+  "angular-main":
+    'the app\'s src/main.ts for this check (the app has none yet): a standalone component with selector "app-root" whose template renders the step\'s component, started with bootstrapApplication (add provideRouter([]) to its providers when the component uses routerLink)',
 };
 
 /** The test module around the model's body: what the runner imports and calls with a page. */

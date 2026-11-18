@@ -334,7 +334,9 @@ export async function prepareChecks(
     const mountImports = new Map<string, string>();
     // Next.js (#93): a mount page is a page under app/knyc-checks/<id>/, one folder deeper.
     const mountKind = profile.uiMount ?? "react";
-    const mountDir = mountKind === "next-app" ? `${root === "." ? "" : `${root}/`}app/knyc-checks/_` : checksDir;
+    const inPackageDir = (dir: string) => (root === "." ? dir : `${root}/${dir}`);
+    // Angular (#95): the mount is src/main.ts.
+    const mountDir = mountKind === "next-app" ? inPackageDir("app/knyc-checks/_") : mountKind === "angular-main" ? inPackageDir("src") : checksDir;
     if (profile.kind === "frontend") {
       const changed = (await git("diff", "--name-only", before, tag)).split("\n").filter(Boolean);
       for (const file of [...changed, ...ctx.context.keys()]) {
@@ -351,6 +353,8 @@ export async function prepareChecks(
     const exists = (file: string) => git("cat-file", "-e", `${tag}:${inRoot(file)}`).then(() => true, () => false);
     // Vite: index.html's entry script; a profile's entry files (Next.js: app/page.tsx).
     const appShown = profile.entryFiles ? (await Promise.all(profile.entryFiles.map(exists))).some(Boolean) : !entryScript || (await exists(entryScript));
+    // An Angular mount replaces src/main.ts: once the app has its own, no mounts.
+    if (mountKind === "angular-main" && appShown) mountImports.clear();
     let problems: string[] = [];
     let accepted: UiCandidate[] = [];
     for (let attempt = 0; attempt <= (options.retries ?? 2) && accepted.length === 0; attempt++) {
