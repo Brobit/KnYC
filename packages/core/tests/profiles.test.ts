@@ -138,6 +138,43 @@ describe("track rules", () => {
       Dockerfile: "deployment",
     });
   });
+
+  it("split a Next.js app: pages and components the frontend, route handlers the backend (#93)", () => {
+    const next = profileFor(["nextjs 16.4.6"]);
+    expect(next).toMatchObject({ id: "nextjs", kind: "frontend", uiMount: "next-app" });
+    expect(next.stepBuild).toMatch(/\.next\/dev\/types.*&& npx tsc --noEmit$/);
+    const tracks = Object.fromEntries(
+      [
+        "app/page.tsx",
+        "app/layout.tsx",
+        "components/NoteItem.tsx",
+        "hooks/useNotes.ts",
+        "lib/api.ts",
+        "lib/types.ts",
+        "app/api/notes/route.ts",
+        "app/api/notes/[id]/route.ts",
+        "server/notes-store.ts",
+        "middleware.ts",
+        "next.config.ts",
+      ].map((path) => [path, trackOf(next, path)]),
+    );
+    expect(tracks).toEqual({
+      "app/page.tsx": "frontend",
+      "app/layout.tsx": "frontend",
+      "components/NoteItem.tsx": "frontend",
+      "hooks/useNotes.ts": "frontend",
+      "lib/api.ts": "frontend",
+      "lib/types.ts": "shared",
+      "app/api/notes/route.ts": "backend",
+      "app/api/notes/[id]/route.ts": "backend",
+      "server/notes-store.ts": "backend",
+      "middleware.ts": "backend",
+      "next.config.ts": "setup",
+    });
+    // One framework, two tracks: the backend path is checked with HTTP requests on `next dev`.
+    expect(profileForTrack(["nextjs"], "frontend")).toBe(next);
+    expect(profileForTrack(["nextjs"], "backend")).toMatchObject({ id: "nextjs", kind: "backend", run: { scripts: ["dev", "start"], readyPaths: ["/api/health", "/"], portArgs: "-- -p {port}" } });
+  });
 });
 
 describe("what reads the profile", () => {

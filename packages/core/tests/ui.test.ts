@@ -67,6 +67,12 @@ describe("UI checks (#89)", () => {
     expect(files[2]!.code).toBe('// KnYC mount page for: NoteItem shows its title\nimport { createRoot } from "react-dom/client";\n');
     expect(uiCandidateFiles(".knyc-checks/s09-ui-1-1", "x", "await page.goto('/');")).toHaveLength(1);
 
+    // Next.js (#93): the mount module is a page of the app, and the test knows its URL.
+    const next = uiCandidateFiles("web/.knyc-checks/s04-ui-1-1", "NoteItem shows its title", "await page.goto(mountUrl);", "export default function Page() { return null; }", { root: "web" });
+    expect(next.map((f) => f.path)).toEqual(["web/.knyc-checks/s04-ui-1-1.ui.mjs", "web/app/knyc-checks/s04-ui-1-1/page.tsx"]);
+    expect(next[0]!.code).toContain('export default async function ({ page }) {\n  const mountUrl = "/knyc-checks/s04-ui-1-1";');
+    expect(next[1]!.code).toBe('"use client";\n// KnYC mount page for: NoteItem shows its title\nexport default function Page() { return null; }\n');
+
     const ctx = { step: { id: "s04", title: "Note item", goal: "A note shows its title" } as never, diff: "", importPaths: new Map(), dependencies: [], exports: new Map(), context: new Map() };
     expect(uiChecksPrompt(ctx)).not.toContain("also write `mount`");
     const mounts = new Map([["apps/web/src/components/NoteItem.tsx", "../src/components/NoteItem"]]);

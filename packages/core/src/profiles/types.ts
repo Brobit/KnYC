@@ -54,6 +54,18 @@ export interface Profile {
    * comes last (Vite bundles from main.tsx, which mounts everything): React type-checks (#92).
    */
   stepBuild?: string;
+  /**
+   * How a UI check mounts one component alone (#93): an HTML page served by Vite (default), or a
+   * page of a Next.js app (`app/knyc-checks/<id>/page.tsx`).
+   */
+  uiMount?: "html" | "next-app";
+  /** Files, relative to the package, without which the app's own page is empty (Next.js: app/page.tsx). */
+  entryFiles?: string[];
+  /**
+   * A framework with both a frontend and a backend in one package (Next.js, #93): how its other
+   * track differs. `profileForTrack` merges it over the profile.
+   */
+  tracks?: Partial<Record<"frontend" | "backend", Partial<Omit<Profile, "id" | "tracks">>>>;
   /** Architecture notes lessons can use ("a router is mounted on a path prefix…"). */
   lessonHints: string[];
 }

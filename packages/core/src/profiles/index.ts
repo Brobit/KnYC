@@ -4,6 +4,7 @@
 import { express } from "./express.ts";
 import { fastify } from "./fastify.ts";
 import { nestjs } from "./nestjs.ts";
+import { nextjs } from "./nextjs.ts";
 import { prisma } from "./prisma.ts";
 import { drizzle } from "./drizzle.ts";
 import { typeorm } from "./typeorm.ts";
@@ -17,7 +18,7 @@ export type { FileTrack, Profile, TrackRule } from "./types.ts";
 export { generic } from "./generic.ts";
 export { globToRegExp, matchesGlob } from "./glob.ts";
 
-export const PROFILES: Profile[] = [express, nestjs, fastify, react, prisma, typeorm, drizzle];
+export const PROFILES: Profile[] = [express, nestjs, fastify, nextjs, react, prisma, typeorm, drizzle];
 
 /** Profiles by the scan's framework id. */
 export const profiles: Record<string, Profile> = Object.fromEntries(PROFILES.map((p) => [p.id, p]));
@@ -46,7 +47,14 @@ export function profileForTrack(frameworks: string[], track: string): Profile {
   // Deployment files are the same for every framework (#100).
   if (track === "deployment") return deployment;
   const known = frameworks.map((f) => profiles[f.split(" ")[0]!]).filter((p): p is Profile => p !== undefined);
-  return (track === "frontend" || track === "backend" || track === "database" ? known.find((p) => p.kind === track) : undefined) ?? profileFor(frameworks);
+  if (track === "frontend" || track === "backend" || track === "database") {
+    const own = known.find((p) => p.kind === track);
+    if (own) return own;
+    // One framework for both tracks (Next.js, #93): its other side.
+    const both = known.find((p) => (track === "frontend" || track === "backend") && p.tracks?.[track]);
+    if (both) return { ...both, ...both.tracks![track as "frontend" | "backend"] };
+  }
+  return profileFor(frameworks);
 }
 
 /** A label for a framework id, known or not ("express" → "Express", "koa" → "Koa"). */
