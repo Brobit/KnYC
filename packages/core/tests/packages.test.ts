@@ -133,6 +133,17 @@ describe("where the build writes (#96)", () => {
   });
 });
 
+describe("the run script (#93)", () => {
+  it("is the first of the profile's scripts the package has: Next.js runs `dev`, `start` needs a build", () => {
+    const scan = {
+      packages: [{ root: ".", scripts: { build: "next build", dev: "next dev", start: "next start" } }],
+      frameworks: [{ profileId: "nextjs", version: "16.4.6", root: "." }],
+      commands: [{ root: ".", install: "npm install", build: "npm run build", test: null, run: "npm run start" }],
+    } as never;
+    expect(packageCommands(scan)).toEqual([{ root: ".", install: "npm install", build: expect.stringContaining("npx tsc --noEmit"), test: null, run: "npm run dev" }]);
+  });
+});
+
 describe("step builds (#92)", () => {
   it("type-check a React package at each step, and build each package on its own", () => {
     const scan = {

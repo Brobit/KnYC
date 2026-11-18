@@ -1,0 +1,24 @@
+{
+  "name": "nextjs-notes",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A notes app in Next.js (app router): pages and client components, and API route handlers over an in-memory store (KnYC golden fixture).",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "next": "16.4.6",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}

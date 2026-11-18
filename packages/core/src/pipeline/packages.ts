@@ -22,7 +22,19 @@ export interface PackageCommand {
  */
 export function packageCommands(scan: Pick<Scan, "commands" | "packages"> & { frameworks?: Scan["frameworks"] }): PackageCommands {
   const stepBuilds = new Map((scan.frameworks ?? []).flatMap((f) => (profiles[f.profileId]?.stepBuild ? [[f.root, profiles[f.profileId]!.stepBuild!] as const] : [])));
-  const commands = scan.commands.map((c) => (c.build && stepBuilds.has(c.root) ? { ...c, build: stepBuilds.get(c.root)! } : c));
+  // The script that runs the app, in the profile's order (Next.js: `dev`; `start` needs a build, #93).
+  const scriptsOf = (root: string) => ((scan.packages ?? []).find((p) => p.root === root) as { scripts?: Record<string, string> } | undefined)?.scripts ?? {};
+  const runScript = (root: string) => {
+    for (const f of (scan.frameworks ?? []).filter((f) => f.root === root)) {
+      const script = profiles[f.profileId]?.run?.scripts.find((s) => s in scriptsOf(root));
+      if (script) return `npm run ${script}`;
+    }
+    return undefined;
+  };
+  const commands = scan.commands.map((c) => {
+    const run = runScript(c.root) ?? c.run;
+    return { ...c, run, ...(c.build && stepBuilds.has(c.root) ? { build: stepBuilds.get(c.root)! } : {}) };
+  });
   const workspace = (scan.packages ?? []).some((p) => p.root === "." && (p as { workspaces?: boolean }).workspaces === true);
   const root = commands.find((c) => c.root === ".");
   if (!workspace || !root) return commands;
