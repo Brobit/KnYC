@@ -157,6 +157,43 @@ describe("track rules", () => {
     });
   });
 
+  it("check an Angular app on ng serve, its mounts as main.ts until it has one (#95)", () => {
+    const angular = profileFor(["angular 22.2.6"]);
+    expect(angular).toMatchObject({ id: "angular", kind: "frontend", uiMount: "angular-main", entryFiles: ["src/main.ts"], stepBuild: "npx ngc -p tsconfig.json --noEmit", run: { scripts: ["start"], port: 4200 } });
+    const tracks = Object.fromEntries(["src/app/notes.service.ts", "src/app/components/note-item.component.ts", "src/main.ts", "angular.json", "src/environments/environment.ts"].map((path) => [path, trackOf(angular, path)]));
+    expect(tracks).toEqual({
+      "src/app/notes.service.ts": "frontend",
+      "src/app/components/note-item.component.ts": "frontend",
+      "src/main.ts": "frontend",
+      "angular.json": "setup",
+      "src/environments/environment.ts": "setup",
+    });
+    // A component's template calls its methods: they're part of its class, not units of their own.
+    const form = { path: "src/app/note-form.component.ts", language: "typescript", loc: 20, test: false, parseErrors: false, imports: [], exports: ["NoteFormComponent", "Helper"] };
+    const graph = graphSchema.parse({
+      files: [
+        {
+          ...form,
+          symbols: [
+            { name: "NoteFormComponent", kind: "component", exported: true, startLine: 1, endLine: 12 },
+            { name: "NoteFormComponent.submit", kind: "method", exported: false, startLine: 8, endLine: 11 },
+            { name: "Helper", kind: "class", exported: true, startLine: 14, endLine: 20 },
+            { name: "Helper.run", kind: "method", exported: false, startLine: 15, endLine: 19 },
+          ],
+        },
+      ],
+      edges: [],
+      symbolEdges: [],
+      cycles: [],
+      layers: [["src/app/note-form.component.ts"]],
+      external: {},
+      unresolved: [],
+    });
+    const units = buildUnits(graph);
+    expect(units.byFile.get(form.path)).toEqual([`${form.path}#NoteFormComponent`, `${form.path}#Helper`, `${form.path}#Helper.run`]);
+    expect(units.byId.get(`${form.path}#NoteFormComponent`)?.kind).toBe("class");
+  });
+
   it("split a Next.js app: pages and components the frontend, route handlers the backend (#93)", () => {
     const next = profileFor(["nextjs 16.4.6"]);
     expect(next).toMatchObject({ id: "nextjs", kind: "frontend", uiMount: "next-app" });

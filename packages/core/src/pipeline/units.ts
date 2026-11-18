@@ -58,12 +58,16 @@ export function buildUnits(graph: Graph): Units {
     if (!file || file.test) continue;
     const fileAtoms: Atom[] = [];
     const exportedSymbols = new Set(file.symbols.filter((s) => s.exported).map((s) => s.name));
+    // An Angular component (#95): its template calls its methods, so they're part of its class.
+    const components = new Set(file.symbols.filter((s) => s.kind === "component").map((s) => s.name));
     for (const symbol of file.symbols) {
       const lines = symbol.endLine - symbol.startLine + 1;
       const range = { startLine: symbol.startLine, endLine: symbol.endLine };
-      if (!symbol.name.includes(".") && ATOM_KINDS.has(symbol.kind)) {
+      if (!symbol.name.includes(".") && symbol.kind === "component") {
+        fileAtoms.push({ id: `${path}#${symbol.name}`, file: path, kind: "class", exported: symbol.exported, lines, ...range });
+      } else if (!symbol.name.includes(".") && ATOM_KINDS.has(symbol.kind)) {
         fileAtoms.push({ id: `${path}#${symbol.name}`, file: path, kind: symbol.kind as AtomKind, exported: symbol.exported, lines, ...range });
-      } else if (symbol.kind === "method" && !symbol.name.endsWith(".constructor")) {
+      } else if (symbol.kind === "method" && !symbol.name.endsWith(".constructor") && !components.has(symbol.name.split(".")[0]!)) {
         const owner = symbol.name.split(".")[0]!;
         fileAtoms.push({ id: `${path}#${symbol.name}`, file: path, kind: "method", parent: `${path}#${owner}`, exported: exportedSymbols.has(owner), lines, ...range });
       }

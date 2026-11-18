@@ -167,11 +167,16 @@ export async function runStepChecks(input: RunStepChecksInput): Promise<CheckRun
   const copied: string[] = [];
   // Top folders made for the copies (".knyc-checks"), removed with them.
   const madeDirs = new Set<string>();
+  // A check's file where the learner has one (an Angular mount's src/main.ts, #95): the learner's
+  // is put back afterwards, never removed.
+  const restore = new Map<string, string>();
   const copy = async (from: string, to: string) => {
     const top = to.includes("/") ? to.slice(0, to.indexOf("/")) : null;
     if (top && !madeDirs.has(top) && !(await files.exists(top))) madeDirs.add(top);
+    if (await files.exists(to)) {
+      if (!restore.has(to)) restore.set(to, await files.read(to));
+    } else copied.push(to);
     await files.write(to, await files.read(from));
-    copied.push(to);
   };
   try {
     const repo = checks.filter((c) => c.origin === "repo" && c.spec.kind === "test");
@@ -245,6 +250,7 @@ export async function runStepChecks(input: RunStepChecksInput): Promise<CheckRun
     }
   } finally {
     for (const file of copied) await files.remove(file).catch(() => {});
+    for (const [file, content] of restore) await files.write(file, content).catch(() => {});
     for (const dir of madeDirs) await files.remove(dir).catch(() => {});
   }
   return done();
