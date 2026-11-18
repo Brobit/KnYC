@@ -146,11 +146,13 @@ export interface RunOptions {
   report?: string;
   /** Docker mode (#91): run in a container instead of on the machine. */
   container?: Container;
+  /** A database server the command needs (#116): Postgres, in Docker. */
+  database?: "postgres";
 }
 
 /** Runs a shell command line through the knyc-sys run step (timeout + process-tree kill). */
 export function runCommand(host: Host, cwd: string, command: string, options: RunOptions = {}) {
-  const request: SysRequest = { op: "run", cwd, command, timeoutMs: options.timeoutMs ?? 120_000, env: options.env ?? {}, report: options.report, ...(options.container ? { container: options.container } : {}) };
+  const request: SysRequest = { op: "run", cwd, command, timeoutMs: options.timeoutMs ?? 120_000, env: options.env ?? {}, report: options.report, ...(options.container ? { container: options.container } : {}), ...(options.database ? { database: options.database } : {}) };
   return knycSys(host, request, checkOutcomeSchema);
 }
 

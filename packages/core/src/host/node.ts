@@ -37,6 +37,7 @@ export function sysArgs(request: SysRequest): string[] {
       for (const [k, v] of Object.entries(request.env)) args.push("--env", `${k}=${v}`);
       if (request.report) args.push("--report", request.report);
       if (request.container) args.push("--docker-image", request.container.image, "--mount", request.container.mount);
+      if (request.database) args.push("--database", request.database);
       return [...args, "--", ...request.command.split(" ").filter(Boolean)];
     }
     case "docker":

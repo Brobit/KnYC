@@ -5,6 +5,7 @@ pub mod compose;
 pub mod container;
 pub mod docker;
 pub mod http;
+pub mod postgres;
 pub mod pty;
 pub mod report;
 pub mod run;

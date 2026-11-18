@@ -8,6 +8,7 @@ import { joinPath, type Host } from "../../host/host.ts";
 import type { Profile } from "../../profiles/index.ts";
 import type { Step } from "../../schemas/learning-path.ts";
 import { runCommand, type CheckOutcome } from "../../sys/knyc-sys.ts";
+import type { Database } from "../database.ts";
 
 export const CHECKS_DIR = ".knyc-checks";
 
@@ -113,11 +114,11 @@ export function checkCommand(check: Pick<CandidateCheck, "file" | "root">): stri
 }
 
 /** Writes a check into the working copy and runs it in its package. */
-export async function runCandidate(host: Host, workDir: string, check: CandidateCheck, timeoutMs = 60_000): Promise<CheckOutcome> {
+export async function runCandidate(host: Host, workDir: string, check: CandidateCheck, timeoutMs = 60_000, database?: Database): Promise<CheckOutcome> {
   await host.writeFile(joinPath(workDir, check.file), check.code);
   const cwd = !check.root || check.root === "." ? workDir : joinPath(workDir, check.root);
   // PORT=0: a server started by the project's own entry point gets a free port, never a busy one.
-  return runCommand(host, cwd, checkCommand(check), { timeoutMs, env: { PORT: "0" } });
+  return runCommand(host, cwd, checkCommand(check), { timeoutMs, env: { PORT: "0" }, ...(database ? { database } : {}) });
 }
 
 /** A path from folder `from` to file `to`, both relative to the project, for an ESM import. */

@@ -35,6 +35,8 @@ export interface Profile {
     fallback: CheckStrategy;
     /** Tested code a generated check can copy (Prisma: a freshly migrated database, #98). */
     recipe?: string;
+    /** Hints and recipe instead, for a project on Postgres (#116): its checks get a server. */
+    postgres?: { hints: string[]; recipe: string };
   };
   /** How the project runs, for checks against a running server (#88). */
   run?: {

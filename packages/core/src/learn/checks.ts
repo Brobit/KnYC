@@ -29,6 +29,8 @@ export interface CheckCommand {
   env?: Record<string, string>;
   /** Jest/Vitest JSON report the command writes, relative to `root`. */
   report?: string;
+  /** A database server the command needs (#116): Postgres, in Docker. */
+  database?: "postgres";
 }
 
 export interface RunStepChecksInput {
@@ -189,7 +191,7 @@ export async function runStepChecks(input: RunStepChecksInput): Promise<CheckRun
       const spec = list[0]!.spec as Extract<Check["spec"], { kind: "test" }>;
       copied.push(spec.root === "." ? REPORT_FILE : `${spec.root}/${REPORT_FILE}`);
       const timeoutMs = Math.max(...list.map((c) => c.timeoutMs));
-      const outcome = await run({ command: spec.command, root: spec.root, timeoutMs, report: REPORT_FILE });
+      const outcome = await run({ command: spec.command, root: spec.root, timeoutMs, report: REPORT_FILE, ...(spec.database ? { database: spec.database } : {}) });
       for (const check of list) {
         const name = check.spec.kind === "test" ? check.spec.filter[0] : undefined;
         const test = outcome.tests?.tests.find((t) => t.name === name);
@@ -209,7 +211,7 @@ export async function runStepChecks(input: RunStepChecksInput): Promise<CheckRun
       if (spec.kind === "test") {
         for (const file of spec.files) await copy(paths.checkFile(file), file);
         // PORT=0: a server started by the project's entry point gets a free port (as when proven).
-        record(check, await run({ command: spec.command, root: spec.root, timeoutMs: check.timeoutMs, env: { PORT: "0" } }));
+        record(check, await run({ command: spec.command, root: spec.root, timeoutMs: check.timeoutMs, env: { PORT: "0" }, ...(spec.database ? { database: spec.database } : {}) }));
       } else if (spec.kind === "build") {
         record(check, await run({ command: spec.command, root: spec.root, timeoutMs: check.timeoutMs }));
       } else if (spec.kind === "docker" && input.runDocker) {

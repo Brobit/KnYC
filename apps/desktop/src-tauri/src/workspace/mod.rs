@@ -268,6 +268,8 @@ pub struct CheckRunRequest {
     report: Option<String>,
     /// Docker mode (#91): the toolchain image to run the command in, the workspace mounted.
     docker_image: Option<String>,
+    /// A database server the command needs (#116): Postgres, in Docker.
+    database: Option<knyc_runner::postgres::Database>,
 }
 
 /// The container a check runs in, in Docker mode: the image, the open workspace mounted.
@@ -278,6 +280,7 @@ fn container_for(
     image.map(|image| knyc_runner::container::Container {
         image,
         mount: scope.root().to_path_buf(),
+        network: None,
     })
 }
 
@@ -298,6 +301,7 @@ pub async fn workspace_check_run(
     spec.timeout = Duration::from_millis(request.timeout_ms);
     spec.env = request.env;
     spec.container = container_for(&scope, request.docker_image);
+    spec.database = request.database;
     tauri::async_runtime::spawn_blocking(move || {
         run_check(&spec, request.report.map(PathBuf::from))
     })

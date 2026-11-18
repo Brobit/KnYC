@@ -24,6 +24,7 @@ import { mapTests, runSuiteAtStep, suitesOf, type SuiteRun, type TestMapping } f
 import { fragileCheck } from "./audit.ts";
 import { goalFromChecks } from "./goal.ts";
 import { deploymentCheck, type DeploymentCheck } from "./deployment.ts";
+import { databaseOf } from "../database.ts";
 import { scriptsFrom, workflowProblems } from "./workflow.ts";
 import { askForHttpChecks, describeHttpProblem, type HttpCandidate } from "./http.ts";
 import { askForUiChecks, describeUiProblem, uiCandidateFiles, type UiCandidate } from "./ui.ts";
@@ -110,6 +111,10 @@ export async function prepareChecks(
     return i <= 0 ? setupTag : tagged[i - 1]!.tag!;
   };
 
+  // A project on Postgres (#116): its tests run next to a Postgres server.
+  const database = await databaseOf(graph, (file) => host.readFile(joinPath(options.sourceRoot, file)));
+  const candidateRun = (check: CandidateCheck) => runCandidate(host, workDir, check, undefined, database);
+
   // 1. The project's own tests, each package's suite in its folder (#87).
   const suites = suitesOf(scan);
   /** The suite a test (keyed from the project root) belongs to. */
@@ -123,7 +128,7 @@ export async function prepareChecks(
     const testFiles = graph.files.filter((f) => f.test).map((f) => f.path);
     const runs: SuiteRun[] = [];
     for (const step of [{ stepId: null, tag: setupTag }, ...tagged.map((s) => ({ stepId: s.stepId, tag: s.tag! }))]) {
-      runs.push(await runSuiteAtStep(host, workDir, step, scan, testFiles, options.sourceRoot, suites));
+      runs.push(await runSuiteAtStep(host, workDir, step, scan, testFiles, options.sourceRoot, suites, undefined, database));
       log(`suite at ${step.stepId ?? "s00"}`);
     }
     mapping = mapTests(runs);
@@ -134,7 +139,9 @@ export async function prepareChecks(
   const stepOf = stepOfUnits(path, units);
   const graphFiles = new Map(graph.files.map((f) => [f.path, f]));
   // The path's track decides: a React frontend path in a repo with an Express API is React's (#92).
-  const profile = profileForTrack(scan.frameworks.map((f) => f.profileId), path.trackId);
+  const trackProfile = profileForTrack(scan.frameworks.map((f) => f.profileId), path.trackId);
+  const postgres = database === "postgres" ? trackProfile.check.postgres : undefined;
+  const profile = postgres ? { ...trackProfile, check: { ...trackProfile.check, ...postgres } } : trackProfile;
 
   /** What each existing module exports at step k: names the model must use. */
   const exportsAt = (k: number, sources: string[]) =>
@@ -445,10 +452,10 @@ export async function prepareChecks(
       }
 
       await checkoutStep(host, workDir, tag, scan);
-      const atStep = await Promise.all(candidates.map((c) => runCandidate(host, workDir, c)));
+      const atStep = await Promise.all(candidates.map(candidateRun));
       await checkoutStep(host, workDir, before, scan);
       const beforeStep = await Promise.all(
-        candidates.map((c, i) => (atStep[i]!.status === "pass" ? runCandidate(host, workDir, c) : Promise.resolve(null))),
+        candidates.map((c, i) => (atStep[i]!.status === "pass" ? candidateRun(c) : Promise.resolve(null))),
       );
 
       const good: CandidateCheck[] = [];
@@ -471,7 +478,7 @@ export async function prepareChecks(
       await checkoutStep(host, workDir, last.tag!, scan);
       const kept: CandidateCheck[] = [];
       for (const check of accepted) {
-        if ((await runCandidate(host, workDir, check)).status === "pass") kept.push(check);
+        if ((await candidateRun(check)).status === "pass") kept.push(check);
         else entry.notes.push(`"${check.label}" breaks at the last step; dropped`);
       }
       accepted = kept;
@@ -598,11 +605,11 @@ export async function prepareChecks(
     for (const test of existing) {
       const name = test.split(" › ").slice(1).join(" › ");
       const suite = suiteOf(test);
-      add({ label: name, origin: "repo", timeoutMs: 120_000, validation: proven, spec: { kind: "test", root: suite.root, runner: suite.runner as "vitest", command: suite.command, filter: [name], files: [] } });
+      add({ label: name, origin: "repo", timeoutMs: 120_000, validation: proven, spec: { kind: "test", root: suite.root, runner: suite.runner as "vitest", command: suite.command, filter: [name], files: [], ...(database ? { database } : {}) } });
     }
     for (const check of generated) {
       files.set(check.file, check.code);
-      add({ label: check.label, origin: "generated", timeoutMs: 60_000, validation: proven, spec: { kind: "test", root: check.root ?? ".", runner: "other", command: checkCommand(check), filter: [], files: [check.file] } });
+      add({ label: check.label, origin: "generated", timeoutMs: 60_000, validation: proven, spec: { kind: "test", root: check.root ?? ".", runner: "other", command: checkCommand(check), filter: [], files: [check.file], ...(database ? { database } : {}) } });
     }
     for (const candidate of http?.candidates ?? []) {
       add({ label: candidate.label, origin: "generated", timeoutMs: 60_000, validation: proven, spec: { kind: "http", server: http!.server, requests: candidate.requests as Extract<Check["spec"], { kind: "http" }>["requests"] } });

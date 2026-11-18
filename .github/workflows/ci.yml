@@ -31,13 +31,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [express-notes, express-shop, express-no-tests, nest-tasks, fastify-links, fullstack-notes, prisma-library, typeorm-library, drizzle-library, nextjs-notes, vue-notes, angular-notes]
+        project: [express-notes, express-shop, express-no-tests, nest-tasks, fastify-links, fullstack-notes, prisma-library, prisma-postgres-library, typeorm-library, drizzle-library, nextjs-notes, vue-notes, angular-notes]
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: fixtures/golden/${{ matrix.project }}
     steps:
       - uses: actions/checkout@v4
+      - name: Start Postgres
+        if: matrix.project == 'prisma-postgres-library'
+        run: |
+          docker run -d --name postgres -p 5432:5432 -e POSTGRES_USER=library -e POSTGRES_PASSWORD=library -e POSTGRES_DB=library postgres:16-alpine
+          until docker exec postgres pg_isready -h 127.0.0.1 -U library; do sleep 1; done
       - uses: actions/setup-node@v4
         with:
           node-version: 22

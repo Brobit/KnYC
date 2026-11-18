@@ -60,6 +60,10 @@ enum Commands {
         /// The folder mounted in Docker mode (--cwd must be inside it).
         #[arg(long)]
         mount: Option<PathBuf>,
+        /// A database server the command needs, started before it and removed after (#116):
+        /// "postgres" (in Docker; DATABASE_URL and KNYC_POSTGRES_URL point at it).
+        #[arg(long)]
+        database: Option<knyc_runner::postgres::Database>,
         /// The command line, after `--`.
         #[arg(last = true, required = true)]
         command: Vec<String>,
@@ -156,6 +160,7 @@ fn container(
     Some(knyc_runner::container::Container {
         image: image?,
         mount: mount?,
+        network: None,
     })
 }
 
@@ -202,6 +207,7 @@ fn main() -> Result<()> {
             report,
             docker_image,
             mount,
+            database,
             command,
         } => {
             let mut spec = RunSpec::new(command.join(" "), cwd);
@@ -209,6 +215,7 @@ fn main() -> Result<()> {
             spec.env = env.into_iter().collect();
             spec.stdin = stdin;
             spec.container = container(docker_image, mount);
+            spec.database = database;
             print(&run_check(&spec, report), cli.pretty)
         }
         Commands::Docker {
