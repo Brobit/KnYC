@@ -8,9 +8,18 @@ import {
   sliceSource,
   splitByRules,
   unitsForTrack,
+  initialProgress,
+  knycPaths,
+  learningPath,
+  releasedByStep,
+  restoreKept,
+  startWorkspace,
+  withPathComplete,
+  writeProgress,
   type GraphFile,
   type Scan,
 } from "../src/index.ts";
+import { clone, pathExample } from "./examples.ts";
 
 // The database track (#98): an Express API over Prisma, shaped like the prisma-library golden repo.
 
@@ -193,5 +202,61 @@ describe("TypeORM and Drizzle (#99)", () => {
     const config = graphSchema.parse({ ...drizzle, files: [ts("drizzle.config.ts", ["default"])], layers: [["drizzle.config.ts"]] });
     const split = splitByRules({ ...scan, frameworks: [scan.frameworks[0]!, { profileId: "drizzle", version: "0.45.4", root: "." }] } as Scan, config);
     expect(split.files["drizzle.config.ts"]).toBe("setup");
+  });
+});
+
+describe("held-back code in the learner's workspace (#120)", () => {
+  it("brings the API back as its queries are written, and the learner's own at the end (Done when)", async () => {
+    const units = unitsForTrack(buildUnits(graph), splitByRules(scan, graph), "database");
+    const held = [...units.held!.byFile.keys()];
+    expect(held).toEqual(["src/app.ts", "src/server.ts"]);
+    const order = ["prisma/schema.prisma#Author", "prisma/schema.prisma#Book", "src/db.ts#createDb", "prisma/migrations/1_init/migration.sql", "src/queries/catalog.ts#addBook", "src/queries/catalog.ts#booksByAuthor"];
+    const stepOf = new Map(order.map((id, i) => [id, i]));
+    const original = (path: string) => (path === "prisma/schema.prisma" ? SCHEMA : path === "src/app.ts" ? "export function createApp() {}\nexport function health() {}\n" : `// original ${path}\n`);
+    const at = (k: number) => filesAtStep(k, graph, units, stepOf, async (p) => original(p));
+    // What the reference timeline changes in step k: every file that differs from step k - 1.
+    const changes = async (k: number) => {
+      const [before, after] = [await at(k - 1), await at(k)];
+      return [...after].filter(([p, c]) => before.get(p) !== c).map(([path, c]) => ({ path, before: before.get(path) ?? null, after: c }));
+    };
+
+    // The backend track is done: the API is the learner's.
+    const files = new Map<string, string>([
+      [".knyc/project.json", "{}"],
+      ["src/app.ts", "// the learner's createApp and health\n"],
+      ["src/server.ts", "// the learner's server\n"],
+    ]);
+    const workspace = {
+      read: async (p: string) => files.get(p) ?? Promise.reject(new Error(p)),
+      write: async (p: string, c: string) => void files.set(p, c),
+      remove: async (p: string) => void files.delete(p),
+      exists: async (p: string) => files.has(p),
+    };
+    await writeProgress(workspace, withPathComplete(initialProgress(clone({ ...pathExample, id: "backend-standard" }) as never, new Date()), "backend-standard", new Date()));
+    const path = learningPath.parse({ ...clone(pathExample), id: "database-standard", trackId: "database", steps: clone(pathExample).steps });
+    const setup = new Map([...(await at(-1))].filter((e): e is [string, string] => e[1] !== null));
+    await startWorkspace(workspace, { project: {} as never, path, setup, now: new Date(), held });
+
+    // Held back: the learner's API is kept, R₀ has only what uses no query.
+    expect(files.get("src/app.ts")).toBe("export function health() {}\n");
+    expect(files.has("src/server.ts")).toBe(false);
+    expect(files.get(knycPaths(path.id).kept("src/app.ts"))).toBe("// the learner's createApp and health\n");
+
+    // Step by step: released once both queries exist (step 5), not before.
+    for (let k = 0; k < order.length; k++) {
+      for (const [file, content] of await releasedByStep(workspace, path.id, await changes(k))) {
+        if (content === null) files.delete(file);
+        else files.set(file, content);
+      }
+      if (k === 4) expect(files.get("src/app.ts")).toBe("export function health() {}\n");
+    }
+    expect(files.get("src/app.ts")).toBe("export function createApp() {}\nexport function health() {}\n");
+    expect(files.get("src/server.ts")).toBe("// original src/server.ts\n");
+
+    // The path is done: the learner's own API again.
+    expect(await restoreKept(workspace, path.id)).toEqual(["src/app.ts", "src/server.ts"]);
+    expect(files.get("src/app.ts")).toBe("// the learner's createApp and health\n");
+    expect(files.get("src/server.ts")).toBe("// the learner's server\n");
+    expect(files.has(knycPaths(path.id).kept("src/app.ts"))).toBe(false);
   });
 });
