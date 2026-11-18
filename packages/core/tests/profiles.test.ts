@@ -139,6 +139,24 @@ describe("track rules", () => {
     });
   });
 
+  it("put a Vue project's files in their tracks, checked as React's (#94)", () => {
+    const vue = profileFor(["vue 3.5.45"]);
+    expect(vue).toMatchObject({ id: "vue", label: "Vue", kind: "frontend", uiMount: "vue", stepBuild: "npx vue-tsc --noEmit", run: { scripts: ["dev", "start"], port: 5173 } });
+    const tracks = Object.fromEntries(
+      ["src/App.vue", "src/components/NoteItem.vue", "src/stores/notes.ts", "src/router.ts", "src/main.ts", "src/env.d.ts", "vite.config.ts", "index.html"].map((path) => [path, trackOf(vue, path)]),
+    );
+    expect(tracks).toEqual({
+      "src/App.vue": "frontend",
+      "src/components/NoteItem.vue": "frontend",
+      "src/stores/notes.ts": "frontend",
+      "src/router.ts": "frontend",
+      "src/main.ts": "frontend",
+      "src/env.d.ts": "setup",
+      "vite.config.ts": "setup",
+      "index.html": "frontend",
+    });
+  });
+
   it("split a Next.js app: pages and components the frontend, route handlers the backend (#93)", () => {
     const next = profileFor(["nextjs 16.4.6"]);
     expect(next).toMatchObject({ id: "nextjs", kind: "frontend", uiMount: "next-app" });

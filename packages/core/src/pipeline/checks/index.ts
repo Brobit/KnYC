@@ -333,13 +333,14 @@ export async function prepareChecks(
     // server resolves it).
     const mountImports = new Map<string, string>();
     // Next.js (#93): a mount page is a page under app/knyc-checks/<id>/, one folder deeper.
-    const nextApp = profile.uiMount === "next-app";
-    const mountDir = nextApp ? `${root === "." ? "" : `${root}/`}app/knyc-checks/_` : checksDir;
+    const mountKind = profile.uiMount ?? "react";
+    const mountDir = mountKind === "next-app" ? `${root === "." ? "" : `${root}/`}app/knyc-checks/_` : checksDir;
     if (profile.kind === "frontend") {
       const changed = (await git("diff", "--name-only", before, tag)).split("\n").filter(Boolean);
       for (const file of [...changed, ...ctx.context.keys()]) {
         const inside = root === "." || file.startsWith(`${root}/`);
-        if (inside && /\.(tsx?|jsx?)$/.test(file) && !/\.(test|spec)\./.test(file)) mountImports.set(file, relativeImport(mountDir, file.replace(/\.(tsx?|jsx?)$/, "")));
+        // A Vue component is imported with its extension (#94).
+        if (inside && /\.(tsx?|jsx?|vue)$/.test(file) && !/\.(test|spec)\./.test(file)) mountImports.set(file, relativeImport(mountDir, file.replace(/\.(tsx?|jsx?)$/, "")));
       }
     }
     // The dev server's page loads index.html's entry script; until that file exists the app shows
@@ -355,7 +356,7 @@ export async function prepareChecks(
     for (let attempt = 0; attempt <= (options.retries ?? 2) && accepted.length === 0; attempt++) {
       let answer;
       try {
-        answer = await askForUiChecks(options.client, ctx, problems, mountImports, appShown, nextApp);
+        answer = await askForUiChecks(options.client, ctx, problems, mountImports, appShown, mountKind);
       } catch (error) {
         if (!(error instanceof AiError) || error.kind === "auth" || error.kind === "limit") throw error;
         entry.aiCalls += 1;
@@ -364,7 +365,7 @@ export async function prepareChecks(
       }
       entry.aiCalls += 1;
       if (answer.checks.length === 0) break;
-      const candidates: UiCandidate[] = answer.checks.map((c, i) => ({ label: c.label, files: uiCandidateFiles(`${checksDir}/${step.id}-ui-${attempt + 1}-${i + 1}`, c.label, c.body, c.mount, nextApp ? { root } : undefined) }));
+      const candidates: UiCandidate[] = answer.checks.map((c, i) => ({ label: c.label, files: uiCandidateFiles(`${checksDir}/${step.id}-ui-${attempt + 1}-${i + 1}`, c.label, c.body, c.mount, mountKind, root) }));
       await checkoutStep(host, workDir, tag, scan);
       const atStep: UiOutcome[] = [];
       for (const c of candidates) atStep.push(await test(c));
