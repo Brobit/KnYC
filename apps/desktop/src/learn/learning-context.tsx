@@ -17,6 +17,8 @@ import {
   readProgress,
   runStepChecks,
   startWorkspace,
+  releasedByStep,
+  restoreKept,
   storedTestFiles,
   syncPreparedSteps,
   withCheckAttempt,
@@ -393,8 +395,16 @@ export function LearningProvider({
   const nextStep = useCallback(async () => {
     if (!learning || !stepId || moving.busy) return;
     const next = nextStepOf(learning.path, stepId);
+    // Other tracks' code that uses what this step wrote comes in now (#120).
+    if (jobs && job) {
+      for (const [file, content] of await releasedByStep(files, learning.path.id, await jobs.stepChanges(job, stepId))) {
+        if (content === null) await files.remove(file).catch(() => {});
+        else await files.write(file, content);
+      }
+    }
+    if (!next) await restoreKept(files, learning.path.id);
     await saveProgress((progress) => (next ? withCurrentStep(progress, learning.path.id, next.id, new Date()) : withPathComplete(progress, learning.path.id, new Date())));
-  }, [learning, stepId, moving.busy, saveProgress]);
+  }, [learning, stepId, moving.busy, saveProgress, jobs, job, files]);
 
   const skipTo = useCallback(
     async (targetId: string | null) => {
@@ -416,6 +426,8 @@ export function LearningProvider({
           if (content === null) await files.remove(file).catch(() => {});
           else await files.write(file, content);
         }
+        // The end of the path: the learner's own code held back while it ran comes back (#120).
+        if (!target) await restoreKept(files, path.id);
         await saveProgress((progress) => {
           const marked = withSkipped(progress, path.id, toApply);
           return target ? withCurrentStep(marked, path.id, target, new Date()) : withPathComplete(marked, path.id, new Date());

@@ -28,6 +28,10 @@ export function knycPaths(pathId: string) {
     testFile: (file: string) => `.knyc/checks/${pathId}/tests/${file}`,
     lesson: (stepId: string) => `.knyc/lessons/${pathId}/${stepId}.json`,
     runs: (stepId: string) => `.knyc/runs/${pathId}/${stepId}.jsonl`,
+    /** Other tracks' files with code held back until this path's code it uses exists (#120). */
+    held: `.knyc/held/${pathId}.json`,
+    /** The learner's version of such a file, kept while it's held back. */
+    kept: (file: string) => `.knyc/held/${pathId}/files/${file}`,
   };
 }
 
