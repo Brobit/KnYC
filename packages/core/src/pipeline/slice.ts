@@ -16,16 +16,18 @@ export interface SliceContext {
 }
 
 const COMMENT_OR_DECORATOR = /^\s*(\/\/|\/\*|\*|@)/;
+/** Python (#126): a symbol's range already holds its decorators. */
+const PYTHON_COMMENT = /^\s*#/;
 
 /** Line ranges (0-based, inclusive) to remove: units not kept, with the comments just above them. */
-function removedLines(lines: string[], atoms: Atom[], keep: Set<string>): Set<number> {
+function removedLines(lines: string[], atoms: Atom[], keep: Set<string>, comment = COMMENT_OR_DECORATOR): Set<number> {
   const removed = new Set<number>();
   for (const atom of atoms) {
     if (keep.has(atom.id)) continue;
     // A method inside a removed class is already gone with the class.
     if (atom.parent && !keep.has(atom.parent)) continue;
     let start = atom.startLine - 1;
-    while (start > 0 && COMMENT_OR_DECORATOR.test(lines[start - 1]!) && !removed.has(start - 1)) start -= 1;
+    while (start > 0 && comment.test(lines[start - 1]!) && !removed.has(start - 1)) start -= 1;
     for (let i = start; i <= atom.endLine - 1; i++) removed.add(i);
   }
   return removed;
@@ -93,6 +95,62 @@ function pruneExports(source: string, file: GraphFile, ctx: SliceContext): strin
     .replace(EXPORT_DEFAULT_NAME, (statement, name: string) => (local(name) ? statement : ""));
 }
 
+/** `from .models import Note, NoteIn` (one line, or in parentheses over several). */
+const PYTHON_FROM = /^from[ \t]+(\S+)[ \t]+import[ \t]+(\([^)]*\)|[^\n]*?)[ \t]*$/gm;
+/** `import app.db`, `import app.db as database` (one module per statement). */
+const PYTHON_IMPORT = /^import[ \t]+([\w.]+)([ \t]+as[ \t]+\w+)?[ \t]*$/gm;
+
+/**
+ * Python (#126): imports of modules that don't exist yet go, and so do names not written yet.
+ * `from pkg import mod` imports a module when the graph says so (its specifier is "pkg.mod").
+ */
+function prunePythonImports(source: string, file: GraphFile, ctx: SliceContext): string {
+  const importOf = (specifier: string) => file.imports.find((i) => i.specifier === specifier);
+  const gone = (specifier: string) => {
+    const target = importOf(specifier)?.resolved;
+    return target !== undefined && !ctx.fileExists(target);
+  };
+  return source
+    .replace(PYTHON_IMPORT, (statement, module: string) => (gone(module) ? DROPPED : statement))
+    .replace(PYTHON_FROM, (statement, module: string, list: string) => {
+      const names = list
+        .replace(/^\(|\)$/g, "")
+        .split(/,|\n/)
+        .map((n) => n.replace(/#.*$/, "").trim())
+        .filter(Boolean);
+      if (names.includes("*")) return gone(module) ? DROPPED : statement;
+      const kept = names.filter((text) => {
+        const name = text.split(/\s+as\s+/)[0]!;
+        const sub = importOf(module.endsWith(".") ? `${module}${name}` : `${module}.${name}`);
+        if (sub?.module && sub.resolved) return ctx.fileExists(sub.resolved);
+        const target = importOf(module)?.resolved;
+        if (!target) return true; // a library, or unresolved: leave it
+        return ctx.fileExists(target) && ctx.symbolExists(target, name) !== false;
+      });
+      if (kept.length === names.length) return statement;
+      return kept.length === 0 ? DROPPED : `from ${module} import ${kept.join(", ")}`;
+    })
+    .replace(new RegExp(`^${DROPPED}\n?`, "gm"), "");
+}
+
+/** An import line that goes, with its line break. */
+const DROPPED = "\u0000knyc-dropped\u0000";
+
+/** Python (#126): a class whose methods aren't written yet still needs a body. */
+function fillEmptyClasses(source: string): string {
+  const lines = source.split("\n");
+  const indent = (line: string) => line.length - line.trimStart().length;
+  const out: string[] = [];
+  lines.forEach((line, i) => {
+    out.push(line);
+    const header = /^(\s*)class\b.*:\s*(#.*)?$/.exec(line);
+    if (!header) return;
+    const next = lines.slice(i + 1).find((l) => l.trim() !== "");
+    if (next === undefined || indent(next) <= header[1]!.length) out.push(`${header[1]}    pass`);
+  });
+  return out.join("\n");
+}
+
 /**
  * The file at step k. `atoms` are this file's units; `keep` holds the unit ids introduced so far.
  * Returns null when nothing of the file exists yet.
@@ -118,14 +176,18 @@ export function sliceSource(content: string, file: GraphFile, atoms: Atom[], kee
   if (atoms.every((a) => keep.has(a.id))) return content; // complete: the original, untouched
 
   const lines = content.split("\n");
-  const removed = removedLines(lines, atoms, keep);
+  const python = file.language === "python";
+  const removed = removedLines(lines, atoms, keep, python ? PYTHON_COMMENT : COMMENT_OR_DECORATOR);
   let source = lines.filter((_, i) => !removed.has(i)).join("\n");
-  source = prisma
+  source = python
+    ? fillEmptyClasses(prunePythonImports(source, file, ctx))
+    : prisma
     ? pruneRelations(source, new Set(atoms.filter((a) => !keep.has(a.id)).map((a) => a.id.slice(a.id.indexOf("#") + 1))))
     : pruneExports(pruneImports(source, file, ctx), file, ctx);
   // Removing blocks leaves runs of blank lines behind, and blank lines before a closing brace.
+  // Python keeps two between top-level definitions (PEP 8).
   return source
-    .replace(/\n[ \t]*\n([ \t]*\n)+/g, "\n\n")
+    .replace(python ? /\n([ \t]*\n){3,}/g : /\n[ \t]*\n([ \t]*\n)+/g, python ? "\n\n\n" : "\n\n")
     .replace(/\n[ \t]*\n([ \t]*\})/g, "\n$1")
     .replace(/^\s*\n/, "")
     .replace(/\s*$/, content.endsWith("\n") ? "\n" : "");

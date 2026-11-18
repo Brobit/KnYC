@@ -133,6 +133,24 @@ passes the M1 bar (≥ 80 % of steps with a proven behavior check), and `v0.2.0-
 - C#: ASP.NET Core (xUnit / NUnit).
 - tree-sitter grammars + toolchain detection for each.
 
+Issues (milestone "M5 — More languages", #126–#137), in dependency order. Python first (the most
+common stack), each language bringing its graph, toolchain and test report before its profiles:
+
+| # | Issue | Needs |
+|---|---|---|
+| M5.1 #126 | Python in the code graph (tree-sitter-python: imports, symbols, tests) + golden `fastapi-notes` | — |
+| M5.2 #127 | Python toolchain: `.venv` install (uv or pip), byte-compile build, run commands, Docker mode image | M5.1 |
+| M5.3 #128 | pytest checks (JUnit XML report), generated Python checks, language-aware prompts | M5.2 |
+| M5.4 #129 | FastAPI profile + golden repo | M5.3 |
+| M5.5 #130 | Django profile (models and migrations as the database track) + golden repo | M5.3 |
+| M5.6 #131 | Flask profile + SQLAlchemy / Alembic + golden repo | M5.3 |
+| M5.7 #132 | Go: code graph, `go build`, `go test -json` checks + golden `go-notes` | M5.3 |
+| M5.8 #133 | net/http and Gin profiles + golden repo | M5.7 |
+| M5.9 #134 | C#: code graph, `dotnet build`, `dotnet test` checks + golden `aspnet-notes` | M5.3 |
+| M5.10 #135 | ASP.NET Core profile + EF Core + golden repo | M5.9 |
+| M5.11 #136 | Editor and lessons per language (highlighting, commands, toolchain setup text) | M5.2 |
+| M5.12 #137 | M5 evaluation + `v0.3.0-alpha.1` | all |
+
 ## M6 — Polish & launch → `v1.0.0` (L)
 
 - Onboarding, path map (timeline + architecture lighting up), track complete summary + export.

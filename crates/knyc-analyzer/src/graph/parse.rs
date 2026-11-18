@@ -22,6 +22,8 @@ pub enum Lang {
     /// A compose file or a CI workflow (#100), not other YAML: one whole-file unit; a compose file
     /// imports the Dockerfiles it builds.
     Yaml,
+    /// Python (#126): imports are module paths ("app.models", ".models"), resolved by the graph.
+    Python,
 }
 
 impl Lang {
@@ -45,6 +47,7 @@ impl Lang {
             "prisma" => Some(Self::Prisma),
             "vue" => Some(Self::Vue),
             "sql" => Some(Self::Sql),
+            "py" => Some(Self::Python),
             _ => None,
         }
     }
@@ -58,6 +61,7 @@ impl Lang {
             Self::Dockerfile => "dockerfile",
             Self::Vue => "vue",
             Self::Yaml => "yaml",
+            Self::Python => "python",
         }
     }
 }
@@ -72,6 +76,9 @@ pub struct Import {
     pub type_only: bool,
     /// `export … from` re-exports are imports too.
     pub reexport: bool,
+    /// Python (#126): the import binds the module itself (`import app.db`, `import x as y`), not
+    /// names from it; what it's used for are its attributes (`db.connect()`).
+    pub module: bool,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
@@ -137,6 +144,7 @@ pub fn parse(lang: Lang, source: &str) -> anyhow::Result<ParsedFile> {
         Lang::Dockerfile => return Ok(ParsedFile::default()),
         Lang::Vue => return parse_vue(source),
         Lang::Yaml => return Ok(super::deploy::parse_yaml(source)),
+        Lang::Python => return super::python::parse_python(source),
     };
     parser.set_language(&language)?;
     let tree = parser
@@ -201,7 +209,7 @@ fn augmented_members(node: Node, src: &[u8], out: &mut BTreeSet<String>) {
     }
 }
 
-fn text<'a>(node: Node, src: &'a [u8]) -> &'a str {
+pub(super) fn text<'a>(node: Node, src: &'a [u8]) -> &'a str {
     node.utf8_text(src).unwrap_or("")
 }
 
@@ -261,6 +269,7 @@ fn import(node: Node, src: &[u8]) -> Option<Import> {
         names,
         type_only,
         reexport: false,
+        module: false,
     })
 }
 
@@ -291,6 +300,7 @@ fn export(node: Node, src: &[u8], file: &mut ParsedFile) {
             names,
             type_only: has_child_kind(node, "type"),
             reexport: true,
+            module: false,
         });
         return;
     }
@@ -358,6 +368,26 @@ fn export(node: Node, src: &[u8], file: &mut ParsedFile) {
                     .push(symbol("default", SymbolKind::Variable, true, value, src));
             }
         }
+    }
+}
+
+pub(super) fn symbol_at(
+    name: &str,
+    kind: SymbolKind,
+    exported: bool,
+    node: Node,
+    uses: BTreeSet<String>,
+    members: BTreeSet<String>,
+) -> Symbol {
+    Symbol {
+        name: name.to_string(),
+        kind,
+        exported,
+        start_line: node.start_position().row + 1,
+        end_line: node.end_position().row + 1,
+        uses,
+        members,
+        outer_members: BTreeSet::new(),
     }
 }
 
@@ -504,6 +534,7 @@ fn dynamic_imports(node: Node, src: &[u8], out: &mut Vec<Import>) {
             names: vec!["*".into()],
             type_only: false,
             reexport: false,
+            module: false,
         });
     }
     let mut cursor = node.walk();

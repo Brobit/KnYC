@@ -1,0 +1,26 @@
+[project]
+name = "fastapi-notes"
+version = "1.0.0"
+description = "A small notes API with FastAPI: Pydantic models, a store behind a dependency, routers (KnYC golden fixture)."
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi==0.164.0",
+    "pydantic==2.14.3",
+    "uvicorn==0.54.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "httpx==0.28.1",
+    "pytest==9.2.0",
+]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["app", "app.routes"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -77,6 +77,7 @@ pub fn parse_yaml(source: &str) -> ParsedFile {
                 names: Vec::new(),
                 type_only: false,
                 reexport: false,
+                module: false,
             })
             .collect(),
         ..ParsedFile::default()

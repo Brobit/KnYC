@@ -53,6 +53,8 @@ export const graphFileSchema = z.object({
       names: z.array(z.string()),
       typeOnly: z.boolean(),
       reexport: z.boolean(),
+      /** Python (#126): the import binds a module, not names from it. */
+      module: z.boolean().optional(),
     }),
   ),
   exports: z.array(z.string()),

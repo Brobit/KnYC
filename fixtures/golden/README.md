@@ -17,9 +17,11 @@ Every change to the analysis pipeline is re-run on them and measured (issue #15)
 | [`nextjs-notes`](nextjs-notes/) | small, ~300 lines, Next.js 16 (app router) | 6 (Vitest, route handlers called directly) | One package, two tracks: pages and components (UI checks on mount pages) and route handlers (HTTP checks) (#93) |
 | [`vue-notes`](vue-notes/) | small, ~250 lines, Vue 3 (Vite), Pinia, vue-router | 4 (Vitest) | Single-file components in the code graph, UI checks with Vue mount modules (#94) |
 | [`angular-notes`](angular-notes/) | small, ~250 lines, Angular 22 (standalone, signals, router) | 3 (Vitest) | Components with their template in the decorator, a service injected, UI checks mounted as main.ts (#95) |
+| [`fastapi-notes`](fastapi-notes/) | small, ~250 lines, Python 3.12, FastAPI + Pydantic | 9 (pytest, TestClient) | Python in the code graph: relative and package imports, decorators, classes split by method (#126); the M5 Python issues build on it |
 | [`express-no-tests`](express-no-tests/) | small, ~250 lines | none | Generated checks only (HTTP requests, commands) |
 
-They are plain npm projects (not part of the pnpm workspace), like most projects users will import.
+They are plain npm projects (not part of the pnpm workspace), like most projects users will import;
+`fastapi-notes` is a plain Python project (`pip install -e ".[dev]"`, then `pytest`).
 CI builds and tests them on every pull request.
 
 ```bash
