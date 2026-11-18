@@ -29,7 +29,10 @@ export const progress = z.object({
   schemaVersion: z.literal(1),
   activePathId: id.optional(),
   paths: z.record(id, pathProgress).default({}),
-  /** Finished tracks: the learner's code replaces the original for these. */
-  tracksDone: z.array(z.object({ trackId, pathId: id, snapshot: z.string().min(1) })).default([]),
+  /**
+   * Finished tracks (#101): the learner's code replaces the original for these. `snapshot`: the
+   * last passed step's (absent when every step was skipped).
+   */
+  tracksDone: z.array(z.object({ trackId, pathId: id, snapshot: z.string().min(1).optional() })).default([]),
 });
 export type Progress = z.infer<typeof progress>;

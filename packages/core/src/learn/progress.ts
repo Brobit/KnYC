@@ -3,6 +3,7 @@
 // it is applied so the project still builds (the learner's code is in a snapshot first). Every
 // change is a pure function of progress.json; the app saves the result.
 
+import type { TrackId } from "../schemas/common.ts";
 import type { LearningPath } from "../schemas/learning-path.ts";
 import type { PathProgress, Progress, StepProgress } from "../schemas/progress.ts";
 import type { FileChange } from "./hints.ts";
@@ -38,9 +39,45 @@ export function withCurrentStep(progress: Progress, pathId: string, stepId: stri
   });
 }
 
-/** The path is done: every step passed or skipped. */
+/** The track a path teaches, from its id (`pathIdFor`: "backend-standard" → "backend"). */
+export const trackOfPath = (pathId: string) => pathId.split("-")[0] as TrackId;
+
+/**
+ * The path is done: every step passed or skipped. Its track is done too (#101): the learner's code
+ * for it stays when they start another track.
+ */
 export function withPathComplete(progress: Progress, pathId: string, now: Date): Progress {
-  return withPath(progress, pathId, (path) => ({ ...path, completedAt: path.completedAt ?? now.toISOString() }));
+  const done = withPath(progress, pathId, (path) => ({ ...path, completedAt: path.completedAt ?? now.toISOString() }));
+  const path = done.paths[pathId];
+  if (!path) return done;
+  const trackId = trackOfPath(pathId);
+  const snapshot = Object.values(path.steps)
+    .map((s) => s.snapshot)
+    .filter((s): s is string => !!s)
+    .pop();
+  return { ...done, tracksDone: [...done.tracksDone.filter((t) => t.trackId !== trackId), { trackId, pathId, ...(snapshot ? { snapshot } : {}) }] };
+}
+
+export interface TrackProgress {
+  pathId: string;
+  status: "done" | "in-progress";
+  /** Steps passed or skipped, of `total`. */
+  passed: number;
+  total: number;
+}
+
+/** Where each track stands in a workspace (#101): done, or how far its path is (the furthest one). */
+export function trackProgress(progress: Progress): Map<TrackId, TrackProgress> {
+  const tracks = new Map<TrackId, TrackProgress>();
+  for (const [pathId, path] of Object.entries(progress.paths)) {
+    const steps = Object.values(path.steps);
+    const passed = steps.filter((s) => s.status === "passed" || s.status === "skipped").length;
+    const done = !!path.completedAt || progress.tracksDone.some((t) => t.pathId === pathId);
+    const state: TrackProgress = { pathId, status: done ? "done" : "in-progress", passed, total: steps.length };
+    const known = tracks.get(trackOfPath(pathId));
+    if (!known || (done && known.status !== "done") || (known.status !== "done" && passed > known.passed)) tracks.set(trackOfPath(pathId), state);
+  }
+  return tracks;
 }
 
 /** Steps marked skipped (F3); their code comes from the original. */

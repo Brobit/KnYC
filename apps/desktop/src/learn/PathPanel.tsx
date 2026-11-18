@@ -31,6 +31,8 @@ export function PathPanel({ empty }: { empty: ReactNode }) {
   const current = path.steps.findIndex((s) => s.id === stepId);
   const count = (state: string) => [...states.values()].filter((s) => s === state).length;
   const steps = new Map(path.steps.map((s) => [s.id, s]));
+  // Tracks finished before this one: their code is the learner's (#101).
+  const others = learning.progress.tracksDone.map((d) => d.trackId).filter((id) => id !== path.trackId);
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto bg-surface p-4">
@@ -39,6 +41,7 @@ export function PathPanel({ empty }: { empty: ReactNode }) {
         <p className="text-xs text-text-muted">
           {progress?.completedAt ? t("pathMap.complete") : t("pathMap.summary", { passed: count("passed"), skipped: count("skipped") })}
         </p>
+        {others.length > 0 && <p className="text-xs text-text-secondary">{t("pathMap.onYourCode", { count: others.length, tracks: others.map((id) => t(`overview.tracks.${id}`)).join(", ") })}</p>}
       </header>
       {moving.error && (
         <p role="alert" className="text-xs text-danger">

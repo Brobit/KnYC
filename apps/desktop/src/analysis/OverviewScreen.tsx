@@ -4,10 +4,11 @@
 import { Route } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { architectureMap, importReport, projectTracks, type Job, type TrackId } from "@knyc/core";
+import { architectureMap, importReport, projectTracks, trackProgress, type Job, type TrackId } from "@knyc/core";
 import { Chip } from "@/components/knyc/badges";
 import { Button } from "@/components/ui/button";
 import { useJobs } from "@/jobs/jobs-context";
+import { useOptionalLearning } from "@/learn/learning-context";
 import { ArchitectureMapView, TrackCards, useJobResults } from "./shared";
 
 export function OverviewScreen({ jobId, onHome, onChoosePath }: { jobId: string; onHome: () => void; onChoosePath: (job: Job, track: TrackId) => void }) {
@@ -16,6 +17,7 @@ export function OverviewScreen({ jobId, onHome, onChoosePath }: { jobId: string;
   const job: Job | undefined = jobs.jobs.find((j) => j.id === jobId);
   const { scan, graph, summaries } = useJobResults(job);
   const [track, setTrack] = useState<TrackId | null>(null);
+  const learning = useOptionalLearning()?.learning;
 
   if (!job) {
     return (
@@ -31,6 +33,8 @@ export function OverviewScreen({ jobId, onHome, onChoosePath }: { jobId: string;
 
   const report = importReport(scan, graph);
   const tracks = projectTracks(scan, graph);
+  // The open workspace rebuilds this project: where each track stands (#101).
+  const progress = learning && learning.project.source.hash === job.input.sourceHash ? trackProgress(learning.progress) : undefined;
   const map = architectureMap(graph, summaries);
   const stack = [...report.languages, ...report.frameworks, ...report.testRunners];
 
@@ -74,7 +78,7 @@ export function OverviewScreen({ jobId, onHome, onChoosePath }: { jobId: string;
         <h2 id="overview-tracks" className="text-[11px] font-semibold tracking-[0.06em] text-text-muted uppercase">
           {t("overview.tracksTitle")}
         </h2>
-        <TrackCards tracks={tracks} selected={track} onSelect={(id) => setTrack(id as TrackId)} />
+        <TrackCards tracks={tracks} selected={track} onSelect={(id) => setTrack(id as TrackId)} progress={progress} />
         <Button className="h-[38px]" onClick={() => onChoosePath(job, track ?? tracks.tracks[0]!.id)}>
           <Route />
           {t("overview.choosePath")}

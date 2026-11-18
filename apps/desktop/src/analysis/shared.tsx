@@ -2,8 +2,9 @@
 // track cards and the architecture map.
 import { Container, Database, Layers, Monitor, Server, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
-import { MAP_NODE, type ArchitectureMap, type Job, type ProjectTracks } from "@knyc/core";
+import { MAP_NODE, type ArchitectureMap, type Job, type ProjectTracks, type TrackId, type TrackProgress } from "@knyc/core";
 import { TrackCard } from "@/components/knyc/panels";
 import type { JobResults } from "@/jobs/job-manager";
 import { useJobs } from "@/jobs/jobs-context";
@@ -31,7 +32,26 @@ export const formatLines = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1).
 
 const TRACK_ICONS: Record<string, LucideIcon> = { frontend: Monitor, backend: Server, database: Database, deployment: Container, full: Layers };
 
-export function TrackCards({ tracks, selected, onSelect, row }: { tracks: ProjectTracks; selected?: string | null; onSelect?: (id: string) => void; row?: boolean }) {
+/** "Done" or "3 of 10 steps", for a track the learner has started (#101). */
+export function trackLabel(state: TrackProgress | undefined, t: TFunction): { label: string; done: boolean } | undefined {
+  if (!state) return undefined;
+  return state.status === "done" ? { label: t("overview.trackDone"), done: true } : { label: t("overview.trackSteps", { passed: state.passed, total: state.total }), done: false };
+}
+
+export function TrackCards({
+  tracks,
+  selected,
+  onSelect,
+  row,
+  progress,
+}: {
+  tracks: ProjectTracks;
+  selected?: string | null;
+  onSelect?: (id: string) => void;
+  row?: boolean;
+  /** The open workspace's progress per track, when it's this project's (#101). */
+  progress?: Map<TrackId, TrackProgress>;
+}) {
   const { t } = useTranslation();
   return (
     <div className={row ? "grid gap-2.5 sm:grid-cols-2" : "flex flex-col gap-2.5"}>
@@ -50,6 +70,7 @@ export function TrackCards({ tracks, selected, onSelect, row }: { tracks: Projec
             icon={TRACK_ICONS[track.id] ?? Layers}
             description={description}
             meta={[t("overview.lines", { count: formatLines(track.lines) }), t("overview.files", { count: track.files }), t("overview.hours", { count: track.hours })]}
+            progress={trackLabel(progress?.get(track.id as TrackId), t)}
             selected={selected === track.id}
             onSelect={onSelect ? () => onSelect(track.id) : undefined}
           />

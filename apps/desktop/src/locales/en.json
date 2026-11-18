@@ -265,6 +265,8 @@
   "pathMap": {
     "summary": "{{passed}} passed · {{skipped}} skipped",
     "complete": "Path complete: every step is done.",
+    "onYourCode_one": "Runs against your own code for the {{tracks}} track, done earlier.",
+    "onYourCode_other": "Runs against your own code for the {{tracks}} tracks, done earlier.",
     "milestone": "Milestone {{number}}: {{title}}",
     "state": {
       "passed": "passed",
@@ -656,6 +658,8 @@
       "deployment": "Deployment",
       "full": "Full project"
     },
+    "trackDone": "Done",
+    "trackSteps": "{{passed}} of {{total}} steps",
     "trackDescription_one": "{{count}} module: {{modules}}",
     "trackDescription_other": "{{count}} modules: {{modules}}",
     "fullDescription": "Everything, in a natural build order.",

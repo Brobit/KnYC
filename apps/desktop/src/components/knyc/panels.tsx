@@ -63,11 +63,13 @@ export interface TrackCardProps {
   icon: LucideIcon;
   description: string;
   meta: string[];
+  /** Where the learner is in this track (#101): "Done", "3 of 10 steps". */
+  progress?: { label: string; done: boolean };
   selected?: boolean;
   onSelect?: () => void;
 }
 
-export function TrackCard({ track, name, icon: Icon, description, meta, selected, onSelect }: TrackCardProps) {
+export function TrackCard({ track, name, icon: Icon, description, meta, progress, selected, onSelect }: TrackCardProps) {
   return (
     <button
       type="button"
@@ -81,6 +83,9 @@ export function TrackCard({ track, name, icon: Icon, description, meta, selected
       <span className="flex items-center gap-2">
         <span className={cn("size-2.5 rounded-[3px]", trackDot(track))} aria-hidden />
         <span className="flex-1 text-[15px] font-semibold text-text-primary">{name}</span>
+        {progress && (
+          <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", progress.done ? "bg-success-soft text-success" : "bg-surface-2 text-text-secondary")}>{progress.label}</span>
+        )}
         <Icon className={cn("size-4", selected ? "text-accent" : "text-text-muted")} aria-hidden />
       </span>
       <span className="text-xs leading-[1.45] text-text-secondary">{description}</span>
