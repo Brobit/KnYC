@@ -48,6 +48,7 @@ pub struct Postgres {
 
 fn docker() -> Command {
     let mut command = Command::new("docker");
+    command.stdin(Stdio::null());
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
@@ -60,7 +61,6 @@ fn docker() -> Command {
 fn output(args: &[&str]) -> anyhow::Result<String> {
     let out = docker()
         .args(args)
-        .stdin(Stdio::null())
         .output()
         .map_err(|e| anyhow::anyhow!("Docker isn't available ({e})"))?;
     if !out.status.success() {
