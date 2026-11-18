@@ -32,18 +32,35 @@ export interface WorkspaceStart {
   now: Date;
 }
 
+/** The files a path's steps write: its track's (#101). */
+export function trackFiles(path: LearningPath): Set<string> {
+  return new Set(path.steps.flatMap((step) => step.introduces.map((u) => u.unit.split("#")[0]!)));
+}
+
 /**
  * Writes a new workspace: the setup, project.json, the path and the progress. An existing KnYC
- * workspace keeps its code and progress; only the path document is refreshed.
+ * workspace keeps its code and progress; only the path document is refreshed. Another track started
+ * there (#101) gets its own files as R₀ (its code to rebuild), while the rest stays, the code of the
+ * tracks done so far included: a frontend path then runs against the learner's own backend.
+ * `beforeReset` runs first (the app snapshots the learner's code).
  */
-export async function startWorkspace(files: WorkspaceFiles, start: WorkspaceStart): Promise<void> {
+export async function startWorkspace(files: WorkspaceFiles, start: WorkspaceStart, beforeReset?: () => Promise<void>): Promise<void> {
   const paths = knycPaths(start.path.id);
-  if (!(await files.exists(paths.project))) {
+  const existing = await files.exists(paths.project);
+  if (!existing) {
     for (const [file, content] of start.setup) await files.write(file, content);
     await files.write(paths.project, json(projectSchema.parse(start.project)));
   }
   await files.write(paths.path, json(learningPath.parse(start.path)));
   const progress = await readProgress(files);
+  if (existing && progress && !progress.paths[start.path.id]) {
+    await beforeReset?.();
+    for (const file of trackFiles(start.path)) {
+      const r0 = start.setup.get(file);
+      if (r0 === undefined) await files.remove(file).catch(() => {});
+      else await files.write(file, r0);
+    }
+  }
   if (!progress?.paths[start.path.id]) {
     const fresh = initialProgress(start.path, start.now);
     await writeProgress(files, progress ? { ...progress, activePathId: start.path.id, paths: { ...progress.paths, ...fresh.paths } } : fresh);

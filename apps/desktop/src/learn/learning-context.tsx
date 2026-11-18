@@ -444,7 +444,8 @@ export function LearningProvider({
       if (!root) throw new Error("this analysis has no workspace folder");
       const start = await jobs.learningStart(started);
       await createFolder(root);
-      await startWorkspace(files, start);
+      // Another track in this workspace (#101): the learner's code is kept in a snapshot first.
+      await startWorkspace(files, start, async () => void (await snapshot(`before starting ${start.path.id}`)));
       await syncPreparedSteps(
         files,
         start.path,
@@ -453,7 +454,7 @@ export function LearningProvider({
       );
       reload();
     },
-    [jobs, createFolder, files, reload],
+    [jobs, createFolder, files, reload, snapshot],
   );
 
   const value: LearningContext = {
@@ -479,6 +480,11 @@ export function LearningProvider({
     startLearning,
   };
   return <Context.Provider value={value}>{children}</Context.Provider>;
+}
+
+/** The learning context when there is one: screens that work without a workspace (the overview). */
+export function useOptionalLearning(): LearningContext | null {
+  return useContext(Context);
 }
 
 export function useLearning(): LearningContext {

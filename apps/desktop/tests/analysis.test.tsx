@@ -14,6 +14,8 @@ import {
   type StageContext,
   type StageDefinition,
   type Summaries,
+  type TrackId,
+  type TrackProgress,
 } from "@knyc/core";
 import { defaultSettings } from "@knyc/core/schemas";
 import { AnalysisScreen } from "@/analysis/AnalysisScreen";
@@ -21,6 +23,7 @@ import { BrowserDownload } from "@/analysis/BrowserDownload";
 import type { BrowserBackend } from "@/analysis/browser-backend";
 import { ChoosePathScreen } from "@/analysis/ChoosePathScreen";
 import { OverviewScreen } from "@/analysis/OverviewScreen";
+import { TrackCards } from "@/analysis/shared";
 import { createFakeImportBackend } from "@/import/import-backend";
 import { JobManager } from "@/jobs/job-manager";
 import { JobsProvider } from "@/jobs/jobs-context";
@@ -198,6 +201,20 @@ describe("OverviewScreen", () => {
     expect(backend).toHaveAttribute("aria-pressed", "true");
     await user.click(screen.getByRole("button", { name: /Choose a path/ }));
     expect(chosen).toEqual(["backend"]);
+  });
+});
+
+describe("TrackCards (#101)", () => {
+  it("shows where the learner stands in each track", () => {
+    const track = (id: TrackId) => ({ id, files: 3, lines: 120, hours: 2, modules: ["src"] });
+    const progress = new Map<TrackId, TrackProgress>([
+      ["backend", { pathId: "backend-standard", status: "done", passed: 11, total: 11 }],
+      ["frontend", { pathId: "frontend-standard", status: "in-progress", passed: 3, total: 10 }],
+    ]);
+    render(<TrackCards tracks={{ tracks: [track("frontend"), track("backend"), track("full")], hasFrontend: true }} progress={progress} />);
+    expect(within(screen.getByRole("button", { name: /Backend/ })).getByText("Done")).toBeInTheDocument();
+    expect(within(screen.getByRole("button", { name: /Frontend/ })).getByText("3 of 10 steps")).toBeInTheDocument();
+    expect(within(screen.getByRole("button", { name: /Full project/ })).queryByText(/Done|steps/)).toBeNull();
   });
 });
 
