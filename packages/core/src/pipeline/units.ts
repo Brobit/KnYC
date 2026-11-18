@@ -67,11 +67,11 @@ export function buildUnits(graph: Graph): Units {
         fileAtoms.push({ id: `${path}#${symbol.name}`, file: path, kind: "class", exported: symbol.exported, lines, ...range });
       } else if (!symbol.name.includes(".") && ATOM_KINDS.has(symbol.kind)) {
         fileAtoms.push({ id: `${path}#${symbol.name}`, file: path, kind: symbol.kind as AtomKind, exported: symbol.exported, lines, ...range });
-      } else if (symbol.kind === "method" && !symbol.name.endsWith(".constructor") && !components.has(symbol.name.split(".")[0]!)) {
+      } else if (symbol.kind === "method" && !/.(constructor|__init__)$/.test(symbol.name) && !components.has(symbol.name.split(".")[0]!)) {
         const owner = symbol.name.split(".")[0]!;
         fileAtoms.push({ id: `${path}#${symbol.name}`, file: path, kind: "method", parent: `${path}#${owner}`, exported: exportedSymbols.has(owner), lines, ...range });
       }
-      // Fields and constructors belong to their class atom.
+      // Fields and constructors (Python's `__init__`, #126) belong to their class atom.
     }
     // A file of only variables and top-level statements (an entry point like server.ts) is one
     // unit: its statements aren't symbols, so splitting it would lose what they need. A database

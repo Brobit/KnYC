@@ -4,6 +4,7 @@
 
 mod deploy;
 pub mod parse;
+mod python;
 mod schema;
 
 use crate::walk::{Walk, walk};
@@ -63,6 +64,9 @@ pub struct FileImport {
     pub names: Vec<String>,
     pub type_only: bool,
     pub reexport: bool,
+    /// Python (#126): binds the module itself; its uses are attributes (`store.service`).
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub module: bool,
 }
 
 #[derive(Debug, Serialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -86,6 +90,9 @@ pub fn is_test_file(path: &str) -> bool {
         .any(|dir| matches!(dir, "test" | "tests" | "__tests__" | "e2e"))
         || name.contains(".test.")
         || name.contains(".spec.")
+        // pytest (#126)
+        || (name.ends_with(".py")
+            && (name.starts_with("test_") || name.ends_with("_test.py") || name == "conftest.py"))
 }
 
 pub fn build(root: &Path) -> anyhow::Result<Graph> {
@@ -94,6 +101,8 @@ pub fn build(root: &Path) -> anyhow::Result<Graph> {
 
 pub fn from_walk(walked: &Walk) -> anyhow::Result<Graph> {
     let known: BTreeSet<&str> = walked.files.iter().map(|f| f.path.as_str()).collect();
+    let py_roots = python::roots(&known);
+    let py_tops = python::local_tops(&known, &py_roots);
 
     let mut files = Vec::new();
     for file in walked.ai_files() {
@@ -141,25 +150,30 @@ pub fn from_walk(walked: &Walk) -> anyhow::Result<Graph> {
             }
             _ => tables,
         };
-        let imports = imports
-            .into_iter()
-            .map(|i| {
-                let (resolved, package) =
-                    if i.specifier.starts_with('.') || i.specifier.starts_with('/') {
-                        (resolve(&file.path, &i.specifier, &known), None)
-                    } else {
-                        (None, Some(package_name(&i.specifier)))
-                    };
-                FileImport {
-                    specifier: i.specifier,
-                    resolved,
-                    package,
-                    names: i.names,
-                    type_only: i.type_only,
-                    reexport: i.reexport,
-                }
-            })
-            .collect();
+        let imports = if lang == Lang::Python {
+            python_imports(&file.path, imports, &known, &py_roots, &py_tops)
+        } else {
+            imports
+                .into_iter()
+                .map(|i| {
+                    let (resolved, package) =
+                        if i.specifier.starts_with('.') || i.specifier.starts_with('/') {
+                            (resolve(&file.path, &i.specifier, &known), None)
+                        } else {
+                            (None, Some(package_name(&i.specifier)))
+                        };
+                    FileImport {
+                        specifier: i.specifier,
+                        resolved,
+                        package,
+                        names: i.names,
+                        type_only: i.type_only,
+                        reexport: i.reexport,
+                        module: false,
+                    }
+                })
+                .collect()
+        };
         files.push(FileNode {
             path: file.path.clone(),
             language: lang.id(),
@@ -233,6 +247,57 @@ pub fn from_walk(walked: &Walk) -> anyhow::Result<Graph> {
     })
 }
 
+/// Python imports resolved to files (#126). `from pkg import mod` imports the module `pkg.mod`
+/// when there's one (a binding of the module), else names from `pkg`. An import of the project's
+/// own package that doesn't resolve is reported; others are libraries (the standard one too).
+fn python_imports(
+    from: &str,
+    imports: Vec<parse::Import>,
+    known: &BTreeSet<&str>,
+    roots: &[String],
+    tops: &BTreeSet<String>,
+) -> Vec<FileImport> {
+    let resolve = |spec: &str| python::resolve(from, spec, known, roots);
+    let make = |specifier: String, names: Vec<String>, module: bool| {
+        let resolved = resolve(&specifier);
+        let top = specifier.split('.').next().unwrap_or_default();
+        let local = specifier.starts_with('.') || tops.contains(top);
+        FileImport {
+            package: (resolved.is_none() && !local).then(|| top.to_string()),
+            resolved,
+            specifier,
+            names,
+            type_only: false,
+            reexport: false,
+            module,
+        }
+    };
+    let mut out = Vec::new();
+    for import in imports {
+        if import.module {
+            out.push(make(import.specifier, import.names, true));
+            continue;
+        }
+        let mut rest = Vec::new();
+        for name in import.names {
+            let sub = if import.specifier.ends_with('.') {
+                format!("{}{name}", import.specifier)
+            } else {
+                format!("{}.{name}", import.specifier)
+            };
+            if name != "*" && resolve(&sub).is_some() {
+                out.push(make(sub, vec![name], true));
+            } else {
+                rest.push(name);
+            }
+        }
+        if !rest.is_empty() {
+            out.push(make(import.specifier, rest, false));
+        }
+    }
+    out
+}
+
 /// "@scope/pkg/sub" → "@scope/pkg", "express/router" → "express", "node:fs" → "node:fs".
 fn package_name(specifier: &str) -> String {
     let mut parts = specifier.split('/');
@@ -291,10 +356,18 @@ fn symbol_edges(files: &[FileNode]) -> Vec<(String, String)> {
     for file in files {
         // Local name → (file, symbol) it refers to.
         let mut scope: HashMap<&str, (&str, &str)> = HashMap::new();
+        // Python (#126): local name → the module file it binds.
+        let mut modules: HashMap<&str, &FileNode> = HashMap::new();
         for import in &file.imports {
             let Some(target) = import.resolved.as_deref().and_then(|p| by_path.get(p)) else {
                 continue;
             };
+            if import.module {
+                for name in &import.names {
+                    modules.insert(name, target);
+                }
+                continue;
+            }
             for name in &import.names {
                 if let Some(sym) = target.symbols.iter().find(|s| &s.name == name) {
                     scope.insert(name, (target.path.as_str(), sym.name.as_str()));
@@ -318,6 +391,14 @@ fn symbol_edges(files: &[FileNode]) -> Vec<(String, String)> {
         for sym in &file.symbols {
             let from = format!("{}#{}", file.path, sym.name);
             let owner = sym.name.split('.').next().unwrap_or(&sym.name);
+            // `store.service`: the module's symbols named like the attributes used.
+            for target in sym.uses.iter().filter_map(|u| modules.get(u.as_str())) {
+                for member in &sym.members {
+                    if target.symbols.iter().any(|t| &t.name == member) {
+                        edges.insert((from.clone(), format!("{}#{member}", target.path)));
+                    }
+                }
+            }
             for used in &sym.uses {
                 if let Some((path, target)) = scope.get(used.as_str())
                     && !(*path == file.path && (*target == sym.name || *target == owner))

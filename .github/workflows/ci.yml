@@ -50,6 +50,25 @@ jobs:
       - run: npm run build
       - run: npm test --if-present
 
+  golden-python:
+    name: Golden repo (${{ matrix.project }})
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [fastapi-notes]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fixtures/golden/${{ matrix.project }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - run: python -m compileall -q app
+      - run: pytest
+
   rust:
     name: Rust (${{ matrix.os }})
     strategy:
