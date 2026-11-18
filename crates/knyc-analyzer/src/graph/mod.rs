@@ -112,6 +112,29 @@ pub fn from_walk(walked: &Walk) -> anyhow::Result<Graph> {
             augments,
             tables,
         } = parse::parse(lang, &source)?;
+        // A Vue component is one unit named after its file, as other files import it (#94).
+        let (exports, symbols) = if lang == Lang::Vue {
+            let name = file
+                .path
+                .rsplit('/')
+                .next()
+                .unwrap_or(&file.path)
+                .trim_end_matches(".vue")
+                .to_string();
+            let symbol = parse::Symbol {
+                name: name.clone(),
+                kind: parse::SymbolKind::Variable,
+                exported: true,
+                start_line: 1,
+                end_line: file.lines.max(1),
+                uses: Default::default(),
+                members: Default::default(),
+                outer_members: Default::default(),
+            };
+            (vec![name], vec![symbol])
+        } else {
+            (exports, symbols)
+        };
         let tables = match lang {
             Lang::TypeScript | Lang::Tsx | Lang::JavaScript => {
                 schema::ts_tables(&source, &file.path)

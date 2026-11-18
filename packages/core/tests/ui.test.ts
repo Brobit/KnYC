@@ -67,8 +67,13 @@ describe("UI checks (#89)", () => {
     expect(files[2]!.code).toBe('// KnYC mount page for: NoteItem shows its title\nimport { createRoot } from "react-dom/client";\n');
     expect(uiCandidateFiles(".knyc-checks/s09-ui-1-1", "x", "await page.goto('/');")).toHaveLength(1);
 
+    // Vue (#94): a TypeScript mount module on the same HTML page.
+    const vue = uiCandidateFiles(".knyc-checks/s04-ui-1-1", "NoteItem", "await page.goto(mountUrl);", 'import { createApp } from "vue";', "vue");
+    expect(vue.map((f) => f.path)).toEqual([".knyc-checks/s04-ui-1-1.ui.mjs", ".knyc-checks/s04-ui-1-1.html", ".knyc-checks/s04-ui-1-1.mount.ts"]);
+    expect(vue[1]!.code).toContain('<script type="module" src="./s04-ui-1-1.mount.ts"></script>');
+
     // Next.js (#93): the mount module is a page of the app, and the test knows its URL.
-    const next = uiCandidateFiles("web/.knyc-checks/s04-ui-1-1", "NoteItem shows its title", "await page.goto(mountUrl);", "export default function Page() { return null; }", { root: "web" });
+    const next = uiCandidateFiles("web/.knyc-checks/s04-ui-1-1", "NoteItem shows its title", "await page.goto(mountUrl);", "export default function Page() { return null; }", "next-app", "web");
     expect(next.map((f) => f.path)).toEqual(["web/.knyc-checks/s04-ui-1-1.ui.mjs", "web/app/knyc-checks/s04-ui-1-1/page.tsx"]);
     expect(next[0]!.code).toContain('export default async function ({ page }) {\n  const mountUrl = "/knyc-checks/s04-ui-1-1";');
     expect(next[1]!.code).toBe('"use client";\n// KnYC mount page for: NoteItem shows its title\nexport default function Page() { return null; }\n');

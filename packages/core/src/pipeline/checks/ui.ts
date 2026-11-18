@@ -43,14 +43,21 @@ export interface UiCandidate {
 }
 
 /**
- * The files of a candidate: the test, and the page that mounts one component alone (#92). With
- * Vite, an HTML page next to the test loads the mount module; with Next.js (#93), the mount module
- * is a page of its own, `<package>/app/knyc-checks/<name>/page.tsx`, served at /knyc-checks/<name>.
+ * How a framework mounts one component alone: React in a TSX module (#92), Vue in a TS module
+ * (#94), Next.js as a page of the app (#93).
  */
-export function uiCandidateFiles(base: string, label: string, body: string, mount?: string, nextApp?: { root: string }): UiCandidate["files"] {
+export type MountKind = "react" | "vue" | "next-app";
+
+/**
+ * The files of a candidate: the test, and the page that mounts one component alone (#92). With
+ * Vite, an HTML page next to the test loads the mount module (`.mount.tsx`, `.mount.ts` for Vue);
+ * with Next.js (#93), the mount module is a page of its own,
+ * `<package>/app/knyc-checks/<name>/page.tsx`, served at /knyc-checks/<name>.
+ */
+export function uiCandidateFiles(base: string, label: string, body: string, mount?: string, kind: MountKind = "react", root = "."): UiCandidate["files"] {
   const name = base.slice(base.lastIndexOf("/") + 1);
-  if (nextApp && mount?.trim()) {
-    const page = `${nextApp.root === "." ? "" : `${nextApp.root}/`}app/knyc-checks/${name}/page.tsx`;
+  if (kind === "next-app" && mount?.trim()) {
+    const page = `${root === "." ? "" : `${root}/`}app/knyc-checks/${name}/page.tsx`;
     return [
       { path: `${base}.ui.mjs`, code: uiTestModule(label, body, `/knyc-checks/${name}`) },
       { path: page, code: `"use client";\n// KnYC mount page for: ${label.replace(/\n/g, " ")}\n${mount.trim().replace(/^["']use client["'];?\s*/, "")}\n` },
@@ -58,12 +65,20 @@ export function uiCandidateFiles(base: string, label: string, body: string, moun
   }
   const test = { path: `${base}.ui.mjs`, code: uiTestModule(label, body) };
   if (!mount?.trim()) return [test];
+  const module = `${name}.mount.${kind === "vue" ? "ts" : "tsx"}`;
   return [
     test,
-    { path: `${base}.html`, code: `<!doctype html>\n<html><head><title>${label.replace(/[<&]/g, "")}</title></head>\n<body><div id="root"></div><script type="module" src="./${name}.mount.tsx"></script></body></html>\n` },
-    { path: `${base}.mount.tsx`, code: `// KnYC mount page for: ${label.replace(/\n/g, " ")}\n${mount.trim()}\n` },
+    { path: `${base}.html`, code: `<!doctype html>\n<html><head><title>${label.replace(/[<&]/g, "")}</title></head>\n<body><div id="root"></div><script type="module" src="./${module}"></script></body></html>\n` },
+    { path: `${base.slice(0, base.lastIndexOf("/") + 1)}${module}`, code: `// KnYC mount page for: ${label.replace(/\n/g, " ")}\n${mount.trim()}\n` },
   ];
 }
+
+/** What the prompt asks a mount module to be, by framework. */
+const MOUNT_MODULE: Record<MountKind, string> = {
+  react: 'a complete TSX module that renders the step\'s component into document.getElementById("root")',
+  vue: 'a complete TypeScript module that mounts the step\'s component on "#root" with createApp (import { createApp, h } from "vue"; a render function passes the props; install createPinia() and a router with createMemoryHistory() when the component uses a store, RouterLink or RouterView)',
+  "next-app": 'a complete TSX module whose default export is a page component (a Next.js page, already marked "use client") that renders the step\'s component',
+};
 
 /** The test module around the model's body: what the runner imports and calls with a page. */
 export function uiTestModule(label: string, body: string, mountUrl?: string): string {
@@ -94,9 +109,9 @@ ${indented}
 /**
  * `mountImports`: source file → its import path from the checks folder, for mount modules.
  * `appShown`: false when the app's entry point doesn't exist yet at this step (its page is empty).
- * `nextApp`: a mount page is a Next.js page (#93), not a module rendering into #root.
+ * `kind`: what a mount module is (a React or Vue module rendering into #root, a Next.js page).
  */
-export function uiChecksPrompt(ctx: StepContext, problems: string[] = [], mountImports: Map<string, string> = new Map(), appShown = true, nextApp = false): string {
+export function uiChecksPrompt(ctx: StepContext, problems: string[] = [], mountImports: Map<string, string> = new Map(), appShown = true, kind: MountKind = "react"): string {
   return `Step ${ctx.step.id}: ${ctx.step.title}
 Goal: ${ctx.step.goal}
 
@@ -117,10 +132,7 @@ ${
   mountImports.size > 0
     ? `
 When the app's own page doesn't show this step's work yet (its root component or entry point comes in a later step), also write \`mount\`: ${
-          nextApp
-            ? 'a complete TSX module whose default export is a page component (a Next.js page, already marked "use client") that renders the step\'s component'
-            : 'a complete TSX module that renders the step\'s component into document.getElementById("root")'
-        } with sample props (record callbacks on window to check them; for a hook, a small component that calls it and shows what it returns, with buttons for its actions), and open it with \`await page.goto(mountUrl)\`.${appShown ? "" : " The app's entry point comes in a later step: its own page is empty at this step, so every check here uses a mount page."} Import the project's code from these paths:
+MOUNT_MODULE[kind]} with sample props (record callbacks on window to check them; for a hook, a small component that calls it and shows what it returns, with buttons for its actions), and open it with \`await page.goto(mountUrl)\`.${appShown ? "" : " The app's entry point comes in a later step: its own page is empty at this step, so every check here uses a mount page."} Import the project's code from these paths:
 ${[...mountImports].map(([file, path]) => `- ${file}: "${path}"`).join("\n")}
 `
     : ""
@@ -143,8 +155,8 @@ ${problems.map((p) => `- ${p}`).join("\n")}
 }`;
 }
 
-export async function askForUiChecks(client: AiClient, ctx: StepContext, problems: string[], mountImports?: Map<string, string>, appShown?: boolean, nextApp?: boolean): Promise<UiAnswer> {
-  const result = await client.generate({ role: "lessons", system: UI_CHECKS_SYSTEM, prompt: uiChecksPrompt(ctx, problems, mountImports, appShown, nextApp), schema: uiAnswer });
+export async function askForUiChecks(client: AiClient, ctx: StepContext, problems: string[], mountImports?: Map<string, string>, appShown?: boolean, kind?: MountKind): Promise<UiAnswer> {
+  const result = await client.generate({ role: "lessons", system: UI_CHECKS_SYSTEM, prompt: uiChecksPrompt(ctx, problems, mountImports, appShown, kind), schema: uiAnswer });
   return result.data;
 }
 

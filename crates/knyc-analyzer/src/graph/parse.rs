@@ -16,6 +16,9 @@ pub enum Lang {
     Sql,
     /// A Dockerfile (#100): one whole-file unit.
     Dockerfile,
+    /// A Vue single-file component (#94): its `<script>` blocks parsed for their imports; the
+    /// component is one whole-file unit.
+    Vue,
     /// A compose file or a CI workflow (#100), not other YAML: one whole-file unit; a compose file
     /// imports the Dockerfiles it builds.
     Yaml,
@@ -40,6 +43,7 @@ impl Lang {
             "tsx" => Some(Self::Tsx),
             "js" | "jsx" | "mjs" | "cjs" => Some(Self::JavaScript),
             "prisma" => Some(Self::Prisma),
+            "vue" => Some(Self::Vue),
             "sql" => Some(Self::Sql),
             _ => None,
         }
@@ -52,6 +56,7 @@ impl Lang {
             Self::Prisma => "prisma",
             Self::Sql => "sql",
             Self::Dockerfile => "dockerfile",
+            Self::Vue => "vue",
             Self::Yaml => "yaml",
         }
     }
@@ -127,6 +132,7 @@ pub fn parse(lang: Lang, source: &str) -> anyhow::Result<ParsedFile> {
         Lang::Prisma => return Ok(super::schema::parse_prisma(source)),
         Lang::Sql => return Ok(super::schema::parse_sql(source)),
         Lang::Dockerfile => return Ok(ParsedFile::default()),
+        Lang::Vue => return parse_vue(source),
         Lang::Yaml => return Ok(super::deploy::parse_yaml(source)),
     };
     parser.set_language(&language)?;
@@ -150,6 +156,32 @@ pub fn parse(lang: Lang, source: &str) -> anyhow::Result<ParsedFile> {
         }
     }
     dynamic_imports(root, src, &mut file.imports);
+    Ok(file)
+}
+
+/// A Vue component's imports, from its `<script>` and `<script setup>` blocks (TypeScript when
+/// `lang="ts"`). Its symbols and exports are the component itself, added by the caller (it knows
+/// the file's name).
+fn parse_vue(source: &str) -> anyhow::Result<ParsedFile> {
+    static SCRIPT: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+        regex::Regex::new(r"(?s)<script\b([^>]*)>(.*?)</script>").unwrap()
+    });
+    let mut file = ParsedFile::default();
+    for block in SCRIPT.captures_iter(source) {
+        let ts = block[1].contains("lang=\"ts\"")
+            || block[1].contains("lang='ts'")
+            || block[1].contains("lang=\"tsx\"");
+        let parsed = parse(
+            if ts {
+                Lang::TypeScript
+            } else {
+                Lang::JavaScript
+            },
+            &block[2],
+        )?;
+        file.has_errors |= parsed.has_errors;
+        file.imports.extend(parsed.imports);
+    }
     Ok(file)
 }
 
@@ -630,5 +662,18 @@ export class AppModule {}
         )
         .unwrap();
         assert_eq!(f.imports[0].specifier, "express");
+    }
+}
+
+#[cfg(test)]
+mod vue_tests {
+    use super::*;
+
+    #[test]
+    fn a_vue_component_imports_from_its_script_blocks() {
+        let sfc = "<script setup lang=\"ts\">\nimport type { Note } from \"../types\";\nimport NoteItem from \"./NoteItem.vue\";\n\ndefineProps<{ notes: Note[] }>();\n</script>\n\n<template>\n  <ul><NoteItem v-for=\"n in notes\" :key=\"n.id\" :note=\"n\" /></ul>\n</template>\n";
+        let file = parse(Lang::Vue, sfc).unwrap();
+        let specifiers: Vec<_> = file.imports.iter().map(|i| i.specifier.as_str()).collect();
+        assert_eq!(specifiers, vec!["../types", "./NoteItem.vue"]);
     }
 }
